@@ -5,6 +5,7 @@ mod problem_instance;
 mod input_output;
 mod problem_simplification;
 mod encoding;
+mod solvers;
 
 use bounds::upper_bounds::{lpt, upper_bound};
 use bounds::lower_bounds::*;
@@ -41,5 +42,7 @@ fn main() {
         //TODO: this
         println!("solution found");
     }
+
+
 
 }

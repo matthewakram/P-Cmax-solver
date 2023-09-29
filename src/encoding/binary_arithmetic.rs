@@ -365,3 +365,94 @@ pub fn not_equals_constant_encoding(n: &BinaryNumber, k: usize) -> Clause {
     }
     return Clause { vars: out };
 }
+
+pub fn pairwise_encoded_at_most_one(variables: &Vec<i32>) -> Vec<Clause> {
+    let mut clauses: Vec<Clause> = vec![];
+    for i in 0..variables.len() {
+        for j in i + 1..variables.len() {
+            clauses.push(Clause {
+                vars: vec![-variables[i], -variables[j]],
+            });
+        }
+    }
+    return clauses;
+}
+
+pub fn at_least_one_encoding(variables: Vec<i32>) -> Clause {
+    return Clause { vars: variables };
+}
+
+pub fn n_equals_i_implies_m_in_j_encoding(
+    n: &BinaryNumber,
+    i: usize,
+    m: &BinaryNumber,
+    j: &Vec<usize>,
+) -> Vec<Clause> {
+    let mut clauses: Vec<Clause> = vec![];
+    // we encode n==i ==> m \in j as n!=i | m \in j
+    let n_not_equals_i: Clause = not_equals_constant_encoding(&n, i);
+
+    // we take all the binary representations of all of the numbers
+    let mut binary_j: Vec<Vec<bool>> = j.iter().map(|x| to_binary(*x)).collect();
+    
+    // now we need to pad the values such that they are all the same length as m
+    for i in 0..binary_j.len() {
+        while binary_j[i].len() < m.bit_length{
+            binary_j[i].push(false);
+        }
+    }
+
+    println!("{:?}", binary_j);
+
+    for current_option in 0..binary_j.len() {
+        // for a given option we now say that m CAN be option
+        // we do this by looking at the other options m can be and asserting on the bits that uniquely identify this option
+        for current_bit_depth in 0..binary_j[current_option].len() {
+            let mut relevant_bit: bool = true;
+            for other_option in 0..binary_j.len() {
+                if binary_j[other_option].len() <= current_bit_depth {
+                    continue;
+                }
+
+                if binary_j[current_option][0..current_bit_depth]
+                    == binary_j[other_option][0..current_bit_depth]
+                {
+                    if binary_j[current_option][current_bit_depth]
+                        != binary_j[other_option][current_bit_depth]
+                    {
+                        relevant_bit = false;
+                        break;
+                    } else if other_option < current_option {
+                        relevant_bit = false;
+                        break;
+                    }
+                }
+            }
+            if !relevant_bit {
+                println!("irrelavant: {} {}", current_option, current_bit_depth );
+                continue;
+            }
+            // now we know that the current bit uniquely identifies this option from at least one other option
+            let mut clause: Vec<i32> = vec![];
+            for i in 0..current_bit_depth {
+                if binary_j[current_option][i] == true {
+                    clause.push(-(m.vars[i] as i32))
+                } else {
+                    clause.push((m.vars[i] as i32))
+                }
+            }
+            clause.push(if binary_j[current_option][current_bit_depth] == true {
+                m.vars[current_bit_depth] as i32
+            } else {
+                -(m.vars[current_bit_depth] as i32)
+            });
+
+            clause.append(&mut n_not_equals_i.vars.clone());
+
+            // now we have a clause ensuring the sign of this bit, we can then move on to the next bit
+            clauses.push(Clause { vars: clause })
+        }
+    }
+
+    return clauses;
+}

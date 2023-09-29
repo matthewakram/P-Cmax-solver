@@ -1,9 +1,9 @@
 use crate::problem_instance::{partial_solution::PartialSolution, solution::Solution};
 
 pub trait Encoder {
-    fn basic_encode(partial_solution: PartialSolution);
-    fn output();
-    fn decode() -> Solution;
+    fn basic_encode(&mut self, partial_solution: &PartialSolution);
+    fn output(&self);
+    fn decode(&self) -> Solution;
 }
 
 pub struct VarNameGenerator {
@@ -21,7 +21,7 @@ impl VarNameGenerator {
     }
 }
 
-#[derive(Debug, Eq, PartialEq)]
+#[derive(Debug, Eq, PartialEq, Clone)]
 pub struct Clause{
     pub vars: Vec<i32>,
 }
