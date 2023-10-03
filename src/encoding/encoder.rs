@@ -1,9 +1,10 @@
-use crate::problem_instance::{partial_solution::PartialSolution, solution::Solution};
+use crate::problem_instance::{partial_solution::PartialSolution, solution::Solution, problem_instance::ProblemInstance};
 
 pub trait Encoder {
-    fn basic_encode(&mut self, partial_solution: &PartialSolution);
-    fn output(&self);
-    fn decode(&self) -> Solution;
+    fn basic_encode(&mut self, partial_solution: &PartialSolution, makespan: usize);
+    fn output(&self) -> Vec<Clause>;
+    fn decode(&self, instance: &ProblemInstance, solution: &Vec<i32>) -> Solution;
+    fn get_num_vars(&self) -> usize;
 }
 
 pub struct VarNameGenerator {
@@ -19,6 +20,10 @@ impl VarNameGenerator {
     pub fn next(&mut self) -> usize {
         return self.current.next().unwrap();
     }
+
+    pub fn peek(&self) -> usize {
+        return *(self.current.clone().peekable().peek().unwrap());
+    }
 }
 
 #[derive(Debug, Eq, PartialEq, Clone)]
@@ -26,3 +31,8 @@ pub struct Clause{
     pub vars: Vec<i32>,
 }
 
+
+//TODO encoder goals:
+// two elements of the same size: one has to come after the other one
+// fill rule
+// replacement rule

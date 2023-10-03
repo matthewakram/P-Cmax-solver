@@ -1,4 +1,4 @@
 
-pub struct LogarithmicEncoder {
+pub struct _LogarithmicEncoder {
     
 }

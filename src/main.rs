@@ -6,43 +6,63 @@ mod input_output;
 mod problem_simplification;
 mod encoding;
 mod solvers;
+mod common;
+mod makespan_scheduling;
 
 use bounds::upper_bounds::{lpt, upper_bound};
 use bounds::lower_bounds::*;
 
 
 use crate::bounds::lower_bounds;
+use crate::bounds::upper_bounds::lptpp;
+use crate::makespan_scheduling::linear_makespan::LinearMakespan;
+use crate::problem_instance::solution::Solution;
+use crate::solvers::sat_solver::{sat_solver_manager, kissat};
 
 fn main() {
+    // -------------READING THE INPUT--------------
     let args: Vec<String> = env::args().collect();
     let file_name = &args[1];
-    println!("{}", file_name);
     let instance = input_output::from_file::read_from_file(file_name);
 
-    let initial_upper_bounds: Vec<Box<dyn upper_bound::InitialUpperBound>> = vec![Box::new(lpt::LPT{})];
+
+    //-------------CALCULATING BOUNDS--------------
+    let initial_upper_bounds: Vec<Box<dyn upper_bound::InitialUpperBound>> = vec![Box::new(lpt::LPT{}), Box::new(lptpp::Lptpp{})];
     let initial_lower_bound:  Vec<Box<dyn lower_bound::LowerBound>> = vec![
         Box::new(pigeon_hole::PigeonHole{}), 
         Box::new(lower_bounds::lpt::LPT{}),
         Box::new(lower_bounds::max_job_size::MaxJobSize{})
         ];
 
-    let initial_upper_bound = initial_upper_bounds.iter().map(|x| x.as_ref().get_upper_bound(&instance)).min_by_key(|x| x.makespan).unwrap();
+    let initial_upper_bounds: Vec<Solution> = initial_upper_bounds.iter().map(|x| x.as_ref().get_upper_bound(&instance)).collect();
+    println!("Initial upper bounds {:?}", initial_upper_bounds.iter().map(|x| x.makespan ).collect::<Vec<usize>>() );
+    let initial_upper_bound = initial_upper_bounds.iter().min_by_key(|x| x.makespan).unwrap();
 
     let initial_lower_bound: Vec<usize> = initial_lower_bound.iter().map(|x| x.as_ref().get_lower_bound(&instance)).collect();
     println!("initial lower bounds {:?}", initial_lower_bound);
-    let initial_lower_bound = *initial_lower_bound.iter().max().unwrap();
 
+    
+    let initial_lower_bound: usize = *initial_lower_bound.iter().max().unwrap();
+
+
+    // -------------CHECKING IF SOLUTION HAS BEEN FOUND-----------
     // We maintain that the solution is within [lower_bound, upper_bound]. Note that this is inclusive.
 
-    let solution = instance.finalize_solution(initial_upper_bound);
-    println!("{}", solution);
-
-    assert!(initial_lower_bound <= solution.makespan);
-    if initial_lower_bound == solution.makespan {
+    assert!(initial_lower_bound <= initial_upper_bound.makespan);
+    if initial_lower_bound == initial_upper_bound.makespan {
         //TODO: this
         println!("solution found");
+        println!("{}", initial_upper_bound);
+        return;
     }
 
 
+    //--------------SOLVING---------------------------
 
+    let mut sat_solver = sat_solver_manager::SatSolverManager{ sat_solver: Box::new(kissat::Kissat{}), makespan_scheduler: Box::new(LinearMakespan{})};
+
+    let sol = sat_solver.solve(&instance, initial_lower_bound, &initial_upper_bound);
+    let final_solution = instance.finalize_solution(sol);
+    println!("solution found");
+    println!("{}", final_solution);
 }

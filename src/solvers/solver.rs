@@ -1,4 +1,4 @@
 
 pub trait SatSolver {
-    fn solve(file_name: &String);
+    fn solve(&self, file_name: &str) -> Option<Vec<i32>>;
 }

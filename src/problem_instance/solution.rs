@@ -3,6 +3,7 @@ use std::fmt::Display;
 
 
 
+#[derive(Clone)]
 pub struct Solution{
     pub makespan: usize,
     pub assignment: Vec<usize>,

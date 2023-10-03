@@ -31,9 +31,9 @@ gen 2 2 10 $RANDOM
 # Scaling benchmarks (tweak value ranges to your liking)
 
 for n in 5 10 20 50 100; do
-    for m in 3 5 10 20; do
+    for m in 3 5 10 20 30 40 50; do
         if [ $m -ge $n ]; then continue; fi
-        for maxsize in 3 5 10 20 50; do
+        for maxsize in 3 5 10 20 50 60; do
             gen $n $m $maxsize $RANDOM
         done
     done
