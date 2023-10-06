@@ -1,6 +1,6 @@
 use crate::{
     makespan_scheduling::makespan_scheduler::MakespanScheduler,
-    problem_instance::{problem_instance::ProblemInstance, partial_solution::PartialSolution, solution::Solution}, solvers::solver::SatSolver, encoding::{basic_encoder::BasicEncoder, encoder::Encoder, basic_with_fill_up::BasicWithFillUp}, input_output, problem_simplification::{half_size_rule::HalfSizeRule, simplification_rule::SimpRule, fill_up_rule::FillUpRule},
+    problem_instance::{problem_instance::ProblemInstance, partial_solution::PartialSolution, solution::Solution}, solvers::solver::SatSolver, encoding::encoder::Encoder, input_output, problem_simplification::{half_size_rule::HalfSizeRule, simplification_rule::SimpRule, fill_up_rule::FillUpRule},
 };
 
 pub struct SatSolverManager {

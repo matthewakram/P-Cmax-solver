@@ -4,14 +4,14 @@ mod tests {
         bounds::{
             lower_bounds::{
                 self,
-                lower_bound::{self, LowerBound},
+                lower_bound:: LowerBound,
             },
             upper_bounds::{self, upper_bound::InitialUpperBound},
         },
         encoding::{
-            encoder::{Clause, Encoder, VarNameGenerator, self}, basic_encoder::BasicEncoder, furlite_with_precedence::FurliteWithPrecedence, fill_up_lite::FillUpLite,
+            encoder::Encoder, basic_encoder::BasicEncoder, furlite_with_precedence::FurliteWithPrecedence, fill_up_lite::FillUpLite, basic_with_precedence::BasicWithPrecedence,
         },
-        input_output::{self, to_dimacs}, problem_instance::partial_solution::PartialSolution, precedence_relations::{self, precedence_relation_generator::PrecedenceRelationGenerator},
+        input_output::{self}, problem_instance::partial_solution::PartialSolution,
     };
     use std::fs;
 
@@ -59,7 +59,7 @@ mod tests {
     }
 
     #[test]
-    //#[ignore]
+    #[ignore]
     pub fn test_precedense(){
         let mut a: Box<dyn Encoder> = Box::new(FurliteWithPrecedence::new());
         test_encoder(&mut a,"./bench/class_instances/", "./bench/class_instance_results_prec/")
@@ -70,6 +70,13 @@ mod tests {
     pub fn test_furlite(){
         let mut a: Box<dyn Encoder> = Box::new(FillUpLite::new());
         test_encoder(&mut a,"./bench/class_instances/", "./bench/class_instance_results_furlite/")
+    }
+
+    #[test]
+    #[ignore]
+    pub fn test_basic_with_precedense(){
+        let mut a: Box<dyn Encoder> = Box::new(BasicWithPrecedence::new());
+        test_encoder(&mut a,"./bench/class_instances/", "./bench/class_instance_results_bwp/")
     }
 
 }

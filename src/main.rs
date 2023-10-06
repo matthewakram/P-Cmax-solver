@@ -17,11 +17,11 @@ use crate::bounds::lower_bounds;
 use crate::bounds::upper_bounds::lptpp;
 use crate::encoding::basic_encoder::BasicEncoder;
 use crate::encoding::basic_with_fill_up::BasicWithFillUp;
+use crate::encoding::basic_with_precedence::BasicWithPrecedence;
 use crate::encoding::encoder::Encoder;
 use crate::encoding::fill_up_lite::FillUpLite;
 use crate::encoding::furlite_with_precedence::FurliteWithPrecedence;
 use crate::makespan_scheduling::linear_makespan::LinearMakespan;
-use crate::precedence_relations::precedence_relation_generator::{PrecedenceRelation, PrecedenceRelationGenerator};
 use crate::problem_instance::solution::Solution;
 use crate::solvers::sat_solver::{kissat, sat_solver_manager};
 
@@ -90,6 +90,8 @@ fn main() {
         encoder = Box::new(FillUpLite::new());
     } else if args.contains(&"-prec".to_string()) {
         encoder = Box::new(FurliteWithPrecedence::new());
+    } else if args.contains(&"-basic_prec".to_string()) {
+        encoder = Box::new(BasicWithPrecedence::new());
     } else {
         encoder = Box::new(BasicEncoder::new());
     }
