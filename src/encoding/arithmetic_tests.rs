@@ -1,8 +1,6 @@
 
 #[cfg(test)]
 mod tests {
-    use core::num;
-
     use crate::{encoding::{binary_arithmetic, encoder::{VarNameGenerator, Clause}}, input_output::to_dimacs};
 
     #[test]

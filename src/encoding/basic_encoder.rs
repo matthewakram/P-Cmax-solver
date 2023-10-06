@@ -9,12 +9,12 @@ use super::{
 };
 
 pub struct BasicEncoder {
-    var_name_generator: VarNameGenerator,
-    clauses: Vec<Clause>,
-    position_vars: Vec<Vec<Option<usize>>>,
-    final_sum_vars: Vec<BinaryNumber>,
-    weight_on_machine_vars: Vec<Vec<Option<BinaryNumber>>>,
-    partial_sum_variables: Vec<Vec<BinaryNumber>>
+    pub var_name_generator: VarNameGenerator,
+    pub clauses: Vec<Clause>,
+    pub position_vars: Vec<Vec<Option<usize>>>,
+    pub final_sum_vars: Vec<BinaryNumber>,
+    pub weight_on_machine_vars: Vec<Vec<Option<BinaryNumber>>>,
+    pub partial_sum_variables: Vec<Vec<Option<BinaryNumber>>>
 }
 
 impl BasicEncoder {
@@ -36,6 +36,7 @@ impl Encoder for BasicEncoder {
         partial_solution: &crate::problem_instance::partial_solution::PartialSolution,
         makespan: usize,
     ) {
+        self.var_name_generator = VarNameGenerator::new();
         let mut clauses: Vec<Clause> = vec![];
         // here the presence of a variable indicates that process i can be put on server j
         let mut position_variables: Vec<Vec<Option<usize>>> = vec![];
@@ -89,8 +90,8 @@ impl Encoder for BasicEncoder {
         let mut sum: Option<BinaryNumber>;
         let mut final_sum_variables: Vec<BinaryNumber> = vec![];
         let max_bitlength = binary_arithmetic::number_bitlength(makespan);
-        // TODO: remove partial_sum_variables:
-        let mut partial_sum_variables: Vec<Vec<BinaryNumber>> = vec![];
+        let mut partial_sum_variables: Vec<Vec<Option<BinaryNumber>>> = vec![];
+
         for processor in 0..position_variables[0].len() {
             sum = None;
             partial_sum_variables.push(vec![]);
@@ -109,7 +110,9 @@ impl Encoder for BasicEncoder {
                         clauses.append(&mut sum_clauses);
                         sum = Some(next_sum);
                     }
-                    partial_sum_variables[processor].push(sum.as_ref().unwrap().clone());
+                    partial_sum_variables[processor].push(sum.clone());
+                } else {
+                    partial_sum_variables[processor].push(None);
                 }
             }
             clauses.append(&mut binary_arithmetic::at_most_k_encoding(
@@ -144,7 +147,6 @@ impl Encoder for BasicEncoder {
                 }
             }
         }
-        println!("{:?}", assignment);
         assert_eq!(assignment.len(), self.position_vars.len());
 
         let makespan = common::common::calc_makespan(instance, &assignment);

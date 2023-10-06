@@ -4,6 +4,7 @@ use super::upper_bound::InitialUpperBound;
 
 
 pub struct Lptpp {
+    pub lower_bound: usize
 }
 
 fn subset_sum(elements: &Vec<usize>, goal: usize) -> Option<Vec<usize>>{
@@ -72,7 +73,7 @@ fn is_feasable(instance: &ProblemInstance, max_makespan: usize) -> Option<Soluti
 
 impl InitialUpperBound for Lptpp {
     fn get_upper_bound(&self, instance: &ProblemInstance) -> Solution {
-        let mut makespan_to_check = *instance.job_sizes.iter().max().unwrap_or(&0);
+        let mut makespan_to_check = self.lower_bound;
         loop {
             let sol = is_feasable(instance, makespan_to_check);
             if sol.is_some() {

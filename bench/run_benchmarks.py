@@ -6,30 +6,56 @@ import sys
 from threading import Timer
 import time
 
-directory = os.fsencode("./bench/class_instances")
+directory = os.fsencode( sys.argv[1])
 
-def run(cmd, timeout_sec=20):
-    process = subprocess.Popen(cmd, stdout=PIPE)
-    timer = Timer(timeout_sec, lambda : (process.kill(), print("FAILED TIMEOUT")))
+def run(cmd, timeout_sec=60):
+    process = subprocess.Popen(cmd, stdout=subprocess.PIPE)
+    timer = Timer(timeout_sec, lambda : (process.terminate(), print("FAILED TIMEOUT")))
+    out = b""
     try:
         timer.start()
         for c in iter(lambda: process.stdout.read(1), b""):
-               sys.stdout.buffer.write(c)
+            out += c
     finally:
         timer.cancel()
+        return out.decode("ascii")
 
-start = time.time()
-for file in os.listdir(directory):
-     filename = os.fsdecode(file)
-     if filename.endswith(".txt"):
-         
-         print(filename)
-         cmd = ['./target/release/p_cmax_solver','./bench/class_instances/'+ filename]
-         run(cmd)
-         print("\n")
-         
-      
-end = time.time()      
-
-print("it took " + str(end - start) + " seconds to complete tests")
-
+options = input("what options would you like to have: ")
+options = options.strip()
+options_cpy = options
+output = ""
+options = options.split(" ")
+file_num = 1
+files = [os.fsdecode(x) for x in os.listdir(directory)]
+files = [x for x in files if x.endswith(".txt")]
+files.sort()
+for filename in files:
+    if "NU" in filename:
+        continue
+    with open(sys.argv[1] + "/" + filename, "r") as f1:
+        sys.stdout.write("\rFile number: %i" % file_num)
+        sys.stdout.flush()
+        start = time.time()
+        cmd = ['./target/release/p_cmax_solver',sys.argv[1] + "/" + filename] + options
+        out = ""
+        out = run(cmd)
+        end = time.time()
+        if "solution found" in out:
+            place = out.find("makespan: ")
+            result = out[place + 10:].split()[0]
+            finished = end - start
+            line = f1.readline()
+            line = line.split()
+            n = line[2]
+            m = line[3]
+            num_unsat = int(str(out.count("UNSAT")))
+            num_sat = int(str(out.count("SAT")))
+            num_sat = num_sat - num_unsat
+            output += (""+ str(n)+"_"+str(m) +"_" + str(file_num) +" " + "x " + str(finished) + " " + result +"\n")
+        
+        file_num += 1
+        
+        subprocess.Popen(["killall", "kissat"], stdout=subprocess.DEVNULL, stderr=subprocess.STDOUT)
+     
+with open("./bench/results/result_"+ options_cpy.replace(" ", "") +".txt", "w") as f :
+    f.write(output)
