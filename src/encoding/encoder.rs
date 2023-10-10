@@ -24,6 +24,9 @@ impl VarNameGenerator {
     pub fn peek(&self) -> usize {
         return *(self.current.clone().peekable().peek().unwrap());
     }
+    pub fn jump_to(&mut self, to: usize) {
+        self.current = std::ops::RangeFrom { start: (to) };
+    }
 }
 
 #[derive(Debug, Eq, PartialEq, Clone)]

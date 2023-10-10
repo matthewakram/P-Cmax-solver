@@ -8,3 +8,4 @@ pub mod fill_up_lite;
 pub mod furlite_with_precedence;
 mod performance_tests;
 pub mod basic_with_precedence;
+pub mod pb_bdd_pysat;

@@ -9,7 +9,7 @@ mod tests {
             upper_bounds::{self, upper_bound::InitialUpperBound},
         },
         encoding::{
-            encoder::Encoder, basic_encoder::BasicEncoder, furlite_with_precedence::FurliteWithPrecedence, fill_up_lite::FillUpLite, basic_with_precedence::BasicWithPrecedence,
+            encoder::Encoder, basic_encoder::BasicEncoder, furlite_with_precedence::FurliteWithPrecedence, fill_up_lite::FillUpLite, basic_with_precedence::BasicWithPrecedence, pb_bdd_pysat::PbPysatEncoder,
         },
         input_output::{self}, problem_instance::partial_solution::PartialSolution,
     };
@@ -79,4 +79,10 @@ mod tests {
         test_encoder(&mut a,"./bench/class_instances/", "./bench/class_instance_results_bwp/")
     }
 
+    #[test]
+    #[ignore]
+    pub fn test_pysat(){
+        let mut a: Box<dyn Encoder> = Box::new(PbPysatEncoder::new());
+        test_encoder(&mut a,"./bench/class_instances/", "./bench/class_instance_results_pysat/")
+    }
 }

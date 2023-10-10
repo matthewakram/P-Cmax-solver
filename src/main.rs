@@ -9,6 +9,7 @@ mod problem_instance;
 mod problem_simplification;
 mod solvers;
 mod precedence_relations;
+mod bdd;
 
 use bounds::lower_bounds::*;
 use bounds::upper_bounds::{lpt, upper_bound};
@@ -21,6 +22,7 @@ use crate::encoding::basic_with_precedence::BasicWithPrecedence;
 use crate::encoding::encoder::Encoder;
 use crate::encoding::fill_up_lite::FillUpLite;
 use crate::encoding::furlite_with_precedence::FurliteWithPrecedence;
+use crate::encoding::pb_bdd_pysat::PbPysatEncoder;
 use crate::makespan_scheduling::linear_makespan::LinearMakespan;
 use crate::problem_instance::solution::Solution;
 use crate::solvers::sat_solver::{kissat, sat_solver_manager};
@@ -92,6 +94,8 @@ fn main() {
         encoder = Box::new(FurliteWithPrecedence::new());
     } else if args.contains(&"-basic_prec".to_string()) {
         encoder = Box::new(BasicWithPrecedence::new());
+    } else if args.contains(&"-pysat".to_string()) {
+        encoder = Box::new(PbPysatEncoder::new());
     } else {
         encoder = Box::new(BasicEncoder::new());
     }
