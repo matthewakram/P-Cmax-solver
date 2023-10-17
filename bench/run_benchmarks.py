@@ -10,7 +10,7 @@ directory = os.fsencode( sys.argv[1])
 
 def run(cmd, timeout_sec=60):
     process = subprocess.Popen(cmd, stdout=subprocess.PIPE)
-    timer = Timer(timeout_sec, lambda : (process.terminate(), print("FAILED TIMEOUT")))
+    timer = Timer(timeout_sec, lambda : (process.terminate(), print("FAILED TIMEOUT" + " ".join(cmd))))
     out = b""
     try:
         timer.start()
@@ -30,8 +30,7 @@ files = [os.fsdecode(x) for x in os.listdir(directory)]
 files = [x for x in files if x.endswith(".txt")]
 files.sort()
 for filename in files:
-    if "NU" in filename:
-        continue
+    
     with open(sys.argv[1] + "/" + filename, "r") as f1:
         sys.stdout.write("\rFile number: %i" % file_num)
         sys.stdout.flush()
@@ -52,7 +51,8 @@ for filename in files:
             num_sat = int(str(out.count("SAT")))
             num_sat = num_sat - num_unsat
             output += (""+ str(n)+"_"+str(m) +"_" + str(file_num) +" " + "x " + str(finished) + " " + result +"\n")
-        
+        else:
+            print(out+"\n")
         file_num += 1
         
         subprocess.Popen(["killall", "kissat"], stdout=subprocess.DEVNULL, stderr=subprocess.STDOUT)

@@ -1,3 +1,5 @@
+use std::fmt::Debug;
+
 use crate::problem_instance::{partial_solution::PartialSolution, solution::Solution, problem_instance::ProblemInstance};
 
 pub trait Encoder {
@@ -29,9 +31,15 @@ impl VarNameGenerator {
     }
 }
 
-#[derive(Debug, Eq, PartialEq, Clone)]
+#[derive( Eq, PartialEq, Clone)]
 pub struct Clause{
     pub vars: Vec<i32>,
+}
+
+impl Debug for Clause {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        return write!(f, "{:?}", self.vars);
+    }
 }
 
 

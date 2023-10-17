@@ -1,24 +1,22 @@
 use crate::{
     common,
-    problem_instance::{problem_instance::ProblemInstance, solution::Solution},
+    problem_instance::{problem_instance::ProblemInstance, solution::Solution}, bdd,
 };
-use std::{fs::{File, read_to_string}, io::Write, process::Command};
-
 
 use super::{
     binary_arithmetic::{self},
     encoder::{Clause, Encoder, VarNameGenerator},
 };
 
-pub struct PbPysatEncoder {
+pub struct PbNativeEncoder {
     pub var_name_generator: VarNameGenerator,
     pub clauses: Vec<Clause>,
     pub position_vars: Vec<Vec<Option<usize>>>,
 }
 
-impl PbPysatEncoder {
-    pub fn new() -> PbPysatEncoder {
-        return PbPysatEncoder {
+impl PbNativeEncoder {
+    pub fn new() -> PbNativeEncoder {
+        return PbNativeEncoder {
             var_name_generator: VarNameGenerator::new(),
             clauses: vec![],
             position_vars: vec![],
@@ -26,7 +24,7 @@ impl PbPysatEncoder {
     }
 }
 
-impl Encoder for PbPysatEncoder {
+impl Encoder for PbNativeEncoder {
     fn basic_encode(
         &mut self,
         partial_solution: &crate::problem_instance::partial_solution::PartialSolution,
@@ -64,37 +62,23 @@ impl Encoder for PbPysatEncoder {
             
         }
 
-        let mut file = File::create("./pysat_file").unwrap();
-        file.write(format!("{} {} {} {}\n", partial_solution.instance.num_jobs, partial_solution.instance.num_processors, self.get_num_vars(), makespan).as_bytes()).unwrap();
-        let string = partial_solution.instance.job_sizes.iter().map(|x| x.to_string() + " ").reduce(|x,y| x + &y).unwrap();
-        file.write(string.as_bytes()).unwrap();
-        file.write("\n".as_bytes()).unwrap();
-        for job in 0..partial_solution.instance.num_jobs {
-            let mut string: String = String::new();
-            for proc in 0..partial_solution.instance.num_processors {
-                string += &(position_variables[job][proc].as_ref().unwrap_or(&0)).to_string();
-                string += " ";
+       // for each processor, collect the vars that can go on it, and their weights, and build a bdd
+       for proc in 0..partial_solution.instance.num_processors {
+            let mut job_vars: Vec<usize> = vec![];
+            let mut weights: Vec<usize> = vec![];
+            for job in 0..partial_solution.instance.num_jobs{
+                if position_variables[job][proc].is_some() {
+                    job_vars.push(position_variables[job][proc].unwrap());
+                    weights.push(partial_solution.instance.job_sizes[job]);
+                }
             }
-            string += "\n";
-            file.write(string.as_bytes()).unwrap();
-        }
-
-        Command::new("python3")
-                     .arg("./src/encoding/pb_with_pysat.py")
-                     .status()
-                     .expect("failed to execute process");
-        
-        let binding = read_to_string("./pysat_file_1").unwrap();
-        let reader = binding.lines();
-        let mut max: usize = 0;
-        for line in reader {
-            let line = line.split(" ");
-            clauses.push(Clause{vars: line.clone().map(|x| x.parse::<i32>().unwrap()).collect::<Vec<i32>>()});
-            max = max.max(line.map(|x| x.parse::<i32>().unwrap().abs() as usize).max().unwrap_or(0));
-        }
-
-        
-        self.var_name_generator.jump_to(max + 1);
+            // now we construct the bdd to assert that this machine is not too full
+            let bdd = bdd::bdd::leq(&job_vars, &weights, makespan);
+            let bdd = bdd::bdd::assign_aux_vars(bdd, &mut self.var_name_generator);
+            let mut a = bdd::bdd::encode(&bdd);
+            //println!("{:?}", a);
+            clauses.append(&mut a);
+       }
         
         self.clauses = clauses;
         self.position_vars = position_variables;

@@ -32,9 +32,13 @@ impl Encoder for BasicWithPrecedence {
             for processor in 0..partial_solution.instance.num_processors {
                 
                 if self.basic.position_vars[precedence.comes_first][processor].is_some() && precedence.comes_second.iter().all(|job| self.basic.position_vars[*job][processor].is_some()){
-                    let mut previous_position_clauses: Vec<i32> = self.basic.position_vars[precedence.comes_first].iter().enumerate().filter(|(i,x)| *i <= processor && x.is_some()).map(|(_, x)| (x.unwrap() as i32)).collect();
-                    previous_position_clauses.append(&mut precedence.comes_second.iter().map(|job | -(self.basic.position_vars[*job][processor].unwrap() as i32)).collect());
-                    clauses.push(Clause{vars: previous_position_clauses});
+                    let future_position_vars: Vec<i32> = self.basic.position_vars[precedence.comes_first].iter().enumerate().filter(|(i,x)| *i > processor && x.is_some()).map(|(_, x)| -(x.unwrap() as i32)).collect();
+                    let comes_now_clause: Vec<i32> = precedence.comes_second.iter().map(|job | -(self.basic.position_vars[*job][processor].unwrap() as i32)).collect();
+                    for future_position_var in &future_position_vars {
+                        let mut clause: Vec<i32> = comes_now_clause.clone(); 
+                        clause.push(*future_position_var);
+                        clauses.push(Clause { vars: clause});
+                    }
                 }
             }
         }
