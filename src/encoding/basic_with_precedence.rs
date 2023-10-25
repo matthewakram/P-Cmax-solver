@@ -1,28 +1,30 @@
 use crate::precedence_relations::{precedence_relation_generator::{PrecedenceRelation, PrecedenceRelationGenerator}, size_replacement::SizeReplacement};
 
-use super::{
-    encoder::{Clause, Encoder}, basic_encoder::BasicEncoder,
-};
+use super::{encoder::{OneHotEncoder, Clause, Encoder}, problem_encoding::one_hot_encoding::OneHot};
 
-pub struct BasicWithPrecedence {
-    pub basic: BasicEncoder,
+
+
+pub struct Precedence {
+    pub basic: Box<dyn OneHotEncoder>,
     pub clauses: Vec<Clause>,
     precedence_relations: Vec<Box<dyn PrecedenceRelationGenerator>>,
 
 }
 
-impl BasicWithPrecedence {
-    pub fn new() -> BasicWithPrecedence {
-        return BasicWithPrecedence {
-            basic: BasicEncoder::new(),
+impl Precedence {
+    pub fn new(encoder: Box<dyn OneHotEncoder>) -> Precedence {
+        return Precedence {
+            basic: encoder,
             clauses: vec![],
             // TODO: have this be dynamic
-            precedence_relations: vec![Box::new(SizeReplacement{})],
+            precedence_relations: vec![Box::new(SizeReplacement{}), 
+            //Box::new(TwoSizeReplacement{})
+            ],
         };
     }
 }
 
-impl Encoder for BasicWithPrecedence {
+impl Encoder for Precedence {
     fn basic_encode(&mut self, partial_solution: &crate::problem_instance::partial_solution::PartialSolution, makespan: usize) {
         self.basic.basic_encode(partial_solution, makespan);
         let mut clauses: Vec<Clause> = vec![];
@@ -31,9 +33,15 @@ impl Encoder for BasicWithPrecedence {
         for precedence in &precedence_relations {
             for processor in 0..partial_solution.instance.num_processors {
                 
-                if self.basic.position_vars[precedence.comes_first][processor].is_some() && precedence.comes_second.iter().all(|job| self.basic.position_vars[*job][processor].is_some()){
-                    let future_position_vars: Vec<i32> = self.basic.position_vars[precedence.comes_first].iter().enumerate().filter(|(i,x)| *i > processor && x.is_some()).map(|(_, x)| -(x.unwrap() as i32)).collect();
-                    let comes_now_clause: Vec<i32> = precedence.comes_second.iter().map(|job | -(self.basic.position_vars[*job][processor].unwrap() as i32)).collect();
+                if self.basic.get_position_var(precedence.comes_first,processor).is_some() && precedence.comes_second.iter().all(|job| self.basic.get_position_var(*job,processor).is_some()){
+                    let mut future_position_vars = vec![];
+                    for future_proc in processor+1..partial_solution.instance.num_processors{
+                        let pos_var = self.basic.get_position_var(precedence.comes_first, future_proc);
+                        if  pos_var.is_some() {
+                            future_position_vars.push(-(pos_var.unwrap() as i32));
+                        }
+                    }
+                    let comes_now_clause: Vec<i32> = precedence.comes_second.iter().map(|job | -(self.basic.get_position_var(*job,processor).unwrap() as i32)).collect();
                     for future_position_var in &future_position_vars {
                         let mut clause: Vec<i32> = comes_now_clause.clone(); 
                         clause.push(*future_position_var);
@@ -60,3 +68,11 @@ impl Encoder for BasicWithPrecedence {
         return self.basic.get_num_vars();
     }
 }
+
+impl OneHot for Precedence {
+    fn get_position_var(&self, job_num: usize, proc_num: usize) -> Option<usize>{
+        return self.basic.get_position_var(job_num, proc_num);
+    }
+}
+
+impl OneHotEncoder for Precedence {}

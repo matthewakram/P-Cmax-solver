@@ -1,12 +1,16 @@
-use super::lower_bound::LowerBound;
+use crate::{bounds::bound::Bound, problem_instance::solution::Solution};
+
 
 
 pub struct MiddleJobs{
 }
 
-impl LowerBound for MiddleJobs {
-    fn get_lower_bound(&self, problem: &crate::problem_instance::problem_instance::ProblemInstance) -> usize {
-        assert!(problem.num_processors < problem.num_jobs);
-        return problem.job_sizes[problem.num_processors - 1] + problem.job_sizes[problem.num_processors];
+impl Bound for MiddleJobs {
+    fn bound(&self, problem: &crate::problem_instance::problem_instance::ProblemInstance, lower_bound: usize, upper_bound: Option<Solution>) -> (usize, Option<Solution>) {
+        if problem.num_processors + 1 >= problem.num_jobs {
+            return (lower_bound, upper_bound);
+        }
+        let new_lower_bound = problem.job_sizes[problem.num_processors - 1] + problem.job_sizes[problem.num_processors];
+        return (new_lower_bound.max(lower_bound), upper_bound)
     }
 }

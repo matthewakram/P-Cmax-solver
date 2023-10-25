@@ -30,21 +30,21 @@ impl Encoder for BasicWithFillUp {
         let mut clauses: Vec<Clause> = vec![];
         let mut already_assigned_vars: Vec<Vec<Option<usize>>> = vec![];
         for job in 0..partial_solution.instance.num_jobs {
-            let mut already_assigned_vars_i: Vec<Option<usize>> = vec![self.basic.position_vars[job][0]];
-            let mut previous_already_assigned_var: Option<usize> = self.basic.position_vars[job][0];
+            let mut already_assigned_vars_i: Vec<Option<usize>> = vec![self.basic.problem.position_vars[job][0]];
+            let mut previous_already_assigned_var: Option<usize> = self.basic.problem.position_vars[job][0];
             for processor in 1..partial_solution.instance.num_processors {
                 // now we generate the vars
-                if self.basic.position_vars[job][processor].is_none() {
+                if self.basic.problem.position_vars[job][processor].is_none() {
                     // if a job can't be assigned, there is no need to generate a new variable
                     already_assigned_vars_i.push(previous_already_assigned_var);
                 } else {
                     // if a job can be assigned, generate a new var for it.
-                    let next_already_assigned_var: Option<usize> = Some(self.basic.var_name_generator.next());
+                    let next_already_assigned_var: Option<usize> = Some(self.basic.problem.var_name_generator.next());
                     if next_already_assigned_var.is_some() {
                         // assert that if you place it here the PAV will be true, 
                         clauses.push(Clause {
                             vars: vec![
-                                -(self.basic.position_vars[job][processor].unwrap() as i32),
+                                -(self.basic.problem.position_vars[job][processor].unwrap() as i32),
                                 (next_already_assigned_var.unwrap() as i32),
                             ],
                         });
@@ -60,7 +60,7 @@ impl Encoder for BasicWithFillUp {
                             clauses.push(Clause {
                                 vars: vec![
                                     -(previous_already_assigned_var.unwrap() as i32),
-                                    -(self.basic.position_vars[job][processor].unwrap() as i32),
+                                    -(self.basic.problem.position_vars[job][processor].unwrap() as i32),
                                 ],
                             });
                         }
@@ -75,7 +75,7 @@ impl Encoder for BasicWithFillUp {
         // now we implement the fill up rule
         for job in 0..partial_solution.instance.num_jobs {
             for processor in 0..partial_solution.instance.num_processors {
-                if already_assigned_vars[job][processor].is_some() && self.basic.position_vars[job][processor].is_some() {
+                if already_assigned_vars[job][processor].is_some() && self.basic.problem.position_vars[job][processor].is_some() {
                     // if during the calculation of the partial the value is equal to the weight of this job, then this job must be placed here
 
                     let goal_sum = makespan - partial_solution.instance.job_sizes[job];

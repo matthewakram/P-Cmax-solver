@@ -1,12 +1,13 @@
 pub mod encoder;
 pub mod binary_arithmetic;
 pub mod basic_encoder;
-pub mod logarithmic_encoder;
 mod arithmetic_tests;
-pub mod basic_with_fill_up;
-pub mod fill_up_lite;
-pub mod furlite_with_precedence;
+//pub mod basic_with_fill_up;
+//pub mod fill_up_lite;
 mod performance_tests;
 pub mod basic_with_precedence;
 pub mod pb_bdd_pysat;
 pub mod pb_bdd_native;
+pub mod problem_encoding;
+//pub mod pb_bdd_native_first_eq;
+pub mod random_encoder;

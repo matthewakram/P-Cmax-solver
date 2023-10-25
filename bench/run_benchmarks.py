@@ -30,8 +30,12 @@ files = [os.fsdecode(x) for x in os.listdir(directory)]
 files = [x for x in files if x.endswith(".txt")]
 files.sort()
 for filename in files:
+    if "NU" in filename:
+        continue
     
     with open(sys.argv[1] + "/" + filename, "r") as f1:
+        if file_num == 245:
+            pass
         sys.stdout.write("\rFile number: %i" % file_num)
         sys.stdout.flush()
         start = time.time()
@@ -40,8 +44,8 @@ for filename in files:
         out = run(cmd)
         end = time.time()
         if "solution found" in out:
-            place = out.find("makespan: ")
-            result = out[place + 10:].split()[0]
+            place = out.find("solution found ")
+            result = out[place + 15:].split()[0]
             finished = end - start
             line = f1.readline()
             line = line.split()
@@ -49,8 +53,11 @@ for filename in files:
             m = line[3]
             num_unsat = int(str(out.count("UNSAT")))
             num_sat = int(str(out.count("SAT")))
-            num_sat = num_sat - num_unsat
-            output += (""+ str(n)+"_"+str(m) +"_" + str(file_num) +" " + "x " + str(finished) + " " + result +"\n")
+            
+            print(out+"\n")
+            if num_sat != 0:
+                num_sat = num_sat - num_unsat
+                output += (""+ str(n)+"_"+str(m) +"_" + str(file_num) +" " + "x " + str(finished) + " " + result +"\n")
         else:
             print(out+"\n")
         file_num += 1

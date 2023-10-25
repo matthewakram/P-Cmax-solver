@@ -2,6 +2,10 @@ use std::fmt::Debug;
 
 use crate::problem_instance::{partial_solution::PartialSolution, solution::Solution, problem_instance::ProblemInstance};
 
+use super::problem_encoding::one_hot_encoding::OneHot;
+
+pub trait OneHotEncoder : Encoder + OneHot {}
+
 pub trait Encoder {
     fn basic_encode(&mut self, partial_solution: &PartialSolution, makespan: usize);
     fn output(&self) -> Vec<Clause>;

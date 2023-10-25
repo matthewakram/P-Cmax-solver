@@ -1,6 +1,6 @@
 use super::solution::Solution;
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct ProblemInstance {
     /// The basic instance of the PCMAX problem. Job Sizes is sorted in descending order.
     /// Since we order our jobs, the job order stores the order with which we can get the original jobs order back

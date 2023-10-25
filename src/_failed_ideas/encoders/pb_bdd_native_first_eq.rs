@@ -5,21 +5,21 @@ use super::{
     problem_encoding::one_hot_encoding::{OneHot, OneHotProblemEncoding},
 };
 
-pub struct PbNativeEncoder {
+pub struct PbNativeEncoderFE {
     one_hot: OneHotProblemEncoding,
     pub clauses: Vec<Clause>,
 }
 
-impl PbNativeEncoder {
-    pub fn new() -> PbNativeEncoder {
-        return PbNativeEncoder {
+impl PbNativeEncoderFE {
+    pub fn new() -> PbNativeEncoderFE {
+        return PbNativeEncoderFE {
             one_hot: OneHotProblemEncoding::new(),
             clauses: vec![],
         };
     }
 }
 
-impl Encoder for PbNativeEncoder {
+impl Encoder for PbNativeEncoderFE {
     fn basic_encode(
         &mut self,
         partial_solution: &crate::problem_instance::partial_solution::PartialSolution,
@@ -39,14 +39,22 @@ impl Encoder for PbNativeEncoder {
                 }
             }
             // now we construct the bdd to assert that this machine is not too full
-            let bdd = bdd::bdd::leq(&job_vars, &weights, makespan);
-            let bdd = bdd::bdd::assign_aux_vars(bdd, &mut self.one_hot.var_name_generator);
+            let bdd = if proc < partial_solution.instance.num_processors/2 {
+                let tbdd = bdd::bdd::eq(&job_vars, &weights, makespan);
+                if tbdd.is_none() {
+                    self.clauses = vec![Clause{vars: vec![1]}, Clause{vars: vec![-1]}];
+                    return;
+                }
+                tbdd.unwrap()
+            } else { bdd::bdd::leq(&job_vars, &weights, makespan)};
 
-            //for i in 0..bdd.nodes.len(){
-            //    let a = &bdd.nodes[i];
-            //    println!("{}    var: {}, aux var: {} left {} right {}, left aux {} right aux {}", i, a.var, a.aux_var, a.left_child, a.right_child, bdd.nodes[a.left_child].aux_var, bdd.nodes[a.right_child].aux_var);
-            //}
-            let mut a = bdd::bdd::encode(&bdd);
+            let bdd = bdd::bdd::assign_aux_vars(bdd, &mut self.one_hot.var_name_generator);
+            let mut a = if proc < partial_solution.instance.num_processors/2 {
+                bdd::bdd::encode_bad(&bdd)
+            } else{
+                bdd::bdd::encode(&bdd)
+            };
+            
             //println!("{:?}", a);
             clauses.append(&mut a);
         }
@@ -73,10 +81,10 @@ impl Encoder for PbNativeEncoder {
     }
 }
 
-impl OneHot for PbNativeEncoder {
+impl OneHot for PbNativeEncoderFE {
     fn get_position_var(&self, job_num: usize, proc_num: usize) -> Option<usize> {
         return self.one_hot.position_vars[job_num][proc_num];
     }
 }
 
-impl OneHotEncoder for PbNativeEncoder {}
+impl OneHotEncoder for PbNativeEncoderFE {}

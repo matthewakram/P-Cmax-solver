@@ -1,17 +1,19 @@
-use super::lower_bound::LowerBound;
+use crate::bounds::bound::Bound;
+
 
 
 
 pub struct PigeonHole{}
 
 
-impl LowerBound for PigeonHole {
-    fn get_lower_bound(&self, problem: &crate::problem_instance::problem_instance::ProblemInstance) -> usize {
+
+impl Bound for PigeonHole {
+    fn bound(&self, problem: &crate::problem_instance::problem_instance::ProblemInstance, lower_bound: usize, upper_bound: Option<crate::problem_instance::solution::Solution>) -> (usize, Option<crate::problem_instance::solution::Solution>) {
         let sum: usize = problem.job_sizes.iter().sum();
         let mut bound = sum / problem.num_processors;
         if sum % problem.num_processors != 0 {
             bound += 1;
         }
-        return bound;
+        return (lower_bound.max(bound), upper_bound)
     }
 }

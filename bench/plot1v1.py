@@ -7,9 +7,7 @@ markers = ['.', 'v', 'x']
 colors = ['#377eb8', '#ff7f00', '#e41a1c', '#f781bf', '#a65628', '#4daf4a', '#984ea3', '#999999', '#dede00', '#377eb8']
 
 lim = 60
-out = 61
-border_lo = 0.001
-border_hi = 61
+
 
 msize = 6
 pltxsize = 5
@@ -110,6 +108,10 @@ for arg in sys.argv[1:]:
         color_category = int(arg[4:])
     else:
         files += [arg]
+
+out = lim+1
+border_lo = 0.001
+border_hi = lim+1
 
 import matplotlib
 if outfile:
@@ -271,13 +273,13 @@ if ylabel:
 else:    
     plt.ylabel(labels[1])
 
-if not outfile_legend:    
-    if legendright:
-        plt.legend(bbox_to_anchor=(1.05+legend_offset_x, 0.5+legend_offset_y), loc='center left', edgecolor="black", ncol=legend_columns, labelspacing=legend_spacing, columnspacing=legend_spacing*2, handlelength=legend_spacing*2)
-    elif legendbottom:
-        plt.legend(bbox_to_anchor=(0.5+legend_offset_x, -0.27+legend_offset_y), loc='lower center', edgecolor="black", ncol=legend_columns, labelspacing=legend_spacing, columnspacing=legend_spacing*2, handlelength=legend_spacing*2)
-    else:
-        plt.legend(ncol=legend_columns, labelspacing=legend_spacing, columnspacing=legend_spacing*2, handlelength=legend_spacing*2)
+#if not outfile_legend:    
+#    if legendright:
+#        plt.legend(bbox_to_anchor=(1.05+legend_offset_x, 0.5+legend_offset_y), loc='center left', edgecolor="black", ncol=legend_columns, labelspacing=legend_spacing, columnspacing=legend_spacing*2, handlelength=legend_spacing*2)
+#    elif legendbottom:
+#        plt.legend(bbox_to_anchor=(0.5+legend_offset_x, -0.27+legend_offset_y), loc='lower center', edgecolor="black", ncol=legend_columns, labelspacing=legend_spacing, columnspacing=legend_spacing*2, handlelength=legend_spacing*2)
+#    else:
+#        plt.legend(ncol=legend_columns, labelspacing=legend_spacing, columnspacing=legend_spacing*2, handlelength=legend_spacing*2)
 
 plt.tight_layout()
 if outfile:
@@ -319,10 +321,10 @@ if outfile_legend:
     (newlabels, newplots) = flip_legend_labels(domains, plots, ncols)
     print(newlabels)
     labelspacing = 0.2
-    if labelspacing is not None:
-        figlegend.legend(newplots, newlabels, 'center', ncol=ncols, edgecolor='#000000', labelspacing=labelspacing)
-    else:
-        figlegend.legend(newplots, newlabels, 'center', ncol=ncols, edgecolor='#000000')
-    figlegend.set_edgecolor('b')
-    figlegend.tight_layout()
-    figlegend.savefig(outfile_legend, bbox_inches='tight')
+    #if labelspacing is not None:
+    #    figlegend.legend(newplots, newlabels, 'center', ncol=ncols, edgecolor='#000000', labelspacing=labelspacing)
+    #else:
+    #    figlegend.legend(newplots, newlabels, 'center', ncol=ncols, edgecolor='#000000')
+    #figlegend.set_edgecolor('b')
+    #figlegend.tight_layout()
+    #figlegend.savefig(outfile_legend, bbox_inches='tight')
