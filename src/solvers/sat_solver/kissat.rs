@@ -1,5 +1,7 @@
 use wait_timeout::ChildExt;
 
+use crate::solvers::solver::SatResult;
+
 use super::super::solver::SatSolver;
 use std::{process::{Command, Stdio}, time::Duration};
 
@@ -9,7 +11,7 @@ pub struct Kissat{
 }
 
 impl SatSolver for Kissat {
-    fn solve(&self, file_name: &str, timeout: u64) -> Option<Vec<i32>> {
+    fn solve(&self, file_name: &str, timeout: f64) -> SatResult {
         //let result = Command::new("./kissat")
         //.arg(file_name)
         //.arg("-q")
@@ -18,11 +20,11 @@ impl SatSolver for Kissat {
 
         let mut child = Command::new("./kissat").arg(file_name).arg("-q").stdout(Stdio::piped()).spawn().unwrap();
 
-        let one_sec = Duration::from_secs(timeout);
-        let status =  child.wait_timeout(one_sec).unwrap() ;
+        let secs = Duration::from_secs_f64(timeout);
+        let status =  child.wait_timeout(secs).unwrap() ;
         if status.is_none(){
             child.kill().unwrap();
-            return None;
+            return SatResult::timeout();
         }
         
         let result = child.wait_with_output().expect("./kissat command failed to start");
@@ -38,6 +40,6 @@ impl SatSolver for Kissat {
             }
         }
         
-        return if solution.len() == 0 {None} else {Some(solution)};
+        return if solution.len() == 0 {SatResult::unsat()} else {SatResult::sat(solution)};
     }
 }

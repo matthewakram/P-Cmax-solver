@@ -53,9 +53,9 @@ for filename in files:
             m = line[3]
             num_unsat = int(str(out.count("UNSAT")))
             num_sat = int(str(out.count("SAT")))
-            
-            print(out+"\n")
-            if num_sat != 0:
+            if False:
+                print(out+"\n")
+            if True:
                 num_sat = num_sat - num_unsat
                 output += (""+ str(n)+"_"+str(m) +"_" + str(file_num) +" " + "x " + str(finished) + " " + result +"\n")
         else:

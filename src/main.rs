@@ -44,13 +44,18 @@ fn main() {
         //Box::new(martello_toth::MartelloToth {}),
         Box::new(sss_bound_tightening::SSSBoundStrengthening {}),
         Box::new(lptpp::Lptpp {}),
+        Box::new(lifting::Lifting {}),
     ];
 
     let (mut lower_bound, mut upper_bound) = (0, None);
     for i in 0..bounds.len() {
+        let old_lower = lower_bound;
         let bound = &bounds[i];
         (lower_bound, upper_bound) = bound.bound(&instance, lower_bound, upper_bound);
         println!("lower: {} upper {}", lower_bound, if upper_bound.is_some() {upper_bound.as_ref().unwrap().makespan} else {0});
+        if i == bounds.len()-1  && old_lower < lower_bound{
+            println!("YAS");
+        }
     }
     let upper_bound = upper_bound.unwrap();
 
@@ -94,7 +99,7 @@ fn main() {
         encoder,
     };
 
-    let sol = sat_solver.solve(&instance, lower_bound, &upper_bound);
+    let sol = sat_solver.solve(&instance, lower_bound, &upper_bound, 300.0, true).unwrap();
     let final_solution = instance.finalize_solution(sol);
     println!("solution found {}", final_solution.makespan);
 }
