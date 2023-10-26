@@ -50,7 +50,7 @@ pub fn bin_packing_bound(instance: &ProblemInstance, makespan_to_test: usize) ->
 }
 
 impl Bound for MartelloToth {
-    fn bound(&self, problem: &ProblemInstance, lower_bound: usize, upper_bound: Option<problem_instance::solution::Solution>) -> (usize, Option<problem_instance::solution::Solution>) {
+    fn bound(&self, problem: &ProblemInstance, lower_bound: usize, upper_bound: Option<problem_instance::solution::Solution>, timeout: f64) -> (usize, Option<problem_instance::solution::Solution>) {
         let mut makespan_to_check = lower_bound;
         let current_bound = upper_bound.as_ref().unwrap();
         loop {

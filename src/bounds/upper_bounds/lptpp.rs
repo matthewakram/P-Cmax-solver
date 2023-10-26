@@ -1,3 +1,5 @@
+use std::time::Instant;
+
 use crate::{
     common::common,
     problem_instance::{problem_instance::ProblemInstance, solution::Solution}, bounds::bound::Bound,
@@ -72,18 +74,23 @@ fn is_feasable(instance: &ProblemInstance, max_makespan: usize) -> Option<Soluti
 
 
 impl Bound for Lptpp{
-    fn bound(&self, problem: &ProblemInstance, lower_bound: usize, upper_bound: Option<Solution>) -> (usize, Option<Solution>) {
+    fn bound(&self, problem: &ProblemInstance, lower_bound: usize, upper_bound: Option<Solution>, timeout: f64) -> (usize, Option<Solution>) {
         let mut makespan_to_check = lower_bound;
         let current_bound = upper_bound.as_ref().unwrap();
+        let mut remaining_time = timeout;
         loop {
-            if makespan_to_check >= current_bound.makespan {
+            if makespan_to_check >= current_bound.makespan || remaining_time <= 0.0 {
                 return (lower_bound, upper_bound);
             }
+
+            let start_time = Instant::now();
             
             let sol = is_feasable(problem, makespan_to_check);
             if sol.is_some() {
                 return (lower_bound, sol);
             }
+
+            remaining_time -= start_time.elapsed().as_secs_f64();
             makespan_to_check += 1;
         }
     }

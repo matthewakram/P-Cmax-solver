@@ -16,7 +16,7 @@ fn index_of_min(list: &Vec<usize>) -> usize{
 }
 
 impl Bound for LPT {
-    fn bound(&self, instance: &ProblemInstance, lower_bound: usize, upper_bound: Option<Solution>) -> (usize, Option<Solution>) {
+    fn bound(&self, instance: &ProblemInstance, lower_bound: usize, upper_bound: Option<Solution>, timeout: f64) -> (usize, Option<Solution>) {
         let mut solution: Vec<usize> = vec![];
         let mut total_sizes: Vec<usize> = vec![0; instance.num_processors];
 

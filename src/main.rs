@@ -1,3 +1,4 @@
+use std::time::Instant;
 use std::{env, vec};
 
 mod bdd;
@@ -48,13 +49,17 @@ fn main() {
     ];
 
     let (mut lower_bound, mut upper_bound) = (0, None);
+    //TODO; make this dynamic
+    let mut timeout = 30.0;
     for i in 0..bounds.len() {
+        let start_time = Instant::now();
         let old_lower = lower_bound;
         let bound = &bounds[i];
-        (lower_bound, upper_bound) = bound.bound(&instance, lower_bound, upper_bound);
+        (lower_bound, upper_bound) = bound.bound(&instance, lower_bound, upper_bound, timeout);
         println!("lower: {} upper {}", lower_bound, if upper_bound.is_some() {upper_bound.as_ref().unwrap().makespan} else {0});
-        if i == bounds.len()-1  && old_lower < lower_bound{
-            println!("YAS");
+        let timeout = timeout - start_time.elapsed().as_secs_f64();
+        if timeout <= 0.0 {
+            break;
         }
     }
     let upper_bound = upper_bound.unwrap();

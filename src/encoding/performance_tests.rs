@@ -48,7 +48,7 @@ mod tests {
 
                 let (mut lower_bound, mut upper_bound) = (0, None);
                 for bound in bounds {
-                    (lower_bound, upper_bound) = bound.bound(&instance, lower_bound, upper_bound);
+                    (lower_bound, upper_bound) = bound.bound(&instance, lower_bound, upper_bound,  10000.0);
                 }
                 let upper_bound = upper_bound.unwrap();
                 let pi = PartialSolution::new(instance);
@@ -191,7 +191,7 @@ mod tests {
 
                 let (mut lower_bound, mut upper_bound) = (0, None);
                 for bound in bounds {
-                    (lower_bound, upper_bound) = bound.bound(&instance, lower_bound, upper_bound);
+                    (lower_bound, upper_bound) = bound.bound(&instance, lower_bound, upper_bound, 10000.0);
                     println!("lower: {} upper {}", lower_bound, if upper_bound.is_some() {upper_bound.as_ref().unwrap().makespan} else {0});
                 }
 
