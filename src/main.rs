@@ -23,6 +23,7 @@ use crate::encoding::basic_encoder::BasicEncoder;
 //use crate::encoding::basic_with_fill_up::BasicWithFillUp;
 use crate::encoding::basic_with_precedence::Precedence;
 use crate::encoding::encoder::Encoder;
+use crate::encoding::pb_bdd_inter::PbInter;
 //use crate::encoding::fill_up_lite::FillUpLite;
 use crate::encoding::pb_bdd_native::PbNativeEncoder;
 use crate::encoding::pb_bdd_pysat::PbPysatEncoder;
@@ -50,14 +51,13 @@ fn main() {
 
     let (mut lower_bound, mut upper_bound) = (0, None);
     //TODO; make this dynamic
-    let mut timeout = 30.0;
+    let mut timeout = 15.0;
     for i in 0..bounds.len() {
         let start_time = Instant::now();
-        let old_lower = lower_bound;
         let bound = &bounds[i];
         (lower_bound, upper_bound) = bound.bound(&instance, lower_bound, upper_bound, timeout);
         println!("lower: {} upper {}", lower_bound, if upper_bound.is_some() {upper_bound.as_ref().unwrap().makespan} else {0});
-        let timeout = timeout - start_time.elapsed().as_secs_f64();
+        timeout = timeout - start_time.elapsed().as_secs_f64();
         if timeout <= 0.0 {
             break;
         }
@@ -71,6 +71,7 @@ fn main() {
     if lower_bound == upper_bound.makespan {
         //TODO: this
         println!("solution found {}", upper_bound.makespan);
+        //println!("jobs sizes {:?}", instance.job_sizes);
         return;
     }
 
@@ -83,15 +84,19 @@ fn main() {
         panic!("Furlite is also no longer supported")
         //encoder = Box::new(FillUpLite::new());
     } else if args.contains(&"-pysat".to_string()) && args.contains(&"-prec".to_string()) {
-        encoder = Box::new(Precedence::new(Box::new(PbPysatEncoder::new())));
+        encoder = Box::new(Precedence::new(Box::new(PbPysatEncoder::new()), 2));
     } else if args.contains(&"-pysat".to_string()) {
         encoder = Box::new(PbPysatEncoder::new());
     } else if args.contains(&"-bdd".to_string()) && args.contains(&"-prec".to_string()) {
-        encoder = Box::new(Precedence::new(Box::new(PbNativeEncoder::new())));
+        encoder = Box::new(Precedence::new(Box::new(PbNativeEncoder::new()), 2));
     } else if args.contains(&"-bdd".to_string()) {
         encoder = Box::new(PbNativeEncoder::new());
+    } else if args.contains(&"-inter".to_string()) && args.contains(&"-prec".to_string()) {
+        encoder = Box::new(Precedence::new(Box::new(PbInter::new()), 2));
+    } else if args.contains(&"-inter".to_string()) {
+        encoder = Box::new(PbInter::new());
     } else if args.contains(&"-basic".to_string()) && args.contains(&"-prec".to_string()) {
-        encoder = Box::new(Precedence::new(Box::new(BasicEncoder::new())));
+        encoder = Box::new(Precedence::new(Box::new(BasicEncoder::new()), 2));
     } else if args.contains(&"-basic".to_string()) {
         encoder = Box::new(BasicEncoder::new());
     } else {

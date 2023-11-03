@@ -1,8 +1,5 @@
 use crate::{
-    encoding::{
-        basic_with_precedence::Precedence, encoder::Encoder, pb_bdd_native::PbNativeEncoder,
-        random_encoder::RandomEncoder,
-    },
+    encoding::encoder::Encoder,
     input_output,
     makespan_scheduling::makespan_scheduler::MakespanScheduler,
     problem_instance::{
@@ -11,11 +8,11 @@ use crate::{
         solution::Solution,
     },
     problem_simplification::{
-        fill_up_rule::FillUpRule, half_size_rule::HalfSizeRule, simplification_rule::SimpRule,
+        fill_up_rule::FillUpRule, half_size_rule::HalfSizeRule, simplification_rule::SimpRule, final_simp_rule::FinalizeRule,
     },
     solvers::solver::SatSolver,
 };
-use std::time::{Duration, Instant};
+use std::time::Instant;
 
 pub struct SatSolverManager {
     pub sat_solver: Box<dyn SatSolver>,
@@ -55,10 +52,12 @@ impl SatSolverManager {
             let partial_solution = PartialSolution::new(instance.clone());
             let mut hsr = HalfSizeRule {};
             let mut fur: FillUpRule = FillUpRule {};
+            let mut finalize: FinalizeRule = FinalizeRule {};
             let partial_solution: PartialSolution =
             hsr.simplify(&partial_solution, makespan_to_test);
             let partial_solution: PartialSolution =
             fur.simplify(&partial_solution, makespan_to_test);
+            let partial_solution = finalize.simplify(&partial_solution, makespan_to_test);
             
             let mut var_assingment = None;
             //let mut simp_useful = true;

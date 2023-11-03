@@ -1,4 +1,4 @@
-use crate::precedence_relations::{precedence_relation_generator::{PrecedenceRelation, PrecedenceRelationGenerator}, size_replacement::SizeReplacement};
+use crate::precedence_relations::{precedence_relation_generator::{PrecedenceRelation, PrecedenceRelationGenerator}, size_replacement::SizeReplacement, two_size_replacement::TwoSizeReplacement};
 
 use super::{encoder::{OneHotEncoder, Clause, Encoder}, problem_encoding::one_hot_encoding::OneHot};
 
@@ -12,14 +12,19 @@ pub struct Precedence {
 }
 
 impl Precedence {
-    pub fn new(encoder: Box<dyn OneHotEncoder>) -> Precedence {
+    pub fn new(encoder: Box<dyn OneHotEncoder>, num_precs: usize) -> Precedence {
+        let mut precs: Vec<Box<dyn PrecedenceRelationGenerator>> = vec![];
+        if num_precs >=1 {
+            precs.push(Box::new(SizeReplacement{}));
+        } 
+        if num_precs >=2 {
+            precs.push(Box::new(TwoSizeReplacement{limit: 1000}))
+        }
         return Precedence {
             basic: encoder,
             clauses: vec![],
             // TODO: have this be dynamic
-            precedence_relations: vec![Box::new(SizeReplacement{}), 
-            //Box::new(TwoSizeReplacement{})
-            ],
+            precedence_relations: precs,
         };
     }
 }

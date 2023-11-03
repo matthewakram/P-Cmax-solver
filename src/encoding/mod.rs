@@ -11,3 +11,4 @@ pub mod pb_bdd_native;
 pub mod problem_encoding;
 //pub mod pb_bdd_native_first_eq;
 pub mod random_encoder;
+pub mod pb_bdd_inter;

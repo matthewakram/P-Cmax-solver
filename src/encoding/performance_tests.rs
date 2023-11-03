@@ -6,7 +6,7 @@ mod tests {
                 pigeon_hole,
                 sss_bound_tightening::{self}, max_job_size, middle,
             },
-            upper_bounds::{lpt, lptp, lptpp, self}, bound::Bound,
+            upper_bounds::{lpt, lptp, lptpp}, bound::Bound,
         },
         encoding::{
             basic_encoder::BasicEncoder,
@@ -14,7 +14,7 @@ mod tests {
             encoder::{Encoder, OneHotEncoder},
             pb_bdd_native::PbNativeEncoder,
             pb_bdd_pysat::PbPysatEncoder,
-            random_encoder::RandomEncoder,
+            random_encoder::RandomEncoder, pb_bdd_inter::PbInter,
         },
         input_output::{self},
         problem_instance::partial_solution::PartialSolution,
@@ -44,6 +44,7 @@ mod tests {
                     Box::new(middle::MiddleJobs {}),
                     Box::new(lpt::LPT {}),
                     Box::new(lptp::Lptp {}),
+                    Box::new(lptpp::Lptpp {})
                 ];
 
                 let (mut lower_bound, mut upper_bound) = (0, None);
@@ -77,22 +78,12 @@ mod tests {
         )
     }
 
-    //#[test]
-    //#[ignore]
-    //pub fn test_furlite() {
-    //    let mut a: Box<dyn Encoder> = Box::new(FillUpLite::new());
-    //    test_encoder(
-    //        &mut a,
-    //        "./bench/class_instances/",
-    //        "./bench/class_instance_encodings/furlite/",
-    //    )
-    //}
 
     #[test]
     #[ignore]
     pub fn test_basic_with_precedense() {
         let basic: Box<dyn OneHotEncoder> = Box::new(BasicEncoder::new());
-        let mut a: Box<dyn Encoder> = Box::new(Precedence::new(basic));
+        let mut a: Box<dyn Encoder> = Box::new(Precedence::new(basic, 2));
         test_encoder(
             &mut a,
             "./bench/class_instances/",
@@ -114,11 +105,11 @@ mod tests {
     #[test]
     #[ignore]
     pub fn test_pysat_with_precedence() {
-        let mut a: Box<dyn Encoder> = Box::new(Precedence::new(Box::new(PbPysatEncoder::new())));
+        let mut a: Box<dyn Encoder> = Box::new(Precedence::new(Box::new(PbPysatEncoder::new()), 2));
         test_encoder(
             &mut a,
             "./bench/class_instances/",
-            "./bench/class_instance_encodings/binmerge_precedence_one/",
+            "./bench/class_instance_encodings/binmerge_precedence/",
         )
     }
 
@@ -136,20 +127,74 @@ mod tests {
     }
 
     #[test]
-    //#[ignore]
+    #[ignore]
     pub fn test_bdd_native_with_precedence() {
-        let mut a: Box<dyn Encoder> = Box::new(Precedence::new(Box::new(PbNativeEncoder::new())));
+        let mut a: Box<dyn Encoder> = Box::new(Precedence::new(Box::new(PbNativeEncoder::new()), 2));
         test_encoder(
             &mut a,
+            //"./bench/single_instance/",
+            //"./bench/single_instance/"
             "./bench/class_instances/",
-            "./bench/class_instance_encodings/bdd_precedence_old/",
+            "./bench/class_instance_encodings/bdd_precedence/",
+        )
+    }
+
+    #[test]
+    #[ignore]
+    pub fn test_inter_with_precedence_unopt() {
+        let mut a: Box<dyn Encoder> = Box::new(Precedence::new(Box::new(PbInter::_new_unopt()), 2));
+        test_encoder(
+            &mut a,
+            //"./bench/single_instance/",
+            //"./bench/single_instance/"
+            "./bench/class_instances/",
+            "./bench/class_instance_encodings/bdd_inter_precedence_unopt/",
+        )
+    }
+
+    #[test]
+    #[ignore]
+    pub fn test_inter_with_precedence() {
+        let mut a: Box<dyn Encoder> = Box::new(Precedence::new(Box::new(PbInter::new()), 2));
+        test_encoder(
+            &mut a,
+            //"./bench/single_instance/",
+            //"./bench/single_instance/"
+            "./bench/class_instances/",
+            "./bench/class_instance_encodings/bdd_inter_precedence/",
+        )
+    }
+
+    #[test]
+    #[ignore]
+    pub fn test_inter_precedence_1() {
+        let mut a: Box<dyn Encoder> = Box::new(Precedence::new(Box::new(PbInter::new()), 1));
+        test_encoder(
+            &mut a,
+            //"./bench/single_instance/",
+            //"./bench/single_instance/"
+            "./bench/class_instances/",
+            "./bench/class_instance_encodings/bdd_inter_prec_1/",
+        )
+    }
+
+    #[test]
+    #[ignore]
+    pub fn test_inter() {
+        let mut a: Box<dyn Encoder> = Box::new(PbInter::new());
+        test_encoder(
+            &mut a,
+            //"./bench/single_instance/",
+            //"./bench/single_instance/"
+            "./bench/class_instances/",
+            "./bench/class_instance_encodings/bdd_inter/",
         )
     }
 
     #[test]
     #[ignore]
     pub fn test_random() {
-        let a: Box<dyn Encoder> = Box::new(Precedence::new(Box::new(PbPysatEncoder::new())));
+        let a: Box<dyn Encoder> = Box::new(Precedence::new(Box::new(PbPysatEncoder::new()), 2));
         let mut a: Box<dyn Encoder> = Box::new(RandomEncoder::new(a, 0.5));
         test_encoder(
             &mut a,
@@ -158,16 +203,6 @@ mod tests {
         )
     }
 
-    //#[test]
-    //#[ignore]
-    //pub fn test_bdd_native_f_e() {
-    //    let mut a: Box<dyn Encoder> = Box::new(Precedence::new(Box::new(PbNativeEncoderFE::new())));
-    //    test_encoder(
-    //        &mut a,
-    //        "./bench/class_instances/",
-    //        "./bench/class_instance_encodings/bdd_fe/",
-    //    )
-    //}
 
     fn test_unsat_ness(encoder: &mut Box<dyn Encoder>, in_dirname: &str, out_dirname: &str) {
         //
@@ -225,7 +260,7 @@ mod tests {
     #[test]
     #[ignore]
     pub fn test_bdd_unsatness() {
-        let mut a: Box<dyn Encoder> = Box::new(Precedence::new(Box::new(PbNativeEncoder::new())));
+        let mut a: Box<dyn Encoder> = Box::new(Precedence::new(Box::new(PbNativeEncoder::new()), 2));
         test_unsat_ness(
             &mut a,
             "./bench/class_instances/",
@@ -236,7 +271,7 @@ mod tests {
     #[test]
     #[ignore]
     pub fn test_binmerge_unsatness() {
-        let mut a: Box<dyn Encoder> = Box::new(Precedence::new(Box::new(PbPysatEncoder::new())));
+        let mut a: Box<dyn Encoder> = Box::new(Precedence::new(Box::new(PbPysatEncoder::new()), 2));
         test_unsat_ness(
             &mut a,
             "./bench/class_instances/",

@@ -8,7 +8,7 @@ import time
 
 directory = os.fsencode( sys.argv[1])
 
-def run(cmd, timeout_sec=60):
+def run(cmd, timeout_sec=30):
     process = subprocess.Popen(cmd, stdout=subprocess.PIPE)
     timer = Timer(timeout_sec, lambda : (process.terminate(), print("FAILED TIMEOUT" + " ".join(cmd))))
     out = b""
@@ -53,13 +53,13 @@ for filename in files:
             m = line[3]
             num_unsat = int(str(out.count("UNSAT")))
             num_sat = int(str(out.count("SAT")))
-            if False:
+            if "useful" in out:
                 print(out+"\n")
             if True:
                 num_sat = num_sat - num_unsat
                 output += (""+ str(n)+"_"+str(m) +"_" + str(file_num) +" " + "x " + str(finished) + " " + result +"\n")
         else:
-            print(out+"\n")
+            print(out+"\n" + filename +"\n")
         file_num += 1
         
         subprocess.Popen(["killall", "kissat"], stdout=subprocess.DEVNULL, stderr=subprocess.STDOUT)

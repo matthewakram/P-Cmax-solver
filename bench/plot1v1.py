@@ -39,8 +39,8 @@ legend_offset_y = 0
 legend_spacing = 0.5
 outfile_legend = None
 powers_of_ten_ticks = False
-max_num_proc = 255
-max_num_job = 255
+max_num_proc = 10
+max_num_job = 100
 color_category = 0
 
 for arg in sys.argv[1:]:
