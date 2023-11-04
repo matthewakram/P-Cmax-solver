@@ -512,11 +512,11 @@ pub fn encode_bdd_bijective_relation(bdd1: &BDD, bdd2: &BDD) -> Vec<Clause>{
 
         if bdd2_i != bdd2.nodes.len() 
         && bdd2.nodes[bdd2_i].job_num == bdd1.nodes[bdd1_i].job_num 
-        && bdd2.nodes[bdd2_i].range.0 == bdd1.nodes[bdd1_i].range.0
-        && bdd1.nodes[bdd1_i].range.0 == bdd1.nodes[bdd1_i].range.1
-        && bdd1.nodes[bdd1_i].range.1 == bdd2.nodes[bdd2_i].range.0
+        && bdd2.nodes[bdd2_i].range.0 >= bdd1.nodes[bdd1_i].range.0
+        && bdd2.nodes[bdd2_i].range.1 <= bdd1.nodes[bdd1_i].range.1
+        //&& bdd1.nodes[bdd1_i].range.1 == bdd2.nodes[bdd2_i].range.0
         // TODO: More tests on which one is better, but I will stick with this for now
-        //&& bdd2.nodes[bdd2_i].point_set.is_subset(&bdd1.nodes[bdd1_i].point_set) 
+        && bdd2.nodes[bdd2_i].point_set.is_subset(&bdd1.nodes[bdd1_i].point_set) 
         //&& bdd2.nodes[bdd2_i].point_set.len() == 1
         {
             bijection.push(bdd2_i);
