@@ -8,8 +8,6 @@ use super::{pigeon_hole, max_job_size, middle, sss_bound_tightening};
 
 
 
-// TODO: this
-
 pub struct Lifting{
     
 }

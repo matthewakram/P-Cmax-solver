@@ -57,7 +57,7 @@ impl SatSolverManager {
             hsr.simplify(&partial_solution, makespan_to_test);
             let partial_solution: PartialSolution =
             fur.simplify(&partial_solution, makespan_to_test);
-            let partial_solution = finalize.simplify(&partial_solution, makespan_to_test);
+            //let partial_solution = finalize.simplify(&partial_solution, makespan_to_test);
             
             let mut var_assingment = None;
             //let mut simp_useful = true;

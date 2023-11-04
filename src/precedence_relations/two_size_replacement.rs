@@ -11,7 +11,7 @@ impl PrecedenceRelationGenerator for TwoSizeReplacement {
 
         let mut total_num = 0;
         for job1 in 0..instance.num_jobs-2 {
-            for job2 in (job1+1)..instance.num_jobs {
+            for job2 in (job1+1)..instance.num_jobs-1 {
                 if total_num >= self.limit {
                     println!("tooo many relations");
                     return out;

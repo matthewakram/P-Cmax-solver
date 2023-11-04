@@ -41,8 +41,7 @@ impl Encoder for PbNativeEncoder {
                 }
             }
             // now we construct the bdd to assert that this machine is not too full
-            // TODO
-            let bdd: BDD = bdd::bdd::leq(&jobs, &job_vars, &weights, makespan);
+            let bdd: BDD = bdd::bdd::leq(&jobs, &job_vars, &weights, makespan, false);
             let bdd: BDD = bdd::bdd::assign_aux_vars(bdd, &mut self.one_hot.var_name_generator);
             
 

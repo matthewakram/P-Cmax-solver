@@ -49,7 +49,8 @@ impl PbInter {
             let (lower, upper) = i.range;
             let job_size: usize = solution.instance.job_sizes[i.job_num];
             let fur_val = makespan_to_check - job_size;
-            if lower <= fur_val && fur_val <= upper {
+            if lower <= fur_val && fur_val <= upper && lower == upper{
+                //println!("job size {}, makespan {}, node_range {} {}", job_size, makespan_to_check, lower, upper);
                 out.push((i.job_num, i.aux_var));
             }
         }
@@ -80,10 +81,13 @@ impl Encoder for PbInter {
                 }
             }
             // now we construct the bdd to assert that this machine is not too full
-            let bdd = bdd::bdd::leq(&jobs, &job_vars, &weights, makespan);
+            let bdd = bdd::bdd::leq(&jobs, &job_vars, &weights, makespan, true);
             let bdd = bdd::bdd::assign_aux_vars(bdd, &mut self.one_hot.var_name_generator);
             let mut a: Vec<Clause> = bdd::bdd::_encode_bad(&bdd);
 
+            //for n in &bdd.nodes {
+            //    println!("proc {} var {} range {} {} ", n.job_num, n.aux_var, n.range.0, n.range.1);
+            //}
             bdds.push(bdd);
             clauses.append(&mut a);
         }
@@ -102,6 +106,8 @@ impl Encoder for PbInter {
                 let fur_vars: Vec<(usize, usize)> =
                     self.get_fur_vars(&bdds[i], partial_solution, makespan);
                 //println!("{:?}", fur_vars);
+                // TODO: test the performance difference between adding explicit fur nodes, and only considering final nodes with range
+                // is of size one
                 for (job_num, fur_var) in fur_vars {
                     for j in i + 1..partial_solution.instance.num_processors {
                         if self.one_hot.position_vars[job_num][j].is_some() {

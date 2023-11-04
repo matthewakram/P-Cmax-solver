@@ -8,7 +8,7 @@ import time
 
 directory = os.fsencode( sys.argv[1])
 
-def run(cmd, timeout_sec=30):
+def run(cmd, timeout_sec=60):
     process = subprocess.Popen(cmd, stdout=subprocess.PIPE)
     timer = Timer(timeout_sec, lambda : (process.terminate(), print("FAILED TIMEOUT" + " ".join(cmd))))
     out = b""

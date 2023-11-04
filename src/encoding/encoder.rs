@@ -47,7 +47,3 @@ impl Debug for Clause {
 }
 
 
-//TODO encoder goals:
-// two elements of the same size: one has to come after the other one
-// fill rule
-// replacement rule

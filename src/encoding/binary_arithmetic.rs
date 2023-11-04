@@ -89,7 +89,6 @@ pub fn at_most_k_encoding(n: &BinaryNumber, k: usize) -> Vec<Clause> {
     return output;
 }
 
-//TODO: TEST THIS
 pub fn bounded_sum_encoding(
     n: &BinaryNumber,
     m: &BinaryNumber,
