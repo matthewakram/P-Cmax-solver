@@ -1,4 +1,4 @@
-use crate::{bdd::{self, bdd::BDD}, problem_instance::problem_instance::ProblemInstance};
+use crate::{bdd::{self, bdd::BDD}, problem_instance::{problem_instance::ProblemInstance, partial_solution}};
 
 use super::{
     encoder::{Clause, Encoder, OneHotEncoder},
@@ -34,14 +34,17 @@ impl Encoder for PbNativeEncoder {
             let mut weights: Vec<usize> = vec![];
             let mut jobs: Vec<usize> = vec![];
             for job in 0..partial_solution.instance.num_jobs {
-                if self.one_hot.position_vars[job][proc].is_some() {
+                if self.one_hot.position_vars[job][proc].is_some() && partial_solution.possible_allocations[job].len() > 1 {
                     job_vars.push(self.one_hot.position_vars[job][proc].unwrap());
                     jobs.push(job);
                     weights.push(partial_solution.instance.job_sizes[job]);
                 }
             }
+            if jobs.len() == 0 {
+                continue;
+            }
             // now we construct the bdd to assert that this machine is not too full
-            let bdd: BDD = bdd::bdd::leq(&jobs, &job_vars, &weights, makespan, false);
+            let bdd: BDD = bdd::bdd::leq(&jobs, &job_vars, &weights, makespan, false, partial_solution.assigned_makespan[proc]);
             let bdd: BDD = bdd::bdd::assign_aux_vars(bdd, &mut self.one_hot.var_name_generator);
             
 

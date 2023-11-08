@@ -15,7 +15,7 @@ pub struct Node {
     pub right_child: usize,
     pub job_num: usize,
     pub range: (usize, usize),
-    pub point_set: HashSet<usize>,
+    //pub point_set: HashSet<usize>,
 }
 
 pub struct BDD {
@@ -24,13 +24,14 @@ pub struct BDD {
     
 }
 
-pub fn leq(jobs: &Vec<usize>, vars: &Vec<usize>, weights: &Vec<usize>, limit: usize, with_fur_nodes : bool) -> BDD {
+pub fn leq(jobs: &Vec<usize>, vars: &Vec<usize>, weights: &Vec<usize>, limit: usize, with_fur_nodes : bool, already_assigned: usize) -> BDD {
     //assert!(vars.len() > 1);
+    assert_ne!(already_assigned, limit);
     let mut reachable: Vec<BitVec> = vec![];
-    assert!(weights[0] <= limit);
-    reachable.push(bitvec![0;weights[0]+1]);
-    reachable[0].set(0, true);
-    reachable[0].set(weights[0], true);
+    assert!(already_assigned + weights[0] <= limit);
+    reachable.push(bitvec![0;already_assigned + weights[0]+1]);
+    reachable[0].set(already_assigned, true);
+    reachable[0].set(already_assigned + weights[0], true);
 
     // in reachable, you know which sum values are reachable after making a decision on i
     for i in 1..vars.len() {
@@ -58,7 +59,7 @@ pub fn leq(jobs: &Vec<usize>, vars: &Vec<usize>, weights: &Vec<usize>, limit: us
         right_child: 1,
         job_num: usize::MAX,
         range: (0, usize::MAX),
-        point_set: HashSet::new(),
+        //point_set: HashSet::new(),
     };
     let false_node = Node {
         var: 0,
@@ -67,7 +68,7 @@ pub fn leq(jobs: &Vec<usize>, vars: &Vec<usize>, weights: &Vec<usize>, limit: us
         right_child: 0,
         job_num: usize::MAX,
         range: (0, usize::MAX),
-        point_set: HashSet::new(),
+        //point_set: HashSet::new(),
     };
 
     nodes.push(false_node);
@@ -98,7 +99,7 @@ pub fn leq(jobs: &Vec<usize>, vars: &Vec<usize>, weights: &Vec<usize>, limit: us
                     },
                     job_num: jobs[i+1],
                     range : (reachable_i, reachable_i),
-                    point_set: HashSet::from_iter(reachable_i..reachable_i+1),
+                    //point_set: HashSet::from_iter(reachable_i..reachable_i+1),
                 };
                 if new_node.left_child == new_node.right_child {
                     reachable_i_nodes[reachable_i] = new_node.left_child;
@@ -117,7 +118,7 @@ pub fn leq(jobs: &Vec<usize>, vars: &Vec<usize>, weights: &Vec<usize>, limit: us
                     let node_id = nodes.len() - 1;
                     reachable_i_nodes[reachable_i] = node_id;
                     nodes[node_id].range = (nodes[node_id].range.0, reachable_i);
-                    nodes[node_id].point_set.insert(reachable_i);
+                    //nodes[node_id].point_set.insert(reachable_i);
                 }
             }
         }
@@ -126,11 +127,11 @@ pub fn leq(jobs: &Vec<usize>, vars: &Vec<usize>, weights: &Vec<usize>, limit: us
     nodes.push(Node {
         var: vars[0],
         aux_var: 0,
-        left_child: reachable_i_nodes[0],
-        right_child: reachable_i_nodes[weights[0]],
+        left_child: reachable_i_nodes[already_assigned + 0],
+        right_child: reachable_i_nodes[already_assigned + weights[0]],
         job_num: jobs[0],
-        range: (0,0),
-        point_set: HashSet::from_iter(0..1),
+        range: (already_assigned,already_assigned),
+        // !point_set: HashSet::from_iter(0..1),
     });
 
     //for node in &nodes {
@@ -347,6 +348,12 @@ pub fn encode(bdd: &BDD) -> Vec<Clause> {
         }
         if bdd.nodes[bdd.nodes[i].left_child].aux_var == bdd.nodes[bdd.nodes[i].right_child].aux_var
         {
+            if bdd.nodes.len() != 3 {
+                for node in &bdd.nodes {
+                    println!("job num {} left {} right {} aux {}", node.job_num, node.left_child, node.right_child, node.aux_var);
+                }
+                println!("error occured at node {}", i);
+            }
             assert!(bdd.nodes.len() == 3);
         }
 
@@ -514,9 +521,9 @@ pub fn encode_bdd_bijective_relation(bdd1: &BDD, bdd2: &BDD) -> Vec<Clause>{
         && bdd2.nodes[bdd2_i].job_num == bdd1.nodes[bdd1_i].job_num 
         && bdd2.nodes[bdd2_i].range.0 >= bdd1.nodes[bdd1_i].range.0
         && bdd2.nodes[bdd2_i].range.1 <= bdd1.nodes[bdd1_i].range.1
-        //&& bdd1.nodes[bdd1_i].range.1 == bdd2.nodes[bdd2_i].range.0
         // TODO: More tests on which one is better, but I will stick with this for now
-        && bdd2.nodes[bdd2_i].point_set.is_subset(&bdd1.nodes[bdd1_i].point_set) 
+        // TODO: I can prove that this is not necessary, but for now it just makes me feel better
+        //&& bdd2.nodes[bdd2_i].point_set.is_subset(&bdd1.nodes[bdd1_i].point_set) 
         //&& bdd2.nodes[bdd2_i].point_set.len() == 1
         {
             bijection.push(bdd2_i);

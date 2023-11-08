@@ -17,10 +17,9 @@ mod tests {
             random_encoder::RandomEncoder, pb_bdd_inter::PbInter,
         },
         input_output::{self},
-        problem_instance::partial_solution::PartialSolution,
+        problem_instance::partial_solution::PartialSolution, problem_simplification::{final_simp_rule, simplification_rule::SimpRule},
     };
     use std::fs;
-
     fn test_encoder(encoder: &mut Box<dyn Encoder>, in_dirname: &str, out_dirname: &str) {
         //
         let paths = fs::read_dir(in_dirname).unwrap();
@@ -53,7 +52,14 @@ mod tests {
                 }
                 let upper_bound = upper_bound.unwrap();
                 let pi = PartialSolution::new(instance);
+                
                 for makespan in lower_bound..upper_bound.makespan + 1 {
+                    let mut finalize: final_simp_rule::FinalizeRule = final_simp_rule::FinalizeRule{};
+                    let pi = finalize.simplify(&pi, makespan);
+                    if pi.is_none() {
+                        continue;
+                    }
+                    let pi: PartialSolution = pi.unwrap();
                     file_num += 1;
                     encoder.basic_encode(&pi, makespan);
                     let e = encoder.output();
@@ -68,7 +74,7 @@ mod tests {
     }
 
     #[test]
-    #[ignore]
+    //#[ignore]
     pub fn test_basic() {
         let mut encoder: Box<dyn Encoder> = Box::new(BasicEncoder::new());
         test_encoder(
@@ -103,7 +109,7 @@ mod tests {
     }
 
     #[test]
-    #[ignore]
+    //#[ignore]
     pub fn test_pysat_with_precedence() {
         let mut a: Box<dyn Encoder> = Box::new(Precedence::new(Box::new(PbPysatEncoder::new()), 2));
         test_encoder(
@@ -127,13 +133,13 @@ mod tests {
     }
 
     #[test]
-    #[ignore]
+    //#[ignore]
     pub fn test_bdd_native_with_precedence() {
         let mut a: Box<dyn Encoder> = Box::new(Precedence::new(Box::new(PbNativeEncoder::new()), 2));
         test_encoder(
             &mut a,
             //"./bench/single_instance/",
-            //"./bench/single_instance/"
+            //"./bench/single_instance/" 
             "./bench/class_instances/",
             "./bench/class_instance_encodings/bdd_precedence/",
         )
@@ -153,7 +159,7 @@ mod tests {
     }
 
     #[test]
-    #[ignore]
+    //#[ignore]
     pub fn test_inter_with_precedence() {
         let mut a: Box<dyn Encoder> = Box::new(Precedence::new(Box::new(PbInter::new()), 2));
         test_encoder(
@@ -166,7 +172,7 @@ mod tests {
     }
 
     #[test]
-    #[ignore]
+    //#[ignore]
     pub fn test_inter_precedence_1() {
         let mut a: Box<dyn Encoder> = Box::new(Precedence::new(Box::new(PbInter::new()), 1));
         test_encoder(

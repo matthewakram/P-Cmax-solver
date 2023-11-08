@@ -219,7 +219,6 @@ timeouts_y = 0
 label_idx = 0
 
 def rgb_to_hex(r, g, b):
-    print('#{:02x}{:02x}{:02x}'.format(r, g, b))
     return '#{:02x}{:02x}{:02x}'.format(r, g, b)
 
 for dom in runtime_map_pairs_by_domain:

@@ -74,14 +74,18 @@ impl Encoder for PbInter {
             let mut weights: Vec<usize> = vec![];
             let mut jobs: Vec<usize> = vec![];
             for job in 0..partial_solution.instance.num_jobs {
-                if self.one_hot.position_vars[job][proc].is_some() {
+                if self.one_hot.position_vars[job][proc].is_some() && partial_solution.possible_allocations[job].len() > 1 
+                {
                     job_vars.push(self.one_hot.position_vars[job][proc].unwrap());
                     jobs.push(job);
                     weights.push(partial_solution.instance.job_sizes[job]);
                 }
             }
+            if jobs.len() == 0 {
+                bdds.push(BDD{ nodes: vec![], root_num: 0 })
+            }else {
             // now we construct the bdd to assert that this machine is not too full
-            let bdd = bdd::bdd::leq(&jobs, &job_vars, &weights, makespan, true);
+            let bdd = bdd::bdd::leq(&jobs, &job_vars, &weights, makespan, true, partial_solution.assigned_makespan[proc]);
             let bdd = bdd::bdd::assign_aux_vars(bdd, &mut self.one_hot.var_name_generator);
             let mut a: Vec<Clause> = bdd::bdd::_encode_bad(&bdd);
 
@@ -90,10 +94,14 @@ impl Encoder for PbInter {
             //}
             bdds.push(bdd);
             clauses.append(&mut a);
+            }
         }
 
         for i in 0..partial_solution.instance.num_processors {
             for j in i + 1..partial_solution.instance.num_processors {
+                if bdds[j].nodes.is_empty() || bdds[i].nodes.is_empty() {
+                    continue;
+                }
                 clauses.append(&mut bdd::bdd::encode_bdd_bijective_relation(
                     &bdds[i], &bdds[j],
                 ));
@@ -103,9 +111,11 @@ impl Encoder for PbInter {
         if self.opt_all {
             // this encodes the fill up rule
             for i in 0..partial_solution.instance.num_processors - 1 {
+                if bdds[i].nodes.is_empty() {
+                    continue;
+                }
                 let fur_vars: Vec<(usize, usize)> =
                     self.get_fur_vars(&bdds[i], partial_solution, makespan);
-                //println!("{:?}", fur_vars);
                 // TODO: test the performance difference between adding explicit fur nodes, and only considering final nodes with range
                 // is of size one
                 for (job_num, fur_var) in fur_vars {

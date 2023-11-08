@@ -1,9 +1,8 @@
-use wait_timeout::ChildExt;
-
 use crate::solvers::solver::SatResult;
 
 use super::super::solver::SatSolver;
-use std::{process::{Command, Stdio}, time::Duration};
+use std::{process::{Command, Stdio}, time::Duration, io::Read};
+use timeout_readwrite::TimeoutReader;
 
 
 pub struct Kissat{
@@ -12,27 +11,23 @@ pub struct Kissat{
 
 impl SatSolver for Kissat {
     fn solve(&self, file_name: &str, timeout: f64) -> SatResult {
-        //let result = Command::new("./kissat")
-        //.arg(file_name)
-        //.arg("-q")
-        //.output()
-        //.expect("./kissat command failed to start");
 
-        let mut child = Command::new("./kissat").arg(file_name).arg("-q").stdout(Stdio::piped()).spawn().unwrap();
+        let child = Command::new("./kissat").arg(file_name).arg("-q").stdout(Stdio::piped()).spawn().unwrap();
 
-        let secs = Duration::from_secs_f64(timeout);
-        let status =  child.wait_timeout(secs).unwrap() ;
-        if status.is_none(){
-            child.kill().unwrap();
+
+        let mut reader = TimeoutReader::new(child.stdout.unwrap(), Duration::from_secs_f64(timeout));
+        let mut out = String::new();
+        
+
+        let res: Result<usize, std::io::Error> = reader.read_to_string(&mut out);
+        
+        if res.is_err() {
             return SatResult::timeout();
         }
-        
-        let result = child.wait_with_output().expect("./kissat command failed to start");
-
-        let output = std::str::from_utf8(&result.stdout).unwrap();
+                
 
         let mut solution: Vec<i32> = vec![];
-        for var in  output.split(&[' ', '\n'][..]){
+        for var in  out.split(&[' ', '\n'][..]){
             let number = var.parse::<i32>();
             match number {
                 Ok(ok) => solution.push(ok),

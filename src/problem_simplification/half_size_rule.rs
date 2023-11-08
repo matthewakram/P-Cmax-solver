@@ -11,15 +11,16 @@ impl SimpRule for HalfSizeRule {
         &mut self,
         partial_solution: &crate::problem_instance::partial_solution::PartialSolution,
         max_makespan: usize,
-    ) -> PartialSolution {
+    ) -> Option<PartialSolution> {
         let mut out = partial_solution::PartialSolution::new(partial_solution.instance.clone());
         for job in 0..partial_solution.instance.num_processors {
             if partial_solution.instance.job_sizes[job] > max_makespan / 2 {
                 out.possible_allocations[job] = vec![job];
                 out.assigned_makespan[job] = out.instance.job_sizes[job];
+                continue;
             }
             break;
         }
-        return out;
+        return Some(out);
     }
 }

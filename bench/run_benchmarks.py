@@ -5,10 +5,11 @@ from subprocess import PIPE, STDOUT, check_output
 import sys
 from threading import Timer
 import time
+import multiprocessing
 
 directory = os.fsencode( sys.argv[1])
 
-def run(cmd, timeout_sec=60):
+def run(cmd, timeout_sec=30):
     process = subprocess.Popen(cmd, stdout=subprocess.PIPE)
     timer = Timer(timeout_sec, lambda : (process.terminate(), print("FAILED TIMEOUT" + " ".join(cmd))))
     out = b""
@@ -34,8 +35,6 @@ for filename in files:
         continue
     
     with open(sys.argv[1] + "/" + filename, "r") as f1:
-        if file_num == 245:
-            pass
         sys.stdout.write("\rFile number: %i" % file_num)
         sys.stdout.flush()
         start = time.time()

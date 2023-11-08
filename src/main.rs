@@ -11,6 +11,7 @@ mod precedence_relations;
 mod problem_instance;
 mod problem_simplification;
 mod solvers;
+mod randomized_checkers;
 //mod feasability_checking;
 extern crate bitvec;
 
@@ -109,7 +110,7 @@ fn main() {
         encoder,
     };
 
-    let sol = sat_solver.solve(&instance, lower_bound, &upper_bound, 300.0, true).unwrap();
+    let sol = sat_solver.solve(&instance, lower_bound, &upper_bound, 60.0, true).unwrap();
     let final_solution = instance.finalize_solution(sol);
     println!("solution found {}", final_solution.makespan);
 }

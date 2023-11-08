@@ -12,8 +12,13 @@ impl SimpRule for FinalizeRule {
         &mut self,
         partial_solution: &crate::problem_instance::partial_solution::PartialSolution,
         max_makespan: usize,
-    ) -> PartialSolution {
+    ) ->Option<PartialSolution> {
         let mut out: PartialSolution = partial_solution.clone();
+        //println!("job sizes {:?}", partial_solution.instance.job_sizes);
+        //println!("assigned {:?}", partial_solution.assigned_makespan);
+        //for a in &partial_solution.possible_allocations {
+        //    println!("poss all {:?}", a);
+        //}
 
 
         for job in 0..partial_solution.instance.num_jobs {
@@ -22,16 +27,19 @@ impl SimpRule for FinalizeRule {
                 continue;
             }
             for proc in &partial_solution.possible_allocations[job] {
-                if partial_solution.instance.job_sizes[job] <= max_makespan - partial_solution.assigned_makespan[*proc] {
+                if partial_solution.instance.job_sizes[job] <= max_makespan - out.assigned_makespan[*proc] {
                     finalized_possible_allocations_i.push(*proc);
                 } 
             }
-            assert_ne!(finalized_possible_allocations_i.len(), 0);
+            if finalized_possible_allocations_i.len() == 0 {
+                return None;
+            }
             out.possible_allocations[job] = finalized_possible_allocations_i;
             if out.possible_allocations[job].len() == 1{
                 out.assigned_makespan[out.possible_allocations[job][0]] += out.instance.job_sizes[job];
             }
         }
-        return out;
+        
+        return Some(out);
     }
 }
