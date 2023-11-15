@@ -1,14 +1,18 @@
-use crate::precedence_relations::{precedence_relation_generator::{PrecedenceRelation, PrecedenceRelationGenerator}, size_replacement::SizeReplacement, two_size_replacement::TwoSizeReplacement};
+use crate::{precedence_relations::{precedence_relation_generator::{PrecedenceRelation, PrecedenceRelationGenerator}, size_replacement::SizeReplacement, two_size_replacement::TwoSizeReplacement}, common::timeout::Timeout};
 
 use super::{encoder::{OneHotEncoder, Clause, Encoder}, problem_encoding::one_hot_encoding::OneHot};
 
 
 
+#[derive(Clone)]
 pub struct Precedence {
     pub basic: Box<dyn OneHotEncoder>,
     pub clauses: Vec<Clause>,
     precedence_relations: Vec<Box<dyn PrecedenceRelationGenerator>>,
 
+}
+
+unsafe impl Send for Precedence {
 }
 
 impl Precedence {
@@ -30,8 +34,8 @@ impl Precedence {
 }
 
 impl Encoder for Precedence {
-    fn basic_encode(&mut self, partial_solution: &crate::problem_instance::partial_solution::PartialSolution, makespan: usize) {
-        self.basic.basic_encode(partial_solution, makespan);
+    fn basic_encode(&mut self, partial_solution: &crate::problem_instance::partial_solution::PartialSolution, makespan: usize, timeout: &Timeout) -> bool {
+        self.basic.basic_encode(partial_solution, makespan, &timeout);
         let mut clauses: Vec<Clause> = vec![];
         let precedence_relations: Vec<PrecedenceRelation> = self.precedence_relations.iter().map(|x| x.get_relations(&partial_solution.instance)).flat_map(|x| x).collect();
         
@@ -54,9 +58,13 @@ impl Encoder for Precedence {
                     }
                 }
             }
+            if timeout.time_finished() {
+                return false;
+            }
         }
 
         self.clauses = clauses;
+        return true;
     }
 
     fn output(&self) -> Vec<Clause> {

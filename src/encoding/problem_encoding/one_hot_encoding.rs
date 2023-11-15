@@ -11,13 +11,16 @@ use crate::{
     },
 };
 
+#[derive(Clone)]
 pub struct OneHotProblemEncoding {
     pub var_name_generator: VarNameGenerator,
     pub position_vars: Vec<Vec<Option<usize>>>,
     pub clauses: Vec<Clause>,
 }
 
-pub trait OneHot{
+pub trait OneHotClone : OneHot + Clone {}
+
+pub trait OneHot {
     fn get_position_var(&self, job_num: usize, proc_num: usize) -> Option<usize>;
 }
 

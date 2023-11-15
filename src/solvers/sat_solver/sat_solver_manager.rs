@@ -1,9 +1,8 @@
 use crate::{
     encoding::encoder::Encoder,
-    input_output,
     makespan_scheduling::makespan_scheduler::MakespanScheduler,
     problem_instance::{
-        partial_solution::{self, PartialSolution},
+        partial_solution::PartialSolution,
         problem_instance::ProblemInstance,
         solution::Solution,
     },
@@ -12,12 +11,10 @@ use crate::{
         simplification_rule::SimpRule,
     },
     randomized_checkers::{
-        descending_multi_sss_randomized_checker::DescendingMultiSSSRandomizedChecker,
-        randomized_checker::RandomizedChecker,
+        randomized_checker::RandomizedChecker, randomized_multi_sss_randomized_checker::RandomizedMultiSSSRandomizedChecker,
     },
-    solvers::solver::SatSolver,
+    solvers::solver::SatSolver, common::timeout::Timeout,
 };
-use std::time::Instant;
 
 pub struct SatSolverManager {
     pub sat_solver: Box<dyn SatSolver>,
@@ -31,18 +28,15 @@ impl SatSolverManager {
         instance: &ProblemInstance,
         lower: usize,
         upper: &Solution,
-        timeout: f64,
+        timeout: &Timeout,
         verbose: bool,
     ) -> Option<Solution> {
         let mut solution: Solution = upper.clone();
         let mut lower = lower;
 
-        let mut timeout = timeout;
-
-        let mut simp_useful = true;
+        let mut simp_useful = false;
 
         while lower != solution.makespan {
-            let start_time = Instant::now();
             let makespan_to_test = self.makespan_scheduler.next_makespan(
                 instance,
                 &solution,
@@ -52,6 +46,7 @@ impl SatSolverManager {
             if verbose {
                 println!("makespan to test: {}", makespan_to_test);
             }
+
 
             // Here We refine the solution that we have
             let partial_solution = PartialSolution::new(instance.clone());
@@ -75,15 +70,21 @@ impl SatSolverManager {
             //}
 
             let mut var_assingment = None;
-            if simp_useful && partial_solution.instance.num_jobs >40 && partial_solution.instance.num_jobs > 3 {
-                let random = DescendingMultiSSSRandomizedChecker {};
-                println!("trying");
-                let sol = random.is_sat(&partial_solution, makespan_to_test, timeout/3.0);
+
+            
+
+            if simp_useful && partial_solution.instance.num_jobs >40 {
+                let random = RandomizedMultiSSSRandomizedChecker {};
+                if timeout.time_finished() {
+                    return None;
+                }
+                
+                let sol = random.is_sat(&partial_solution, makespan_to_test, &Timeout::new(timeout.remaining_time()/3.0));
                 if sol.is_some() {
                     let sol = sol.unwrap();
                     assert!(sol.makespan <= makespan_to_test);
                     solution = sol;
-                    println!("SAT by simp");
+                    //println!("SAT by simp");
                     continue;
                 }
             }
@@ -91,15 +92,17 @@ impl SatSolverManager {
 
             if var_assingment.is_none() {
                 self.encoder
-                    .basic_encode(&partial_solution, makespan_to_test);
+                    .basic_encode(&partial_solution, makespan_to_test, timeout);
                 let clauses = self.encoder.output();
-                let file_name: &str = "./test";
-                input_output::to_dimacs::print_to_dimacs(
-                    file_name,
-                    clauses,
-                    self.encoder.get_num_vars(),
-                );
-                let result = self.sat_solver.as_ref().solve(file_name, timeout);
+                //let file_name: &str = "./test";
+                //println!("writing to file, formula size {}", clauses.len());
+                //input_output::to_dimacs::print_to_dimacs(
+                //    file_name,
+                //    clauses,
+                //    self.encoder.get_num_vars(),
+                //);
+                //println!("wrote to file");
+                let result = self.sat_solver.as_ref().solve(&clauses, self.encoder.get_num_vars(), timeout);
 
                 // TODO: there is definetly a better way of doing this, such that we get an any time algo, but i cba rn
                 if result.is_timeout() {
@@ -132,7 +135,6 @@ impl SatSolverManager {
             if verbose {
                 println!("lower: {} upper {}", lower, solution.makespan);
             }
-            timeout -= start_time.elapsed().as_secs_f64();
         }
 
         return Some(solution);

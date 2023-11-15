@@ -1,8 +1,10 @@
-use crate::problem_instance::problem_instance::ProblemInstance;
+use timeout_readwrite::TimeoutReader;
+
+use crate::{common::timeout::Timeout, problem_instance::problem_instance::ProblemInstance};
 use std::{
-    fs::{read_to_string, File},
-    io::Write,
-    process::Command,
+    io::{BufWriter, Read, Write},
+    process::{Command, Stdio},
+    time::Duration,
 };
 
 use super::{
@@ -10,6 +12,7 @@ use super::{
     problem_encoding::one_hot_encoding::{OneHot, OneHotProblemEncoding},
 };
 
+#[derive(Clone)]
 pub struct PbPysatEncoder {
     one_hot: OneHotProblemEncoding,
     pub clauses: Vec<Clause>,
@@ -25,55 +28,85 @@ impl PbPysatEncoder {
 }
 
 impl Encoder for PbPysatEncoder {
+    // TODO add timeout to encode
     fn basic_encode(
         &mut self,
         partial_solution: &crate::problem_instance::partial_solution::PartialSolution,
         makespan: usize,
-    ) {
+        timeout: &Timeout,
+    ) -> bool {
+        let mut child;
+        loop {
+            let res = Command::new("python3")
+                .arg("./src/encoding/pb_with_pysat.py")
+                .stdin(Stdio::piped())
+                .stdout(Stdio::piped())
+                .spawn();
+            if res.is_ok() {
+                child = res.unwrap();
+                break;
+            }
+        }
         self.one_hot.encode(partial_solution);
         let mut clauses: Vec<Clause> = vec![];
 
-        let mut file = File::create("./pysat_file").unwrap();
-        file.write(
-            format!(
-                "{} {} {} {}\n",
-                partial_solution.instance.num_jobs,
-                partial_solution.instance.num_processors,
-                self.get_num_vars(),
-                makespan
-            )
-            .as_bytes(),
+        let mut string = String::new();
+        string += format!(
+            "{} {} {} {}\n",
+            partial_solution.instance.num_jobs,
+            partial_solution.instance.num_processors,
+            self.get_num_vars(),
+            makespan
         )
-        .unwrap();
-        let string = partial_solution
+        .as_str();
+
+        string += partial_solution
             .instance
             .job_sizes
             .iter()
             .map(|x| x.to_string() + " ")
             .reduce(|x, y| x + &y)
-            .unwrap();
-        file.write(string.as_bytes()).unwrap();
-        file.write("\n".as_bytes()).unwrap();
+            .unwrap()
+            .as_str();
+        string += "\n";
+
         for job in 0..partial_solution.instance.num_jobs {
-            let mut string: String = String::new();
             for proc in 0..partial_solution.instance.num_processors {
                 string +=
                     &(self.one_hot.position_vars[job][proc].as_ref().unwrap_or(&0)).to_string();
                 string += " ";
             }
             string += "\n";
-            file.write(string.as_bytes()).unwrap();
         }
 
-        Command::new("python3")
-            .arg("./src/encoding/pb_with_pysat.py")
-            .status()
-            .expect("failed to execute process");
+        let stdin = child.stdin.take().unwrap();
+        let stdout = child.stdout.take().unwrap();
 
-        let binding = read_to_string("./pysat_file_1").unwrap();
-        let reader = binding.lines();
+        let mut writer = BufWriter::new(stdin);
+        writer.write_all(string.as_bytes()).unwrap();
+        writer.flush().unwrap();
+
+        let time_remaining = timeout.remaining_time();
+        if time_remaining <= 0.0 || time_remaining.is_nan() || time_remaining.is_infinite() {
+            child.kill().unwrap();
+            return false;
+        }
+
+        let mut reader: TimeoutReader<std::process::ChildStdout> =
+            TimeoutReader::new(stdout, Duration::from_secs_f64(time_remaining));
+
+        let mut out = String::new();
+        let error = reader.read_to_string(&mut out);
+
+        child.kill().unwrap();
+        child.wait().unwrap();
+        if error.is_err() {
+            return false;
+        }
+
+        let lines = out.lines();
         let mut max: usize = 0;
-        for line in reader {
+        for line in lines {
             let line = line.split(" ");
             clauses.push(Clause {
                 vars: line
@@ -88,13 +121,25 @@ impl Encoder for PbPysatEncoder {
             );
         }
 
+        max = max.max(self.one_hot.get_num_vars());
+
         self.one_hot.var_name_generator.jump_to(max + 1);
         self.clauses = clauses;
+        return true;
     }
 
     fn output(&self) -> Vec<Clause> {
-        let mut out = self.clauses.clone();
+        let mut out: Vec<Clause> = self.clauses.clone();
         out.append(&mut self.one_hot.clauses.clone());
+        //let num_vars = self.get_num_vars();
+        //for i in &out {
+        //    for v in &i.vars{
+        //        if v.abs() as usize > num_vars {
+        //            println!("error occured at {} {}", v, num_vars);
+        //        }
+        //        assert!(v.abs() as usize <= num_vars);
+        //    }
+        //}
         return out;
     }
 

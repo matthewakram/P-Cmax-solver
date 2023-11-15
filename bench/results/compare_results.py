@@ -14,5 +14,5 @@ with open(file1) as f1:
             if len(line2) == 0 :
                 continue
             line2 = line2[0].split()
-            if line2 [3] != line[3]:
+            if line2 [2] != line[2]:
                 print("found error " + str(line))

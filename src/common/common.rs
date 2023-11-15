@@ -15,3 +15,17 @@ pub fn calc_makespan(instance: &ProblemInstance, assignment: &Vec<usize>) -> usi
     }
     return makespan;
 }
+
+pub trait IndexOf<T: Eq> {
+    fn index_of(&self, elem: &T) -> Option<usize>;
+}
+
+impl <T:  Eq> IndexOf<T> for Vec<T> {
+    fn index_of(&self, elem: &T) -> Option<usize> {
+        let a = self.into_iter().enumerate().find(|(_,x)| *x == elem);
+        if a.is_none() {
+            return None;
+        }
+        return Some(a.unwrap().0);
+    }
+}

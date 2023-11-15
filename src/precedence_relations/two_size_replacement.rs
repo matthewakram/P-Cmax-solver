@@ -1,5 +1,6 @@
 use super::precedence_relation_generator::{PrecedenceRelationGenerator, PrecedenceRelation};
 
+#[derive(Clone)]
 pub struct TwoSizeReplacement {
     pub limit: usize,
 }

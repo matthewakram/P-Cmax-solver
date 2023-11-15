@@ -2,6 +2,7 @@ use super::precedence_relation_generator::{PrecedenceRelationGenerator, Preceden
 
 
 
+#[derive(Clone)]
 pub struct SizeReplacement {
 
 }

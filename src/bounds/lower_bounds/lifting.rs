@@ -1,8 +1,7 @@
 
 
-use std::time::Instant;
 
-use crate::{problem_instance::{problem_instance::ProblemInstance, solution::Solution}, bounds::{bound::Bound, upper_bounds::{lpt, lptp, lptpp}}, encoding::{encoder::Encoder, basic_with_precedence::Precedence, basic_encoder::BasicEncoder, pb_bdd_native::PbNativeEncoder}, solvers::sat_solver::{sat_solver_manager, kissat}, makespan_scheduling::linear_makespan::LinearMakespan};
+use crate::{problem_instance::{problem_instance::ProblemInstance, solution::Solution}, bounds::{bound::Bound, upper_bounds::{lpt, lptp, lptpp}}, encoding::{encoder::Encoder, basic_with_precedence::Precedence, pb_bdd_native::PbNativeEncoder}, solvers::sat_solver::{sat_solver_manager, kissat}, makespan_scheduling::linear_makespan::LinearMakespan, common::timeout::Timeout};
 
 use super::{pigeon_hole, max_job_size, middle, sss_bound_tightening};
 
@@ -37,7 +36,7 @@ fn get_instances(instance: &ProblemInstance) -> Vec<ProblemInstance>{
     return instances_to_bound;    
 }
 
-fn bound_instance(instance: &ProblemInstance, lower_bound: usize, remaining_time: f64) -> (usize, Solution){
+fn bound_instance(instance: &ProblemInstance, lower_bound: usize, remaining_time: &Timeout) -> (usize, Solution){
     let bounds: Vec<Box<dyn Bound>> = vec![
         Box::new(pigeon_hole::PigeonHole {}),
         Box::new(max_job_size::MaxJobSize {}),
@@ -49,12 +48,10 @@ fn bound_instance(instance: &ProblemInstance, lower_bound: usize, remaining_time
     ];
 
     let (mut new_lower_bound, mut new_upper_bound) = (0, None);
-    let mut remaining_time = remaining_time;
     for i in 0..bounds.len() {
-        if remaining_time <= 0.0 {
+        if remaining_time.time_finished() {
             break;
         }
-        let start_time = Instant::now();
         let bound = &bounds[i];
         (new_lower_bound, new_upper_bound) = bound.bound(&instance, new_lower_bound, new_upper_bound, remaining_time);
         
@@ -62,28 +59,25 @@ fn bound_instance(instance: &ProblemInstance, lower_bound: usize, remaining_time
             break;
         }
         
-        remaining_time -= start_time.elapsed().as_secs_f64();
     }
 
     return (new_lower_bound, new_upper_bound.unwrap());
 }
 
 impl Bound for Lifting{
-    fn bound(&self, problem: &ProblemInstance, lower_bound: usize, upper_bound: Option<crate::problem_instance::solution::Solution>, timeout: f64) -> (usize, Option<crate::problem_instance::solution::Solution>) {
+    fn bound(&self, problem: &ProblemInstance, lower_bound: usize, upper_bound: Option<crate::problem_instance::solution::Solution>, timeout: &Timeout) -> (usize, Option<crate::problem_instance::solution::Solution>) {
         let instances_to_bound: Vec<ProblemInstance> = get_instances(problem);
 
         let mut best_bound = lower_bound;
-        let mut solved_exactly = 0;
+        //let mut solved_exactly = 0;
         let mut unsolved_instances: Vec<ProblemInstance> = vec![];
         let mut bounds_unsolved_instances: Vec<(usize, Solution)> = vec![];
-        let mut remaining_time = timeout;
         for instance in &instances_to_bound {
-            if remaining_time <= 0.0 {
+            if timeout.time_finished() {
                 break;
             }
 
-            let start_time = Instant::now();
-            let (lower, upper) = bound_instance(instance, best_bound, remaining_time);
+            let (lower, upper) = bound_instance(instance, best_bound, timeout);
 
             
             best_bound = best_bound.max(lower);
@@ -91,18 +85,15 @@ impl Bound for Lifting{
             assert!(lower <= upper.makespan);
 
             if lower == upper.makespan || upper.makespan <= lower_bound {
-                solved_exactly += 1;
+                //solved_exactly += 1;
             }else {
                 unsolved_instances.push(instance.clone());
-                bounds_unsolved_instances.push((lower_bound, upper));
+                bounds_unsolved_instances.push((lower, upper));
             }
-            remaining_time -= start_time.elapsed().as_secs_f64();
         }
-        if best_bound == upper_bound.as_ref().unwrap().makespan || remaining_time <= 0.0 {
+        if best_bound == upper_bound.as_ref().unwrap().makespan || timeout.time_finished(){
             return (best_bound, upper_bound);
         }
-        println!("solved exactly {}/{}", solved_exactly, instances_to_bound.len());
-
 
         let encoder: Box<dyn Encoder> = Box::new(Precedence::new(Box::new(PbNativeEncoder::new()), 2));
         let mut sat_solver = sat_solver_manager::SatSolverManager {
@@ -112,20 +103,17 @@ impl Bound for Lifting{
         };
         // we know we might still be able to improve the lower bound, and the unsolved instances are the key to that
         for i in 0..unsolved_instances.len() {
-            if remaining_time <= 0.0 {
+            if timeout.time_finished() {
                 break;
             }
 
-            let start_time = Instant::now();
             let instance = &unsolved_instances[i];
             let (_lower, upper) = bounds_unsolved_instances[i].clone();
             let upper = if upper_bound.is_none() || upper.makespan <= upper_bound.as_ref().unwrap().makespan {&upper} else {upper_bound.as_ref().unwrap()};
-
-            let sol = sat_solver.solve(&instance, best_bound, upper, (5.0 as f64).min(remaining_time), false);
+            let sol = sat_solver.solve(&instance, _lower, upper, &Timeout::new((20.0 as f64).min(timeout.remaining_time())), false);
             if sol.is_some() {
                 best_bound = best_bound.max(sol.unwrap().makespan);
             }
-            remaining_time -= start_time.elapsed().as_secs_f64();
         }
         return (best_bound, upper_bound);
     }

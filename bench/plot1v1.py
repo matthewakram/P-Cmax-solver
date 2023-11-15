@@ -27,9 +27,6 @@ min_val = lim
 heading = ""
 outfile = None
 logscale = False
-domainlabels = None
-domainmarkers = None
-domaincolors = None
 tickslist = None
 legendright = False
 legendbottom = False
@@ -39,9 +36,7 @@ legend_offset_y = 0
 legend_spacing = 0.5
 outfile_legend = None
 powers_of_ten_ticks = False
-max_num_proc = 10
-max_num_job = 100
-color_category = 0
+stats = (0,0)
 
 for arg in sys.argv[1:]:
     if arg.startswith("-l="):
@@ -84,30 +79,41 @@ for arg in sys.argv[1:]:
         outfile_legend = arg[len("-ol="):]
     elif arg.startswith("-logscale"):
         logscale = True
-    elif arg.startswith("-legendright") or arg.startswith("-legend-right"):
-        legendright = True
-    elif arg.startswith("-legendbot") or arg.startswith("-legend-bot"):
-        legendbottom = True
-    elif arg.startswith("-domainlabels="):
-        domainlabels = arg[len("-domainlabels="):].split(",")
-    elif arg.startswith("-domainmarkers="):
-        domainmarkers = arg[len("-domainmarkers="):].split(",")
-    elif arg.startswith("-domaincolors="):
-        domaincolors = arg[len("-domaincolors="):].split(",")
     elif arg.startswith("-ticks="):
         tickslist = arg[len("-ticks="):].split(",")
     elif arg.startswith("-markersize="):
         msize = float(arg[len("-markersize="):])
     elif arg.startswith("-potticks"):
         powers_of_ten_ticks = True
-    elif arg.startswith("-max_num_proc="):
-        max_num_proc = int(arg[14:])
-    elif arg.startswith("-max_num_job="):
-        max_num_job = int(arg[13:])
-    elif arg.startswith("-cc="):
-        color_category = int(arg[4:])
+    elif arg.startswith("-stats="):
+        split_string = arg[7:].split(",")
+        stats = (int(split_string[0]), int(split_string[1]))
     else:
         files += [arg]
+
+values = list()
+statistics = list()
+
+for arg in files:
+    values_of_file = dict()
+    statistics_of_file = dict()
+    for line in open(arg, 'r').readlines():
+        words = line.rstrip().split(" ")
+        id = words[0]
+        val = float(words[1])
+
+        values_of_file[id] = val
+        statistics_of_file[id] = [float(x) for x in words[2:]]
+        
+        if val > 0:
+            min_val = min(min_val, val)
+    values.append(values_of_file)
+    statistics.append(statistics_of_file)
+
+lim = max(list(values[0].values()) + list(values[1].values()))
+out = lim+1
+border_lo = 0.001
+border_hi = lim+1
 
 out = lim+1
 border_lo = 0.001
@@ -136,39 +142,11 @@ else:
 
 out = math.exp((math.log(lim) + math.log(border_hi)) / 2)
 
-runtime_map_pairs_by_domain = dict()
-domain_to_style_map = dict()
 
-for arg in files:
-    domains_seen = set()
-    for line in open(arg, 'r').readlines():
-        words = line.rstrip().split(" ")
-        id = words[0]
-        dom = words[1]
-        val = float(words[2])
-        
-        if dom[0].islower():
-            dom = dom[0].upper() + dom[1:]
-        
-        if dom not in runtime_map_pairs_by_domain:
-            runtime_map_pairs_by_domain[dom] = []
-        if dom not in domains_seen:
-            runtime_map_pairs_by_domain[dom] += [dict()]
-            domains_seen.add(dom)
-        id_runtime_map = runtime_map_pairs_by_domain[dom][-1]
-        if val <= lim:
-            id_runtime_map[id] = val
-            if val > 0:
-                min_val = min(min_val, val)
-
-for dom in runtime_map_pairs_by_domain:
-    #if len(runtime_map_pairs_by_domain[dom]) == 1:
-    #    runtime_map_pairs_by_domain[dom] += [dict()]
-    if len(runtime_map_pairs_by_domain[dom]) != 2:
-        print(f"Need exactly two runtime files for domain {dom}!")
-        exit(1)
 
 margin = lim - out
+
+
 
 fig, ax = plt.subplots(1, 1, figsize=(pltxsize, pltysize))
 ax.set_box_aspect(1)
@@ -221,44 +199,39 @@ label_idx = 0
 def rgb_to_hex(r, g, b):
     return '#{:02x}{:02x}{:02x}'.format(r, g, b)
 
-for dom in runtime_map_pairs_by_domain:
-    runtime_maps = runtime_map_pairs_by_domain[dom]
-    X = []
-    Y = []
-    keys = [i for i in runtime_maps[0]] + [i for i in runtime_maps[1]]
+X = []
+Y = []
+keys = list(set([i for i in values[0]] + [i for i in values[1]]))
+
+max_first_stats = max([x[stats[0]] for x in statistics[0].values()])
+max_second_stat = max([x[stats[1]] for x in statistics[0].values()])
+
+for i in keys:
+    if i not in values[0] and i not in values[1]:
+        continue
     
-    for i in keys:
-        
+    elif i not in values[0]:
+        Y += [values[1][i]]
+        X += [out]
+        timeouts_x += 1
+        print(str(i) + " : X timeout , Y " + str(values[1][i]))
+    elif i not in values[1]:
+        X += [values[0][i]]
+        Y += [out]
+        timeouts_y += 1
+        print(str(i) + " : X " + str(values[0][i]) + ", Y timeout")
+    else:
+        X += [values[0][i]]
+        Y += [values[1][i]]
+        print(str(i) + " : X " + str(values[0][i]) + ", Y " + str(values[1][i]))
 
-        if i not in runtime_maps[0] and i not in runtime_maps[1]:
-            continue
-        
-        elif i not in runtime_maps[0]:
-            Y += [runtime_maps[1][i]]
-            X += [out]
-            timeouts_x += 1
-            print(str(i) + " : X timeout , Y " + str(runtime_maps[1][i]))
-        elif i not in runtime_maps[1]:
-            X += [runtime_maps[0][i]]
-            Y += [out]
-            timeouts_y += 1
-            print(str(i) + " : X " + str(runtime_maps[0][i]) + ", Y timeout")
-        else:
-            X += [runtime_maps[0][i]]
-            Y += [runtime_maps[1][i]]
-            print(str(i) + " : X " + str(runtime_maps[0][i]) + ", Y " + str(runtime_maps[1][i]))
-
-        marker = domainmarkers[label_idx%len(domainmarkers)] if domainmarkers else markers[label_idx%len(markers)]
+    if i in statistics[0]:
+        color = (rgb_to_hex(0, int(int(statistics[0][i][stats[0]]) * 255 / max_first_stats), int(int(statistics[0][i][stats[1]])*255 / max_second_stat)))
+    else:
+        color = (rgb_to_hex(0, int(int(statistics[1][i][stats[0]]) * 255 / max_first_stats), int(int(statistics[1][i][stats[1]])*255 / max_second_stat)))
+    plt.plot(X[-1], Y[-1], marker='.', alpha=1, markersize=msize, markeredgecolor=color, color=color)
     
-        label = domainlabels[label_idx%len(domainlabels)] if domainlabels else dom
-        label_list = i.split("_")
-        color = (rgb_to_hex(0, int(int(label_list[0 + color_category*2]) * 255 / max_num_job), int(int(label_list[1 + color_category*2])*255 / max_num_proc)))
-        if label not in domain_to_style_map:
-            domain_to_style_map[label] = (color, marker)
-
-        plt.plot(X[-1], Y[-1], marker=marker, alpha=1, markersize=msize, markeredgecolor=color, color=color)
-        
-    label_idx += 1
+label_idx += 1
 
 
 if heading:

@@ -1,4 +1,4 @@
-use crate::problem_instance::problem_instance::ProblemInstance;
+use crate::{problem_instance::problem_instance::ProblemInstance, common::timeout::Timeout};
 
 use super::{
     binary_arithmetic::{self, BinaryNumber},
@@ -6,6 +6,7 @@ use super::{
 };
 
 
+#[derive(Clone)]
 pub struct BasicEncoder {
     pub problem: OneHotProblemEncoding,
     pub clauses: Vec<Clause>,
@@ -31,7 +32,8 @@ impl Encoder for BasicEncoder {
         &mut self,
         partial_solution: &crate::problem_instance::partial_solution::PartialSolution,
         makespan: usize,
-    ) {
+        timeout: &Timeout
+    ) -> bool {
         self.problem.encode(partial_solution);
         let mut clauses: Vec<Clause> = vec![];
 
@@ -52,6 +54,9 @@ impl Encoder for BasicEncoder {
                 } else if self.problem.position_vars[job][processor].is_none() {
                     weight_on_machine_vars[job].push(None);
                 }
+            }
+            if timeout.time_finished() {
+                return false;
             }
         }
 
@@ -88,12 +93,17 @@ impl Encoder for BasicEncoder {
                 makespan,
             ));
             final_sum_variables.push(sum.as_ref().unwrap().clone());
+            if timeout.time_finished() {
+                return false;
+            }
         }
 
         self.clauses = clauses;
         self.final_sum_vars = final_sum_variables;
         self.weight_on_machine_vars = weight_on_machine_vars;
         self.partial_sum_variables = partial_sum_variables;
+
+        return true;
     }
 
     fn output(&self) -> Vec<Clause> {

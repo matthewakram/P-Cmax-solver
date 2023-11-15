@@ -2,6 +2,7 @@ use bitvec::vec::BitVec;
 use bitvec::prelude::*;
 
 use crate::bounds::bound::Bound;
+use crate::common::timeout::Timeout;
 
 
 pub struct SSSBoundStrengthening {
@@ -9,7 +10,7 @@ pub struct SSSBoundStrengthening {
 
 
 impl Bound for SSSBoundStrengthening{
-    fn bound(&self, problem: &crate::problem_instance::problem_instance::ProblemInstance, lower_bound: usize, upper_bound: Option<crate::problem_instance::solution::Solution>, _timeout: f64) -> (usize, Option<crate::problem_instance::solution::Solution>) {
+    fn bound(&self, problem: &crate::problem_instance::problem_instance::ProblemInstance, lower_bound: usize, upper_bound: Option<crate::problem_instance::solution::Solution>, _timeout: &Timeout) -> (usize, Option<crate::problem_instance::solution::Solution>) {
         let upper = upper_bound.as_ref().unwrap().makespan;
         let mut reachable: BitVec = bitvec![0;upper+1];
         reachable.set(0, true);

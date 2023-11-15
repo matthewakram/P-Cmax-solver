@@ -1,4 +1,4 @@
-use crate::{problem_instance::{partial_solution::{PartialSolution, self}, solution::Solution}, solvers::{solver::{SatResult, SatSolver}, sat_solver::kissat::{self, Kissat}}, encoding::{basic_with_precedence::Precedence, pb_bdd_pysat::PbPysatEncoder, encoder::Encoder}, input_output, common};
+use crate::{problem_instance::{partial_solution::PartialSolution, solution::Solution}, solvers::{solver::SatSolver, sat_solver::kissat::Kissat}, encoding::{pb_bdd_pysat::PbPysatEncoder, encoder::Encoder}, common::timeout::Timeout};
 
 use super::randomized_checker::RandomizedChecker;
 
@@ -15,6 +15,7 @@ impl SSSOrderedRandomizedChecker{
         let mut reachable: Vec<u16> = vec![u16::MAX;makespan_to_test+1];
         
         let current_makespan = part.assigned_makespan[proc];
+        
         reachable[current_makespan] = 0;
         for job in &self.job_order{
             let job = *job;
@@ -53,7 +54,7 @@ impl SSSOrderedRandomizedChecker{
             if out.possible_allocations[job].len() == 1 {
                 continue;
             }
-            let index_of_currently_filled_proc = out.possible_allocations[job].iter().enumerate().find(|(i,x)| **x == proc);
+            let index_of_currently_filled_proc = out.possible_allocations[job].iter().enumerate().find(|(_,x)| **x == proc);
             if index_of_currently_filled_proc.is_none() {
                 continue;
             }
@@ -69,36 +70,53 @@ impl SSSOrderedRandomizedChecker{
 }
 
 impl RandomizedChecker for SSSOrderedRandomizedChecker {
-    fn is_sat(&self, part: &crate::problem_instance::partial_solution::PartialSolution, makespan_to_test: usize, timeout: f64) -> Option<Solution> {
+    fn is_sat(&self, part: &crate::problem_instance::partial_solution::PartialSolution, makespan_to_test: usize, timeout: &Timeout) -> Option<Solution> {
         let mut reduced_sol = part.clone();
         
         let proc_to_fill = 0;
         //while part.assigned_makespan[proc_to_fill] == makespan_to_test {
         //    proc_to_fill +=1;
         //}
+        
         for i in 0..self.num_procs_to_fill {
             if proc_to_fill + i >= part.instance.num_processors {
                 break;
             }
+
             reduced_sol = self.fill_proc(reduced_sol, makespan_to_test, proc_to_fill + i);
+            let too_far = !reduced_sol.assigned_makespan.iter().all(|x| *x <= makespan_to_test);
+            if too_far {
+                return None;
+            }
         }
 
+
+        
+
         if (&reduced_sol.possible_allocations).into_iter().all(|x| x.len() == 1) {
-            return Some(Solution {
-                makespan: reduced_sol.assigned_makespan[0],
+            let sol = Solution {
+                makespan: *(reduced_sol.assigned_makespan.iter().max().unwrap()),
                 assignment: reduced_sol.possible_allocations.into_iter().map(|x: Vec<usize>| x[0]).collect(),
-            });
+            };
+            if sol.makespan > makespan_to_test {
+                return None;
+            }
+        
+            return Some(sol);
         }
 
         let mut encoder = Box::new(PbPysatEncoder::new());
-        encoder.basic_encode(&reduced_sol, makespan_to_test);
+        encoder.basic_encode(&reduced_sol, makespan_to_test, timeout);
         let encoding = encoder.output();
-        input_output::to_dimacs::print_to_dimacs(&self.text_file_to_use, encoding, encoder.get_num_vars());
+        //input_output::to_dimacs::print_to_dimacs(&self.text_file_to_use, encoding, encoder.get_num_vars());
         let solver = Kissat{};
         // TODO: timeout
-        let solution = solver.solve(&self.text_file_to_use, timeout);
+        let solution = solver.solve(&encoding, encoder.get_num_vars(),  timeout);
+
+        
         if solution.is_sat() {
-            return  Some(encoder.decode(&reduced_sol.instance, solution.unwrap().as_ref().unwrap()));
+            let sol = solution.unwrap();
+            return  Some(encoder.decode(&reduced_sol.instance, sol.as_ref().unwrap()));
         }
         return None;
     }

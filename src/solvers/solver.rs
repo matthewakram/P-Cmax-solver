@@ -1,6 +1,8 @@
+use crate::{common::timeout::Timeout, encoding::encoder::Clause};
+
 
 pub trait SatSolver {
-    fn solve(&self, file_name: &str, timeout: f64) -> SatResult;
+    fn solve(&self, clauses: &Vec<Clause>, num_vars: usize, timeout: &Timeout) -> SatResult;
 }
 
 pub struct SatResult {

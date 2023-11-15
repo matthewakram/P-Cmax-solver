@@ -2,26 +2,29 @@
 use rand::Rng;
 
 
+use crate::common::timeout::Timeout;
+
 use super::encoder::{Clause, Encoder};
 
 
 
+#[derive(Clone)]
 pub struct RandomEncoder{
     pub basic: Box<dyn Encoder>,
     prob: f64,
 }
 
 impl RandomEncoder{
-    pub fn new(encoder: Box<dyn Encoder>, prob: f64) -> RandomEncoder{
-        return RandomEncoder{
-            basic: encoder,
-            prob: prob,
-        };
-    }
+    //pub fn new(encoder: Box<dyn Encoder>, prob: f64) -> RandomEncoder{
+    //    return RandomEncoder{
+    //        basic: encoder,
+    //        prob: prob,
+    //    };
+    //}
 }
 
 impl Encoder for RandomEncoder{
-    fn basic_encode(&mut self, partial_solution: &crate::problem_instance::partial_solution::PartialSolution, makespan: usize) {
+    fn basic_encode(&mut self, partial_solution: &crate::problem_instance::partial_solution::PartialSolution, makespan: usize, timeout: &Timeout) -> bool {
         // this name is funny because we will remove random parts of the partial solution
         let mut part_sol = partial_solution.clone();
         let mut rng: rand::rngs::ThreadRng = rand::thread_rng();
@@ -56,7 +59,7 @@ impl Encoder for RandomEncoder{
             max_processor_size[proc_num] -= part_sol.instance.job_sizes[job];
         }
 
-        self.basic.basic_encode(&part_sol, makespan);
+        return self.basic.basic_encode(&part_sol, makespan, timeout);
     }
 
     fn output(&self) -> Vec<Clause> {

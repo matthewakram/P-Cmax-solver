@@ -1,7 +1,6 @@
-use std::collections::HashSet;
 
-use bitvec::vec;
 
+use crate::common::timeout::Timeout;
 use crate::encoding::encoder::{Clause, VarNameGenerator};
 
 use crate::bitvec::prelude::*;
@@ -21,10 +20,17 @@ pub struct Node {
 pub struct BDD {
     pub nodes: Vec<Node>,
     pub root_num: usize,
-    
 }
 
-pub fn leq(jobs: &Vec<usize>, vars: &Vec<usize>, weights: &Vec<usize>, limit: usize, with_fur_nodes : bool, already_assigned: usize) -> BDD {
+pub fn leq(
+    jobs: &Vec<usize>,
+    vars: &Vec<usize>,
+    weights: &Vec<usize>,
+    limit: usize,
+    with_fur_nodes: bool,
+    already_assigned: usize,
+    timeout: &Timeout,
+) -> Option<BDD> {
     //assert!(vars.len() > 1);
     assert_ne!(already_assigned, limit);
     let mut reachable: Vec<BitVec> = vec![];
@@ -37,12 +43,15 @@ pub fn leq(jobs: &Vec<usize>, vars: &Vec<usize>, weights: &Vec<usize>, limit: us
     for i in 1..vars.len() {
         let size = (reachable[i - 1].len() + weights[i]).min(limit + 1);
         reachable.push(bitvec![0; size]);
-        for r in 0..size {
+        for r in already_assigned..size {
             if (r < reachable[i - 1].len() && reachable[i - 1][r])
                 || r >= weights[i] && reachable[i - 1][r - weights[i]]
             {
                 reachable[i].set(r, true);
             }
+        }
+        if timeout.time_finished() {
+            return None;
         }
     }
     //for a in &reachable{
@@ -81,7 +90,7 @@ pub fn leq(jobs: &Vec<usize>, vars: &Vec<usize>, weights: &Vec<usize>, limit: us
         reachable_i_nodes = vec![0; limit + 1];
         // contain the nodes at this level, and the ids of these nodes
 
-        for reachable_i in 0..reachable[i].len() {
+        for reachable_i in already_assigned..reachable[i].len() {
             if !reachable[i][reachable_i] {
                 continue;
             }
@@ -97,8 +106,8 @@ pub fn leq(jobs: &Vec<usize>, vars: &Vec<usize>, weights: &Vec<usize>, limit: us
                     } else {
                         0
                     },
-                    job_num: jobs[i+1],
-                    range : (reachable_i, reachable_i),
+                    job_num: jobs[i + 1],
+                    range: (reachable_i, reachable_i),
                     //point_set: HashSet::from_iter(reachable_i..reachable_i+1),
                 };
                 if new_node.left_child == new_node.right_child {
@@ -107,10 +116,11 @@ pub fn leq(jobs: &Vec<usize>, vars: &Vec<usize>, weights: &Vec<usize>, limit: us
                 }
 
                 // if this newly created node has already been created, then there is no need to create a new node
-                if nodes[nodes.len() - 1].left_child != new_node.left_child 
-                || nodes[nodes.len() - 1].right_child != new_node.right_child 
-                || nodes[nodes.len() - 1].var != new_node.var
-                || (with_fur_nodes && reachable_i == limit - weights[i+1]){
+                if nodes[nodes.len() - 1].left_child != new_node.left_child
+                    || nodes[nodes.len() - 1].right_child != new_node.right_child
+                    || nodes[nodes.len() - 1].var != new_node.var
+                    || (with_fur_nodes && reachable_i == limit - weights[i + 1])
+                {
                     let node_id: usize = nodes.len();
                     nodes.push(new_node);
                     reachable_i_nodes[reachable_i] = node_id;
@@ -122,6 +132,9 @@ pub fn leq(jobs: &Vec<usize>, vars: &Vec<usize>, weights: &Vec<usize>, limit: us
                 }
             }
         }
+        if timeout.time_finished() {
+            return None;
+        }
     }
     // all that is left is to push the root
     nodes.push(Node {
@@ -130,7 +143,7 @@ pub fn leq(jobs: &Vec<usize>, vars: &Vec<usize>, weights: &Vec<usize>, limit: us
         left_child: reachable_i_nodes[already_assigned + 0],
         right_child: reachable_i_nodes[already_assigned + weights[0]],
         job_num: jobs[0],
-        range: (already_assigned,already_assigned),
+        range: (already_assigned, already_assigned),
         // !point_set: HashSet::from_iter(0..1),
     });
 
@@ -138,10 +151,10 @@ pub fn leq(jobs: &Vec<usize>, vars: &Vec<usize>, weights: &Vec<usize>, limit: us
     //    println!("var: {}  left: {}  right: {}, range: [{}, {}]", node.var, node.left_child, node.right_child, node.range.0, node.range.1);
     //}
     let root_index = nodes.len() - 1;
-    return BDD {
+    return Some(BDD {
         nodes: nodes,
         root_num: root_index,
-    };
+    });
 }
 
 /// This is the same as leq, but if it sees one that fits perfectly, then it has to insert it
@@ -317,6 +330,81 @@ pub fn _encode_bad(bdd: &BDD) -> Vec<Clause> {
                 (bdd.nodes[bdd.nodes[i].right_child].aux_var as i32),
             ],
         });
+
+    }
+
+    return clauses;
+}
+
+pub fn _encode_bad_new(bdd: &BDD) -> Vec<Clause> {
+    let mut clauses: Vec<Clause> = vec![];
+
+    // we first have to handle that false and true nodes, as well as the root node
+    clauses.push(Clause {
+        vars: vec![-(bdd.nodes[0].aux_var as i32)],
+    });
+    clauses.push(Clause {
+        vars: vec![bdd.nodes[1].aux_var as i32],
+    });
+    clauses.push(Clause {
+        vars: vec![bdd.nodes[bdd.root_num].aux_var as i32],
+    });
+    // now we handle the two clauses per node
+    for i in 2..bdd.nodes.len() {
+        // the first clause is -left_child_aux -> -node_aux
+        clauses.push(Clause {
+            vars: vec![
+                // this is correct but makes it slower for some reason
+                (bdd.nodes[i].var as i32),
+                -(bdd.nodes[i].aux_var as i32),
+                (bdd.nodes[bdd.nodes[i].left_child].aux_var as i32),
+            ],
+        });
+
+        clauses.push(Clause {
+            vars: vec![
+                // this is correct but makes it slower for some reason
+                (bdd.nodes[i].var as i32),
+                (bdd.nodes[i].aux_var as i32),
+                -(bdd.nodes[bdd.nodes[i].left_child].aux_var as i32),
+            ],
+        });
+
+        clauses.push(Clause {
+            vars: vec![
+                // this is correct but makes it slower for some reason
+                -(bdd.nodes[i].var as i32),
+                -(bdd.nodes[i].aux_var as i32),
+                (bdd.nodes[bdd.nodes[i].right_child].aux_var as i32),
+            ],
+        });
+
+        clauses.push(Clause {
+            vars: vec![
+                // this is correct but makes it slower for some reason
+                -(bdd.nodes[i].var as i32),
+                (bdd.nodes[i].aux_var as i32),
+                -(bdd.nodes[bdd.nodes[i].right_child].aux_var as i32),
+            ],
+        });
+
+        clauses.push(Clause {
+            vars: vec![
+                // this is correct but makes it slower for some reason
+                (bdd.nodes[bdd.nodes[i].left_child].aux_var as i32),
+                (bdd.nodes[bdd.nodes[i].right_child].aux_var as i32),
+                -(bdd.nodes[i].aux_var as i32),
+            ],
+        });
+
+        clauses.push(Clause {
+            vars: vec![
+                // this is correct but makes it slower for some reason
+                -(bdd.nodes[bdd.nodes[i].left_child].aux_var as i32),
+                -(bdd.nodes[bdd.nodes[i].right_child].aux_var as i32),
+                (bdd.nodes[i].aux_var as i32),
+            ],
+        });
     }
 
     return clauses;
@@ -350,7 +438,10 @@ pub fn encode(bdd: &BDD) -> Vec<Clause> {
         {
             if bdd.nodes.len() != 3 {
                 for node in &bdd.nodes {
-                    println!("job num {} left {} right {} aux {}", node.job_num, node.left_child, node.right_child, node.aux_var);
+                    println!(
+                        "job num {} left {} right {} aux {}",
+                        node.job_num, node.left_child, node.right_child, node.aux_var
+                    );
                 }
                 println!("error occured at node {}", i);
             }
@@ -490,9 +581,9 @@ pub fn encode(bdd: &BDD) -> Vec<Clause> {
 //    });
 //}
 
-pub fn encode_bdd_bijective_relation(bdd1: &BDD, bdd2: &BDD) -> Vec<Clause>{
+pub fn encode_bdd_bijective_relation(bdd1: &BDD, bdd2: &BDD) -> Vec<Clause> {
     // bijection says that the node i in bdd1 is equivalent to the variable bijection[i] in bdd2
-    let mut bijection: Vec<usize> = vec![0,1];
+    let mut bijection: Vec<usize> = vec![0, 1];
     let mut bdd2_i = 2;
     //for i in 0..bdd1.nodes.len() {
     //    let node = &bdd1.nodes[i];
@@ -510,20 +601,21 @@ pub fn encode_bdd_bijective_relation(bdd1: &BDD, bdd2: &BDD) -> Vec<Clause>{
     //}
     //let mut num_bis = 0;
     for bdd1_i in 2..bdd1.nodes.len() {
-        while bdd2_i !=  bdd2.nodes.len() 
-        && (bdd2.nodes[bdd2_i].job_num > bdd1.nodes[bdd1_i].job_num 
-        || (bdd2.nodes[bdd2_i].range.0 < bdd1.nodes[bdd1_i].range.0
-            && bdd2.nodes[bdd2_i].job_num == bdd1.nodes[bdd1_i].job_num)){
-            bdd2_i +=1;
+        while bdd2_i != bdd2.nodes.len()
+            && (bdd2.nodes[bdd2_i].job_num > bdd1.nodes[bdd1_i].job_num
+                || (bdd2.nodes[bdd2_i].range.0 < bdd1.nodes[bdd1_i].range.0
+                    && bdd2.nodes[bdd2_i].job_num == bdd1.nodes[bdd1_i].job_num))
+        {
+            bdd2_i += 1;
         }
 
-        if bdd2_i != bdd2.nodes.len() 
-        && bdd2.nodes[bdd2_i].job_num == bdd1.nodes[bdd1_i].job_num 
-        && bdd2.nodes[bdd2_i].range.0 >= bdd1.nodes[bdd1_i].range.0
-        && bdd2.nodes[bdd2_i].range.1 <= bdd1.nodes[bdd1_i].range.1
+        if bdd2_i != bdd2.nodes.len()
+            && bdd2.nodes[bdd2_i].job_num == bdd1.nodes[bdd1_i].job_num
+            && bdd2.nodes[bdd2_i].range.0 >= bdd1.nodes[bdd1_i].range.0
+            && bdd2.nodes[bdd2_i].range.1 <= bdd1.nodes[bdd1_i].range.1
         // TODO: More tests on which one is better, but I will stick with this for now
         // TODO: I can prove that this is not necessary, but for now it just makes me feel better
-        //&& bdd2.nodes[bdd2_i].point_set.is_subset(&bdd1.nodes[bdd1_i].point_set) 
+        //&& bdd2.nodes[bdd2_i].point_set.is_subset(&bdd1.nodes[bdd1_i].point_set)
         //&& bdd2.nodes[bdd2_i].point_set.len() == 1
         {
             bijection.push(bdd2_i);
@@ -545,7 +637,13 @@ pub fn encode_bdd_bijective_relation(bdd1: &BDD, bdd2: &BDD) -> Vec<Clause>{
         let equiv_node = &bdd2.nodes[bijection[bdd1_node]];
         // this is reachable -> (that is reachable -> that is false)
         // this means that when multiple processors are on an equivalent value, that it will only try to insert it into the first one
-        clauses.push(Clause {vars: vec![-(node.aux_var as i32), -(equiv_node.aux_var as i32), -(equiv_node.var as i32)]});
+        clauses.push(Clause {
+            vars: vec![
+                -(node.aux_var as i32),
+                -(equiv_node.aux_var as i32),
+                -(equiv_node.var as i32),
+            ],
+        });
     }
     return clauses;
 }

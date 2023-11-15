@@ -1,9 +1,12 @@
+use std::collections::HashMap;
+
 use crate::{
     bdd::{self, bdd::BDD},
+    common::timeout::Timeout,
     problem_instance::{
         partial_solution::PartialSolution,
         problem_instance::ProblemInstance,
-    }, common::timeout::Timeout,
+    },
 };
 
 use super::{
@@ -12,26 +15,18 @@ use super::{
 };
 
 #[derive(Clone)]
-pub struct PbInter {
+pub struct PbInterDyn {
     one_hot: OneHotProblemEncoding,
     pub clauses: Vec<Clause>,
     opt_all: bool,
 }
 
-impl PbInter {
-    pub fn new() -> PbInter {
-        return PbInter {
+impl PbInterDyn {
+    pub fn new() -> PbInterDyn {
+        return PbInterDyn {
             one_hot: OneHotProblemEncoding::new(),
             clauses: vec![],
             opt_all: true,
-        };
-    }
-
-    pub fn _new_unopt() -> PbInter {
-        return PbInter {
-            one_hot: OneHotProblemEncoding::new(),
-            clauses: vec![],
-            opt_all: false,
         };
     }
 
@@ -42,29 +37,42 @@ impl PbInter {
         solution: &PartialSolution,
         makespan_to_check: usize,
     ) -> Vec<(usize, usize)> {
+        let mut map: HashMap<usize, usize> = HashMap::new();
+        for i in 0..solution.instance.num_jobs {
+            map.insert(solution.instance.job_sizes[i], i);
+        }
+
         let mut out: Vec<(usize, usize)> = vec![];
         for i in &bdd1.nodes {
             if i.job_num == usize::MAX {
                 continue;
             }
             let (lower, upper) = i.range;
-            let job_size: usize = solution.instance.job_sizes[i.job_num];
-            let fur_val = makespan_to_check - job_size;
-            if lower <= fur_val && fur_val <= upper && lower == upper{
-                //println!("job size {}, makespan {}, node_range {} {}", job_size, makespan_to_check, lower, upper);
+            if lower != upper {
+                continue;
+            }
+
+            if lower == makespan_to_check - solution.instance.job_sizes[i.job_num] {
                 out.push((i.job_num, i.aux_var));
+                map.insert(solution.instance.job_sizes[i.job_num], i.job_num);
+                continue;
+            }
+
+            let fur_val = makespan_to_check - lower;
+            if map.contains_key(&fur_val) {
+                out.push((map.get(&fur_val).unwrap().clone(), i.aux_var));
             }
         }
         return out;
     }
 }
 
-impl Encoder for PbInter {
+impl Encoder for PbInterDyn {
     fn basic_encode(
         &mut self,
         partial_solution: &crate::problem_instance::partial_solution::PartialSolution,
         makespan: usize,
-        timeout: &Timeout
+        timeout: &Timeout,
     ) -> bool {
         self.one_hot.encode(partial_solution);
         let mut clauses: Vec<Clause> = vec![];
@@ -76,7 +84,8 @@ impl Encoder for PbInter {
             let mut weights: Vec<usize> = vec![];
             let mut jobs: Vec<usize> = vec![];
             for job in 0..partial_solution.instance.num_jobs {
-                if self.one_hot.position_vars[job][proc].is_some() && partial_solution.possible_allocations[job].len() > 1 
+                if self.one_hot.position_vars[job][proc].is_some()
+                    && partial_solution.possible_allocations[job].len() > 1
                 {
                     job_vars.push(self.one_hot.position_vars[job][proc].unwrap());
                     jobs.push(job);
@@ -84,22 +93,33 @@ impl Encoder for PbInter {
                 }
             }
             if jobs.len() == 0 {
-                bdds.push(BDD{ nodes: vec![], root_num: 0 })
-            }else {
-            // now we construct the bdd to assert that this machine is not too full
-            let bdd = bdd::bdd::leq(&jobs, &job_vars, &weights, makespan, false, partial_solution.assigned_makespan[proc], &timeout);
-            if bdd.is_none() {
-                return false;
-            }
-            let bdd = bdd.unwrap();
-            let bdd = bdd::bdd::assign_aux_vars(bdd, &mut self.one_hot.var_name_generator);
-            let mut a: Vec<Clause> = bdd::bdd::_encode_bad(&bdd);
+                bdds.push(BDD {
+                    nodes: vec![],
+                    root_num: 0,
+                })
+            } else {
+                // now we construct the bdd to assert that this machine is not too full
+                let bdd = bdd::bdd::leq(
+                    &jobs,
+                    &job_vars,
+                    &weights,
+                    makespan,
+                    false,
+                    partial_solution.assigned_makespan[proc],
+                    timeout
+                );
+                if bdd.is_none() {
+                    return false;
+                }
+                let bdd = bdd.unwrap();
+                let bdd = bdd::bdd::assign_aux_vars(bdd, &mut self.one_hot.var_name_generator);
+                let mut a: Vec<Clause> = bdd::bdd::_encode_bad(&bdd);
 
-            //for n in &bdd.nodes {
-            //    println!("proc {} var {} range {} {} ", n.job_num, n.aux_var, n.range.0, n.range.1);
-            //}
-            bdds.push(bdd);
-            clauses.append(&mut a);
+                //for n in &bdd.nodes {
+                //    println!("proc {} var {} range {} {} ", n.job_num, n.aux_var, n.range.0, n.range.1);
+                //}
+                bdds.push(bdd);
+                clauses.append(&mut a);
             }
 
             if timeout.time_finished() {
@@ -172,10 +192,10 @@ impl Encoder for PbInter {
     }
 }
 
-impl OneHot for PbInter {
+impl OneHot for PbInterDyn {
     fn get_position_var(&self, job_num: usize, proc_num: usize) -> Option<usize> {
         return self.one_hot.position_vars[job_num][proc_num];
     }
 }
 
-impl OneHotEncoder for PbInter {}
+impl OneHotEncoder for PbInterDyn {}

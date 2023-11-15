@@ -1,18 +1,26 @@
 use std::fmt::Debug;
 
-use crate::problem_instance::{partial_solution::PartialSolution, solution::Solution, problem_instance::ProblemInstance};
+use crate::{problem_instance::{partial_solution::PartialSolution, solution::Solution, problem_instance::ProblemInstance}, common::timeout::Timeout};
 
 use super::problem_encoding::one_hot_encoding::OneHot;
+use dyn_clone::DynClone;
 
-pub trait OneHotEncoder : Encoder + OneHot {}
+pub trait OneHotEncoder : Encoder + OneHot + DynClone {}
 
-pub trait Encoder {
-    fn basic_encode(&mut self, partial_solution: &PartialSolution, makespan: usize);
+dyn_clone::clone_trait_object!(OneHotEncoder);
+
+
+pub trait Encoder : DynClone + Send {
+    fn basic_encode(&mut self, partial_solution: &PartialSolution, makespan: usize, timeout: &Timeout) -> bool;
     fn output(&self) -> Vec<Clause>;
     fn decode(&self, instance: &ProblemInstance, solution: &Vec<i32>) -> Solution;
     fn get_num_vars(&self) -> usize;
 }
 
+dyn_clone::clone_trait_object!(Encoder);
+
+
+#[derive(Clone)]
 pub struct VarNameGenerator {
     current: std::ops::RangeFrom<usize>,
 }

@@ -1,3 +1,4 @@
 pub mod randomized_checker;
 pub mod sss_ordered_randomized_checker;
 pub mod descending_multi_sss_randomized_checker;
+pub mod randomized_multi_sss_randomized_checker;

@@ -1,6 +1,6 @@
-use crate::{solvers::solver::SatResult, problem_instance::{partial_solution::PartialSolution, solution::Solution}};
+use crate::{problem_instance::{partial_solution::PartialSolution, solution::Solution}, common::timeout::Timeout};
 
 
 pub trait RandomizedChecker {
-    fn is_sat(&self, part: &PartialSolution, makespan_to_test: usize, timeout: f64) -> Option<Solution>;
+    fn is_sat(&self, part: &PartialSolution, makespan_to_test: usize, timeout: &Timeout) -> Option<Solution>;
 }

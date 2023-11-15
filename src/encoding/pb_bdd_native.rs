@@ -1,10 +1,11 @@
-use crate::{bdd::{self, bdd::BDD}, problem_instance::{problem_instance::ProblemInstance, partial_solution}};
+use crate::{bdd::{self, bdd::BDD}, problem_instance::problem_instance::ProblemInstance, common::timeout::Timeout};
 
 use super::{
     encoder::{Clause, Encoder, OneHotEncoder},
     problem_encoding::one_hot_encoding::{OneHot, OneHotProblemEncoding},
 };
 
+#[derive(Clone)]
 pub struct PbNativeEncoder {
     one_hot: OneHotProblemEncoding,
     pub clauses: Vec<Clause>,
@@ -24,7 +25,8 @@ impl Encoder for PbNativeEncoder {
         &mut self,
         partial_solution: &crate::problem_instance::partial_solution::PartialSolution,
         makespan: usize,
-    ) {
+        timeout: &Timeout
+    ) -> bool{
         self.one_hot.encode(partial_solution);
         let mut clauses: Vec<Clause> = vec![];
 
@@ -44,7 +46,11 @@ impl Encoder for PbNativeEncoder {
                 continue;
             }
             // now we construct the bdd to assert that this machine is not too full
-            let bdd: BDD = bdd::bdd::leq(&jobs, &job_vars, &weights, makespan, false, partial_solution.assigned_makespan[proc]);
+            let bdd: Option<BDD> = bdd::bdd::leq(&jobs, &job_vars, &weights, makespan, false, partial_solution.assigned_makespan[proc], timeout);
+            if bdd.is_none() {
+                return false;
+            }
+            let bdd = bdd.unwrap();
             let bdd: BDD = bdd::bdd::assign_aux_vars(bdd, &mut self.one_hot.var_name_generator);
             
 
@@ -56,9 +62,13 @@ impl Encoder for PbNativeEncoder {
 
             //println!("{:?}", a);
             clauses.append(&mut a);
+            if timeout.time_finished() {
+                return false;
+            }
         }
 
         self.clauses = clauses;
+        return true;
     }
 
     fn output(&self) -> Vec<Clause> {
