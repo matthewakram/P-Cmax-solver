@@ -50,7 +50,11 @@ impl PbInter {
             let (lower, upper) = i.range;
             let job_size: usize = solution.instance.job_sizes[i.job_num];
             let fur_val = makespan_to_check - job_size;
-            if lower <= fur_val && fur_val <= upper && lower == upper{
+            if 
+            lower <= fur_val && 
+            fur_val <= upper 
+            && lower == upper
+             {
                 //println!("job size {}, makespan {}, node_range {} {}", job_size, makespan_to_check, lower, upper);
                 out.push((i.job_num, i.aux_var));
             }

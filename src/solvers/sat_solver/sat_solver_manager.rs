@@ -4,7 +4,7 @@ use crate::{
     problem_instance::{
         partial_solution::PartialSolution,
         problem_instance::ProblemInstance,
-        solution::Solution,
+        solution::{Solution, self},
     },
     problem_simplification::{
         fill_up_rule::FillUpRule, final_simp_rule::FinalizeRule, half_size_rule::HalfSizeRule,
@@ -13,7 +13,7 @@ use crate::{
     randomized_checkers::{
         randomized_checker::RandomizedChecker, randomized_multi_sss_randomized_checker::RandomizedMultiSSSRandomizedChecker,
     },
-    solvers::solver::SatSolver, common::timeout::Timeout,
+    solvers::solver::SatSolver, common::timeout::Timeout, bounds::{upper_bounds::mss::MSS, bound::Bound},
 };
 
 pub struct SatSolverManager {
@@ -73,22 +73,22 @@ impl SatSolverManager {
 
             
 
-            if simp_useful && partial_solution.instance.num_jobs >40 {
-                let random = RandomizedMultiSSSRandomizedChecker {};
-                if timeout.time_finished() {
-                    return None;
-                }
-                
-                let sol = random.is_sat(&partial_solution, makespan_to_test, &Timeout::new(timeout.remaining_time()/3.0));
-                if sol.is_some() {
-                    let sol = sol.unwrap();
-                    assert!(sol.makespan <= makespan_to_test);
-                    solution = sol;
-                    //println!("SAT by simp");
-                    continue;
-                }
-            }
-            simp_useful = false;
+            //if simp_useful {
+            //    let random = RandomizedMultiSSSRandomizedChecker {};
+            //    if timeout.time_finished() {
+            //        return None;
+            //    }
+            //    
+            //    let sol = random.is_sat(&partial_solution, makespan_to_test, &Timeout::new(timeout.remaining_time()/3.0));
+            //    if sol.is_some() {
+            //        let sol = sol.unwrap();
+            //        assert!(sol.makespan <= makespan_to_test);
+            //        solution = sol;
+            //        //println!("SAT by simp");
+            //        continue;
+            //    }
+            //}
+            //simp_useful = false;
 
             if var_assingment.is_none() {
                 self.encoder
@@ -117,10 +117,13 @@ impl SatSolverManager {
                         println!("UNSAT");
                     }
                 } else {
+                    let mss: MSS = MSS {};
                     let old_bound = solution.makespan;
                     solution = self
                         .encoder
                         .decode(instance, var_assingment.as_ref().unwrap());
+                    let (_, improved_solution) = mss.bound(instance, lower, Some(solution), &Timeout::new(1.0));
+                    solution = improved_solution.unwrap();
                     let new_bound = solution.makespan;
                     if verbose {
                         println!("SAT");

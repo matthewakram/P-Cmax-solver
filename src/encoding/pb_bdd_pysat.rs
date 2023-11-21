@@ -35,18 +35,12 @@ impl Encoder for PbPysatEncoder {
         makespan: usize,
         timeout: &Timeout,
     ) -> bool {
-        let mut child;
-        loop {
-            let res = Command::new("python3")
+        let mut child = Command::new("python3")
                 .arg("./src/encoding/pb_with_pysat.py")
                 .stdin(Stdio::piped())
                 .stdout(Stdio::piped())
-                .spawn();
-            if res.is_ok() {
-                child = res.unwrap();
-                break;
-            }
-        }
+                .spawn().unwrap();
+
         self.one_hot.encode(partial_solution);
         let mut clauses: Vec<Clause> = vec![];
 
@@ -89,6 +83,7 @@ impl Encoder for PbPysatEncoder {
         let time_remaining = timeout.remaining_time();
         if time_remaining <= 0.0 || time_remaining.is_nan() || time_remaining.is_infinite() {
             child.kill().unwrap();
+            child.wait();
             return false;
         }
 

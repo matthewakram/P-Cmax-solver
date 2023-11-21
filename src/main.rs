@@ -19,7 +19,7 @@ use bounds::lower_bounds::*;
 use bounds::upper_bounds::lpt;
 
 use crate::bounds::bound::Bound;
-use crate::bounds::upper_bounds::{lptp, lptpp};
+use crate::bounds::upper_bounds::{lptp, lptpp, mss};
 use crate::common::common::IndexOf;
 use crate::common::timeout::Timeout;
 use crate::encoding::basic_encoder::BasicEncoder;
@@ -61,6 +61,7 @@ fn main() {
         Box::new(sss_bound_tightening::SSSBoundStrengthening {}),
         Box::new(lptpp::Lptpp {}),
         Box::new(lifting::Lifting {}),
+        Box::new(mss::MSS {}),
     ];
 
     let (mut lower_bound, mut upper_bound) = (0, None);
@@ -69,7 +70,9 @@ fn main() {
         let bound = &bounds[i];
         (lower_bound, upper_bound) = bound.bound(&instance, lower_bound, upper_bound, &precomp_timeout);
         println!("lower: {} upper {}", lower_bound, if upper_bound.is_some() {upper_bound.as_ref().unwrap().makespan} else {0});
-        if precomp_timeout.time_finished(){
+        if precomp_timeout.time_finished()
+        || (upper_bound.is_some() && upper_bound.as_ref().unwrap().makespan == lower_bound)
+        {
             break;
         }
     }

@@ -111,13 +111,11 @@ for arg in files:
     statistics.append(statistics_of_file)
 
 lim = max(list(values[0].values()) + list(values[1].values()))
-out = lim+1
-border_lo = 0.001
-border_hi = lim+1
+
 
 out = lim+1
 border_lo = 0.001
-border_hi = lim+1
+border_hi = lim+lim * 0.02
 
 import matplotlib
 if outfile:
@@ -203,8 +201,8 @@ X = []
 Y = []
 keys = list(set([i for i in values[0]] + [i for i in values[1]]))
 
-max_first_stats = max([x[stats[0]] for x in statistics[0].values()])
-max_second_stat = max([x[stats[1]] for x in statistics[0].values()])
+max_first_stats = max([x[stats[0]] for x in statistics[0].values()] + [x[stats[0]] for x in statistics[1].values()])
+max_second_stat = max([x[stats[1]] for x in statistics[0].values()] + [x[stats[1]] for x in statistics[1].values()])
 
 for i in keys:
     if i not in values[0] and i not in values[1]:
@@ -226,9 +224,9 @@ for i in keys:
         print(str(i) + " : X " + str(values[0][i]) + ", Y " + str(values[1][i]))
 
     if i in statistics[0]:
-        color = (rgb_to_hex(0, int(int(statistics[0][i][stats[0]]) * 255 / max_first_stats), int(int(statistics[0][i][stats[1]])*255 / max_second_stat)))
+        color = (rgb_to_hex(0, int(int(statistics[0][i][stats[0]])/ max_first_stats * 255 ), int(int(statistics[0][i][stats[1]])/ max_second_stat *255 )))
     else:
-        color = (rgb_to_hex(0, int(int(statistics[1][i][stats[0]]) * 255 / max_first_stats), int(int(statistics[1][i][stats[1]])*255 / max_second_stat)))
+        color = (rgb_to_hex(0, int(int(statistics[1][i][stats[0]]) / max_first_stats * 255), int(int(statistics[1][i][stats[1]]) / max_second_stat *255)))
     plt.plot(X[-1], Y[-1], marker='.', alpha=1, markersize=msize, markeredgecolor=color, color=color)
     
 label_idx += 1

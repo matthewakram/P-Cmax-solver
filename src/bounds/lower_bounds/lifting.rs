@@ -113,6 +113,8 @@ impl Bound for Lifting{
             let sol = sat_solver.solve(&instance, _lower, upper, &Timeout::new((20.0 as f64).min(timeout.remaining_time())), false);
             if sol.is_some() {
                 best_bound = best_bound.max(sol.unwrap().makespan);
+            } else {
+                println!("could not solve instance number {}/{}", i, unsolved_instances.len());
             }
         }
         return (best_bound, upper_bound);

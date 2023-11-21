@@ -2,10 +2,10 @@ use crate::{problem_instance::{partial_solution::PartialSolution, solution::Solu
 
 use super::randomized_checker::RandomizedChecker;
 
+#[derive(Clone)]
 pub struct SSSOrderedRandomizedChecker{
     pub job_order: Vec<usize>,
     pub num_procs_to_fill: usize,
-    pub text_file_to_use: String
 }
 
 impl SSSOrderedRandomizedChecker{
@@ -13,8 +13,10 @@ impl SSSOrderedRandomizedChecker{
         assert!(part.instance.num_jobs < u16::MAX as usize);
         
         let mut reachable: Vec<u16> = vec![u16::MAX;makespan_to_test+1];
+
         
         let current_makespan = part.assigned_makespan[proc];
+
         
         reachable[current_makespan] = 0;
         for job in &self.job_order{
@@ -83,11 +85,15 @@ impl RandomizedChecker for SSSOrderedRandomizedChecker {
                 break;
             }
 
-            reduced_sol = self.fill_proc(reduced_sol, makespan_to_test, proc_to_fill + i);
             let too_far = !reduced_sol.assigned_makespan.iter().all(|x| *x <= makespan_to_test);
             if too_far {
                 return None;
             }
+            reduced_sol = self.fill_proc(reduced_sol, makespan_to_test, proc_to_fill + i);
+        }
+        let too_far = !reduced_sol.assigned_makespan.iter().all(|x| *x <= makespan_to_test);
+        if too_far {
+            return None;
         }
 
 
@@ -108,9 +114,7 @@ impl RandomizedChecker for SSSOrderedRandomizedChecker {
         let mut encoder = Box::new(PbPysatEncoder::new());
         encoder.basic_encode(&reduced_sol, makespan_to_test, timeout);
         let encoding = encoder.output();
-        //input_output::to_dimacs::print_to_dimacs(&self.text_file_to_use, encoding, encoder.get_num_vars());
         let solver = Kissat{};
-        // TODO: timeout
         let solution = solver.solve(&encoding, encoder.get_num_vars(),  timeout);
 
         

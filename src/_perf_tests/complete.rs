@@ -11,7 +11,7 @@ mod tests {
                 lifting, max_job_size, middle, pigeon_hole,
                 sss_bound_tightening::{self},
             },
-            upper_bounds::{lpt, lptp, lptpp},
+            upper_bounds::{lpt, lptp, lptpp, mss},
         },
         common::timeout::Timeout,
         encoding::{
@@ -37,7 +37,7 @@ mod tests {
     fn test_file(encoder: Box<dyn Encoder>, file_name: &String) -> Option<String> {
         println!("solving file {}", file_name);
         let instance = input_output::from_file::read_from_file(file_name);
-        let total_timeout_f64: f64 = 60.0;
+        let total_timeout_f64: f64 = 300.0;
         let precomputation_timeout = total_timeout_f64 / 5.0;
 
         // --------------CALCULATING BOUNDS--------------
@@ -53,6 +53,7 @@ mod tests {
             Box::new(sss_bound_tightening::SSSBoundStrengthening {}),
             Box::new(lptpp::Lptpp {}),
             Box::new(lifting::Lifting {}),
+            //Box::new(mss::MSS {}),
         ];
 
         let (mut lower_bound, mut upper_bound) = (0, None);
@@ -61,7 +62,9 @@ mod tests {
             let bound = &bounds[i];
             (lower_bound, upper_bound) =
                 bound.bound(&instance, lower_bound, upper_bound, &precomp_timeout);
-            if precomp_timeout.time_finished() {
+            if precomp_timeout.time_finished() 
+            || (upper_bound.is_some() && upper_bound.as_ref().unwrap().makespan == lower_bound)
+            {
                 break;
             }
         }
@@ -128,8 +131,8 @@ mod tests {
             .collect::<Vec<_>>();
         let result = files
             .into_par_iter()
-            .enumerate()
             //.into_iter()
+            .enumerate()
             .map(|(_file_num, (path, encoder))| {
             //    println!("solving file num {}", file_num);
                 test_file(encoder, &path)
@@ -149,8 +152,8 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(not(feature = "encoding_class_instances"), ignore)]
-    pub fn complete_test_basic_class() {
+    #[ignore]
+    pub fn complete_test_class_basic() {
         let mut encoder: Box<dyn Encoder> = Box::new(BasicEncoder::new());
         test_encoder(
             &mut encoder,
@@ -160,8 +163,8 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(not(feature = "encoding_class_instances"), ignore)]
-    pub fn complete_test_pysat_class() {
+    #[ignore]
+    pub fn complete_test_class_pysat() {
         let mut a: Box<dyn Encoder> = Box::new(PbPysatEncoder::new());
         test_encoder(
             &mut a,
@@ -171,8 +174,8 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(not(feature = "encoding_class_instances"), ignore)]
-    pub fn complete_test_bdd_native_class() {
+    #[ignore]
+    pub fn complete_test_class_bdd_native() {
         let mut a: Box<dyn Encoder> = Box::new(PbNativeEncoder::new());
         test_encoder(
             &mut a,
@@ -182,9 +185,9 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(not(feature = "encoding_class_instances"), ignore)]
-    pub fn complete_test_inter_class() {
-        let mut a: Box<dyn Encoder> = Box::new(PbInter::new());
+    #[ignore]
+    pub fn complete_test_class_inter() {
+        let mut a: Box<dyn Encoder> = Box::new(Precedence::new(Box::new(PbInter::new()), 2));
         test_encoder(
             &mut a,
             "./bench/class_instances/",
@@ -193,8 +196,8 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(not(feature = "encoding_franca"), ignore)]
-    pub fn complete_test_basic_franca() {
+    #[ignore]
+    pub fn complete_test_franca_basic() {
         let mut encoder: Box<dyn Encoder> = Box::new(BasicEncoder::new());
         test_encoder(
             &mut encoder,
@@ -204,8 +207,8 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(not(feature = "encoding_franca"), ignore)]
-    pub fn complete_test_pysat_franca() {
+    #[ignore]
+    pub fn complete_test_franca_pysat() {
         let mut a: Box<dyn Encoder> = Box::new(PbPysatEncoder::new());
         test_encoder(
             &mut a,
@@ -215,8 +218,8 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(not(feature = "encoding_franca"), ignore)]
-    pub fn complete_test_bdd_native_franca() {
+    #[ignore]
+    pub fn complete_test_franca_bdd_native() {
         let mut a: Box<dyn Encoder> = Box::new(PbNativeEncoder::new());
         test_encoder(
             &mut a,
@@ -228,8 +231,8 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(not(feature = "encoding_franca"), ignore)]
-    pub fn complete_test_inter_franca() {
+    #[ignore]
+    pub fn complete_test_franca_inter() {
         let mut a: Box<dyn Encoder> = Box::new(Precedence::new(Box::new(PbInter::new()), 2));
         test_encoder(
             &mut a,
@@ -241,8 +244,8 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(not(feature = "encoding_franca"), ignore)]
-    pub fn complete_test_interp_franca() {
+    #[ignore]
+    pub fn complete_test_franca_pinter() {
         let mut a: Box<dyn Encoder> = Box::new(Precedence::new(Box::new(PbInterDyn::new()), 2));
         test_encoder(
             &mut a,

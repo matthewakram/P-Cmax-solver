@@ -1,3 +1,5 @@
+use std::collections::HashSet;
+
 use crate::{
     common,
     encoding::{
@@ -73,11 +75,19 @@ impl OneHotProblemEncoding {
 
     pub fn decode(&self, instance: &ProblemInstance, var_assignment: &Vec<i32>) -> Solution {
         let mut assignment: Vec<usize> = vec![];
+        // TODO: gotta improve this dramatically
+        let mut assignment_set: HashSet<usize> = HashSet::new();
+        for a in var_assignment {
+            if *a >= 0 {
+                assignment_set.insert(*a as usize);
+            }
+        }
+
         for job in 0..self.position_vars.len() {
             for process in 0..self.position_vars[job].len() {
                 if self.position_vars[job][process].is_some()
-                    && var_assignment
-                        .contains(&(*self.position_vars[job][process].as_ref().unwrap() as i32))
+                    && assignment_set
+                        .contains(&self.position_vars[job][process].as_ref().unwrap())
                 {
                     assignment.push(process);
                 }

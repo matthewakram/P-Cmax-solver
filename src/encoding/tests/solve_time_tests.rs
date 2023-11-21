@@ -4,7 +4,7 @@
 
 #[cfg(test)]
 mod tests {
-    use rayon::{prelude::{ParallelIterator, IntoParallelIterator}, vec};
+    use rayon::prelude::{ParallelIterator, IntoParallelIterator};
 
     use crate::{
         bounds::{
@@ -18,7 +18,7 @@ mod tests {
         encoding::{
             basic_encoder::BasicEncoder,
             basic_with_precedence::Precedence,
-            encoder::{Encoder, OneHotEncoder},
+            encoder::Encoder,
             pb_bdd_inter::PbInter,
             pb_bdd_native::PbNativeEncoder,
             pb_bdd_pysat::PbPysatEncoder, pb_bdd_inter_better::PbInterDyn,
@@ -54,13 +54,14 @@ mod tests {
         let mut out: Vec<String> = vec![];
 
         println!("solving file {}", file_name);
-        let mut makespans_to_check = vec![lower_bound];
-        if lower_bound != upper_bound.makespan {
-            makespans_to_check.push(upper_bound.makespan);
-            if lower_bound < upper_bound.makespan - 1 {
-                makespans_to_check.push((upper_bound.makespan + lower_bound) / 2);
-            }
-        }
+        //let mut makespans_to_check = vec![lower_bound, lower_bound - 5, lower_bound - 10];
+//
+        //if lower_bound != upper_bound.makespan {
+        //    makespans_to_check.push(upper_bound.makespan);
+        //}
+        //makespans_to_check.push(upper_bound.makespan + 5);
+        //makespans_to_check.push(upper_bound.makespan + 10);
+        let makespans_to_check = lower_bound..upper_bound.makespan+1;
         for makespan in makespans_to_check {
             let mut hsr = half_size_rule::HalfSizeRule {};
             let mut fur = fill_up_rule::FillUpRule {};
@@ -80,7 +81,7 @@ mod tests {
                 continue;
             }
 
-            let solving_time: f64 = 300.0;
+            let solving_time: f64 = 100.0;
             let timer = &Timeout::new(solving_time);
             let res = encoder.output();
             let num_vars = encoder.get_num_vars();
@@ -137,8 +138,8 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(not(feature = "encoding_class_instances"), ignore)]
-    pub fn test_basic_class() {
+    #[ignore]
+    pub fn test_solve_time_class_basic() {
         let mut encoder: Box<dyn Encoder> = Box::new(BasicEncoder::new());
         test_encoder(
             &mut encoder,
@@ -148,8 +149,8 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(not(feature = "encoding_class_instances"), ignore)]
-    pub fn test_pysat_class() {
+    #[ignore]
+    pub fn test_solve_time_class_pysat() {
         let mut a: Box<dyn Encoder> = Box::new(PbPysatEncoder::new());
         test_encoder(
             &mut a,
@@ -159,8 +160,8 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(not(feature = "encoding_class_instances"), ignore)]
-    pub fn test_pysat_with_precedence_class() {
+    #[ignore]
+    pub fn test_solve_time_class_pysat_with_precedence() {
         let mut a: Box<dyn Encoder> = Box::new(Precedence::new(Box::new(PbPysatEncoder::new()), 2));
         test_encoder(
             &mut a,
@@ -170,8 +171,8 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(not(feature = "encoding_class_instances"), ignore)]
-    pub fn test_bdd_native_class() {
+    #[ignore]
+    pub fn test_solve_time_class_bdd_native() {
         let mut a: Box<dyn Encoder> = Box::new(PbNativeEncoder::new());
         test_encoder(
             &mut a,
@@ -181,8 +182,8 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(not(feature = "encoding_class_instances"), ignore)]
-    pub fn test_bdd_native_with_precedence_class() {
+    #[ignore]
+    pub fn test_solve_time_class_bdd_native_with_precedence() {
         let mut a: Box<dyn Encoder> =
             Box::new(Precedence::new(Box::new(PbNativeEncoder::new()), 2));
         test_encoder(
@@ -193,8 +194,8 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(not(feature = "encoding_class_instances"), ignore)]
-    pub fn test_inter_with_precedence_unopt_class() {
+    #[ignore]
+    pub fn test_solve_time_class_inter_with_precedence_unopt() {
         let mut a: Box<dyn Encoder> = Box::new(Precedence::new(Box::new(PbInter::_new_unopt()), 2));
         test_encoder(
             &mut a,
@@ -204,8 +205,8 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(not(feature = "encoding_class_instances"), ignore)]
-    pub fn test_inter_with_precedence_class() {
+    #[ignore]
+    pub fn test_solve_time_class_inter_with_precedence_opt() {
         let mut a: Box<dyn Encoder> = Box::new(Precedence::new(Box::new(PbInter::new()), 2));
         test_encoder(
             &mut a,
@@ -215,8 +216,8 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(not(feature = "encoding_class_instances"), ignore)]
-    pub fn test_inter_precedence_1_class() {
+    #[ignore]
+    pub fn test_solve_time_class_inter_precedence_1() {
         let mut a: Box<dyn Encoder> = Box::new(Precedence::new(Box::new(PbInter::new()), 1));
         test_encoder(
             &mut a,
@@ -226,8 +227,8 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(not(feature = "encoding_class_instances"), ignore)]
-    pub fn test_interp_with_precedence_class() {
+    #[ignore]
+    pub fn test_solve_time_class_interp_with_precedence() {
         let mut a: Box<dyn Encoder> = Box::new(Precedence::new(Box::new(PbInterDyn::new()), 2));
         test_encoder(
             &mut a,
@@ -238,8 +239,8 @@ mod tests {
 
 
     #[test]
-    #[cfg_attr(not(feature = "solve_time_franca"), ignore)]
-    pub fn test_basic_franca() {
+    #[ignore]
+    pub fn test_solve_time_franca_basic() {
         let mut encoder: Box<dyn Encoder> = Box::new(BasicEncoder::new());
         test_encoder(
             &mut encoder,
@@ -249,9 +250,8 @@ mod tests {
     }
 
     #[test]
-    //#[cfg_attr(not(feature = "solve_time_franca"), ignore)]
     #[ignore]
-    pub fn test_pysat_franca() {
+    pub fn test_solve_time_franca_pysat() {
         let mut a: Box<dyn Encoder> = Box::new(PbPysatEncoder::new());
         test_encoder(
             &mut a,
@@ -262,8 +262,7 @@ mod tests {
 
     #[test]
     #[ignore]
-    //#[cfg_attr(not(feature = "solve_time_franca"), ignore)]
-    pub fn test_pysat_with_precedence_franca() {
+    pub fn test_solve_time_franca_pysat_with_precedence() {
         let mut a: Box<dyn Encoder> = Box::new(Precedence::new(Box::new(PbPysatEncoder::new()), 2));
         test_encoder(
             &mut a,
@@ -274,8 +273,7 @@ mod tests {
 
     #[test]
     #[ignore]
-    //#[cfg_attr(not(feature = "solve_time_franca"), ignore)]
-    pub fn test_pysat_with_precedence_1_franca() {
+    pub fn test_solve_time_franca_pysat_with_precedence_1() {
         let mut a: Box<dyn Encoder> = Box::new(Precedence::new(Box::new(PbPysatEncoder::new()), 1));
         test_encoder(
             &mut a,
@@ -285,8 +283,8 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(not(feature = "solve_time_franca"), ignore)]
-    pub fn test_bdd_native_franca() {
+    #[ignore]
+    pub fn test_solve_time_franca_bdd_native() {
         let mut a: Box<dyn Encoder> = Box::new(PbNativeEncoder::new());
         test_encoder(
             &mut a,
@@ -296,8 +294,8 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(not(feature = "solve_time_franca"), ignore)]
-    pub fn test_bdd_native_with_precedence_franca() {
+    #[ignore]
+    pub fn test_solve_time_franca_bdd_native_with_precedence() {
         let mut a: Box<dyn Encoder> =
             Box::new(Precedence::new(Box::new(PbNativeEncoder::new()), 2));
         test_encoder(
@@ -308,8 +306,8 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(not(feature = "solve_time_franca"), ignore)]
-    pub fn test_inter_with_precedence_unopt_franca() {
+    #[ignore]
+    pub fn test_solve_time_franca_inter_with_precedence_unopt() {
         let mut a: Box<dyn Encoder> = Box::new(Precedence::new(Box::new(PbInter::_new_unopt()), 2));
         test_encoder(
             &mut a,
@@ -319,8 +317,8 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(not(feature = "solve_time_franca"), ignore)]
-    pub fn test_inter_with_precedence_franca() {
+    #[ignore]
+    pub fn test_solve_time_franca_inter_with_precedence() {
         let mut a: Box<dyn Encoder> = Box::new(Precedence::new(Box::new(PbInter::new()), 2));
         test_encoder(
             &mut a,
@@ -330,8 +328,8 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(not(feature = "solve_time_franca"), ignore)]
-    pub fn test_inter_precedence_1_franca() {
+    #[ignore]
+    pub fn test_solve_time_franca_inter_precedence_1() {
         let mut a: Box<dyn Encoder> = Box::new(Precedence::new(Box::new(PbInter::new()), 1));
         test_encoder(
             &mut a,
@@ -341,8 +339,8 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(not(feature = "solve_time_franca"), ignore)]
-    pub fn test_inter_franca() {
+    #[ignore]
+    pub fn test_solve_time_franca_inter() {
         let mut a: Box<dyn Encoder> = Box::new(PbInter::new());
         test_encoder(
             &mut a,
@@ -352,8 +350,8 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(not(feature = "solve_time_franca"), ignore)]
-    pub fn test_interp_with_precedence_franca() {
+    #[ignore]
+    pub fn test_solve_time_franca_interp_with_precedence() {
         let mut a: Box<dyn Encoder> = Box::new(Precedence::new(Box::new(PbInterDyn::new()), 2));
         test_encoder(
             &mut a,

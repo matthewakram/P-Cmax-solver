@@ -5,9 +5,11 @@ use crate::{randomized_checkers::sss_ordered_randomized_checker::SSSOrderedRando
 use super::randomized_checker::RandomizedChecker;
 
 
-pub struct RandomizedMultiSSSRandomizedChecker{
+#[derive(Clone)]
+pub struct RandomizedMultiSSSRandomizedChecker {
 
 }
+
 
 impl RandomizedChecker for RandomizedMultiSSSRandomizedChecker {
     fn is_sat(&self, part: &crate::problem_instance::partial_solution::PartialSolution, makespan_to_test: usize, timeout: &Timeout) -> Option<crate::problem_instance::solution::Solution> {
@@ -30,7 +32,7 @@ impl RandomizedChecker for RandomizedMultiSSSRandomizedChecker {
             }
             let mut order: Vec<usize> = (0..part.instance.num_jobs).collect();
             order.shuffle(&mut thread_rng());
-            let checker: SSSOrderedRandomizedChecker = SSSOrderedRandomizedChecker{ job_order: order.clone(), num_procs_to_fill, text_file_to_use: "./randomized_checking_encoding)".to_string() };
+            let checker: SSSOrderedRandomizedChecker = SSSOrderedRandomizedChecker{ job_order: order.clone(), num_procs_to_fill};
 
             let sol = checker.is_sat(part, makespan_to_test, &Timeout::new(timeout.remaining_time() / num_attempts));
             num_attempts -= 1.0;

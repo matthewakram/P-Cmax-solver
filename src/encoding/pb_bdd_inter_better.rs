@@ -37,32 +37,35 @@ impl PbInterDyn {
         solution: &PartialSolution,
         makespan_to_check: usize,
     ) -> Vec<(usize, usize)> {
-        let mut map: HashMap<usize, usize> = HashMap::new();
-        for i in 0..solution.instance.num_jobs {
-            map.insert(solution.instance.job_sizes[i], i);
+        let mut jobs_in_bdd = vec![];
+        for i in &bdd1.nodes {
+            if i.job_num != usize::MAX && 
+                (jobs_in_bdd.len() == 0 || jobs_in_bdd[jobs_in_bdd.len() -1] != i.job_num ){
+                jobs_in_bdd.push(i.job_num);
+            }
         }
 
         let mut out: Vec<(usize, usize)> = vec![];
-        for i in &bdd1.nodes {
-            if i.job_num == usize::MAX {
-                continue;
-            }
-            let (lower, upper) = i.range;
-            if lower != upper {
-                continue;
-            }
 
-            if lower == makespan_to_check - solution.instance.job_sizes[i.job_num] {
-                out.push((i.job_num, i.aux_var));
-                map.insert(solution.instance.job_sizes[i.job_num], i.job_num);
-                continue;
-            }
+        for i in 0..jobs_in_bdd.len() {
+            let job = jobs_in_bdd[i];
+            let next_job = if i != jobs_in_bdd.len() - 1 {jobs_in_bdd[i+1]} else {usize::MAX};
+            let fur_val = makespan_to_check - solution.instance.job_sizes[job];
+            for node in &bdd1.nodes {
+                if node.job_num == usize::MAX {
+                    continue;
+                }
+                if node.job_num == next_job {
+                    break;
+                }
+                let (lower, upper) = node.range;
 
-            let fur_val = makespan_to_check - lower;
-            if map.contains_key(&fur_val) {
-                out.push((map.get(&fur_val).unwrap().clone(), i.aux_var));
+                if lower <= fur_val && fur_val <= upper {
+                    out.push((job, node.aux_var));
+                }
             }
         }
+
         return out;
     }
 }

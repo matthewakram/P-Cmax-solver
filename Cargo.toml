@@ -3,8 +3,20 @@ name = "p_cmax_solver"
 version = "0.1.0"
 edition = "2021"
 
+# This is a hack in order to allow me to select which performance tests to run. I do this while I am looking for a more elegant solution
+[features]
+encoding_class_instances = []
+encoding_franca = []
+solve_time_franca = []
+
 [dependencies]
 bitvec = "1.0.1"
 rand = "0.8.5"
 wait-timeout = "0.2.0"
 timeout-readwrite = "0.3.3"
+rayon = "1.8.0"
+dyn-clone = "1.0.16"
+
+[profile.release]
+# TODO: remove this for release
+debug = true
