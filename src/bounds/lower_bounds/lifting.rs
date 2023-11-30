@@ -1,9 +1,9 @@
 
 
 
-use crate::{problem_instance::{problem_instance::ProblemInstance, solution::Solution}, bounds::{bound::Bound, upper_bounds::{lpt, lptp, lptpp}}, encoding::{encoder::Encoder, basic_with_precedence::Precedence, pb_bdd_native::PbNativeEncoder}, solvers::sat_solver::{sat_solver_manager, kissat}, makespan_scheduling::linear_makespan::LinearMakespan, common::timeout::Timeout};
+use crate::{problem_instance::{problem_instance::ProblemInstance, solution::Solution}, bounds::{bound::Bound, upper_bounds::{lpt, lptp, lptpp, mss}}, encoding::{encoder::Encoder, basic_with_precedence::Precedence, pb_bdd_native::PbNativeEncoder, pb_bdd_inter_better::PbInterDyn}, solvers::sat_solver::{sat_solver_manager, kissat::Kissat}, makespan_scheduling::linear_makespan::LinearMakespan, common::timeout::Timeout};
 
-use super::{pigeon_hole, max_job_size, middle, sss_bound_tightening};
+use super::{pigeon_hole, max_job_size, middle, sss_bound_tightening, fs};
 
 
 
@@ -43,8 +43,10 @@ fn bound_instance(instance: &ProblemInstance, lower_bound: usize, remaining_time
         Box::new(middle::MiddleJobs {}),
         Box::new(lpt::LPT {}),
         Box::new(lptp::Lptp {}),
+        //Box::new(fs::FeketeSchepers{}),
         Box::new(sss_bound_tightening::SSSBoundStrengthening {}),
         Box::new(lptpp::Lptpp {}),
+        Box::new(mss::MSS {}),
     ];
 
     let (mut new_lower_bound, mut new_upper_bound) = (0, None);
@@ -59,6 +61,11 @@ fn bound_instance(instance: &ProblemInstance, lower_bound: usize, remaining_time
             break;
         }
         
+    }
+
+    if new_lower_bound > new_upper_bound.as_ref().unwrap().makespan {
+        println!("error with lower {} and upper  {}", new_lower_bound, new_upper_bound.as_ref().unwrap().makespan);
+        println!("{:?}", instance);
     }
 
     return (new_lower_bound, new_upper_bound.unwrap());
@@ -95,13 +102,15 @@ impl Bound for Lifting{
             return (best_bound, upper_bound);
         }
 
-        let encoder: Box<dyn Encoder> = Box::new(Precedence::new(Box::new(PbNativeEncoder::new()), 2));
-        let mut sat_solver = sat_solver_manager::SatSolverManager {
-            sat_solver: Box::new(kissat::Kissat {}),
-            makespan_scheduler: Box::new(LinearMakespan {}),
+        let encoder: Box<dyn Encoder> = Box::new(Precedence::new(Box::new(PbInterDyn::new()), 2));
+        let mut sat_solver = sat_solver_manager::SatSolverManager::new(
+            Box::new(Kissat::new()),
+            Box::new(LinearMakespan {}),
             encoder,
-        };
+        );
+        
         // we know we might still be able to improve the lower bound, and the unsolved instances are the key to that
+        let mut num_instances_remaining = unsolved_instances.len() as f64;
         for i in 0..unsolved_instances.len() {
             if timeout.time_finished() {
                 break;
@@ -110,7 +119,8 @@ impl Bound for Lifting{
             let instance = &unsolved_instances[i];
             let (_lower, upper) = bounds_unsolved_instances[i].clone();
             let upper = if upper_bound.is_none() || upper.makespan <= upper_bound.as_ref().unwrap().makespan {&upper} else {upper_bound.as_ref().unwrap()};
-            let sol = sat_solver.solve(&instance, _lower, upper, &Timeout::new((20.0 as f64).min(timeout.remaining_time())), false);
+            let sol = sat_solver.solve(&instance, _lower, upper, &Timeout::new((10.0 as f64).min(timeout.remaining_time() / num_instances_remaining)), false);
+            num_instances_remaining -= 1.0;
             if sol.is_some() {
                 best_bound = best_bound.max(sol.unwrap().makespan);
             } else {

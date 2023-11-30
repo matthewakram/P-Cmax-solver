@@ -1,23 +1,18 @@
-use std::collections::HashMap;
-
 use crate::{
     bdd::{self, bdd::BDD},
     common::timeout::Timeout,
-    problem_instance::{
-        partial_solution::PartialSolution,
-        problem_instance::ProblemInstance,
-    },
+    problem_instance::{partial_solution::PartialSolution, problem_instance::ProblemInstance},
 };
 
 use super::{
-    encoder::{Clause, Encoder, OneHotEncoder},
+    encoder::{Clause, Clauses, Encoder, OneHotEncoder},
     problem_encoding::one_hot_encoding::{OneHot, OneHotProblemEncoding},
 };
 
 #[derive(Clone)]
 pub struct PbInterDyn {
     one_hot: OneHotProblemEncoding,
-    pub clauses: Vec<Clause>,
+    pub clauses: Clauses,
     opt_all: bool,
 }
 
@@ -25,7 +20,7 @@ impl PbInterDyn {
     pub fn new() -> PbInterDyn {
         return PbInterDyn {
             one_hot: OneHotProblemEncoding::new(),
-            clauses: vec![],
+            clauses: Clauses::new(),
             opt_all: true,
         };
     }
@@ -37,10 +32,13 @@ impl PbInterDyn {
         solution: &PartialSolution,
         makespan_to_check: usize,
     ) -> Vec<(usize, usize)> {
+        //println!("{}", makespan_to_check);
+        //println!("{:?}", solution.instance.job_sizes);
         let mut jobs_in_bdd = vec![];
         for i in &bdd1.nodes {
-            if i.job_num != usize::MAX && 
-                (jobs_in_bdd.len() == 0 || jobs_in_bdd[jobs_in_bdd.len() -1] != i.job_num ){
+            if i.job_num != usize::MAX
+                && (jobs_in_bdd.len() == 0 || jobs_in_bdd[jobs_in_bdd.len() - 1] != i.job_num)
+            {
                 jobs_in_bdd.push(i.job_num);
             }
         }
@@ -49,7 +47,11 @@ impl PbInterDyn {
 
         for i in 0..jobs_in_bdd.len() {
             let job = jobs_in_bdd[i];
-            let next_job = if i != jobs_in_bdd.len() - 1 {jobs_in_bdd[i+1]} else {usize::MAX};
+            let next_job = if i != jobs_in_bdd.len() - 1 {
+                jobs_in_bdd[i + 1]
+            } else {
+                usize::MAX
+            };
             let fur_val = makespan_to_check - solution.instance.job_sizes[job];
             for node in &bdd1.nodes {
                 if node.job_num == usize::MAX {
@@ -60,12 +62,13 @@ impl PbInterDyn {
                 }
                 let (lower, upper) = node.range;
 
-                if lower <= fur_val && fur_val <= upper {
+                if lower <= fur_val && fur_val == upper {
                     out.push((job, node.aux_var));
+                    //print!("({} {} {} {}) ", job, node.job_num, node.range.0, node.range.1);
                 }
             }
         }
-
+        //println!("");
         return out;
     }
 }
@@ -76,9 +79,10 @@ impl Encoder for PbInterDyn {
         partial_solution: &crate::problem_instance::partial_solution::PartialSolution,
         makespan: usize,
         timeout: &Timeout,
+        max_num_clauses: usize,
     ) -> bool {
         self.one_hot.encode(partial_solution);
-        let mut clauses: Vec<Clause> = vec![];
+        let mut clauses: Clauses = Clauses::new();
         let mut bdds: Vec<BDD> = vec![];
 
         // for each processor, collect the vars that can go on it, and their weights, and build a bdd
@@ -109,23 +113,23 @@ impl Encoder for PbInterDyn {
                     makespan,
                     false,
                     partial_solution.assigned_makespan[proc],
-                    timeout
+                    timeout,
                 );
                 if bdd.is_none() {
                     return false;
                 }
                 let bdd = bdd.unwrap();
                 let bdd = bdd::bdd::assign_aux_vars(bdd, &mut self.one_hot.var_name_generator);
-                let mut a: Vec<Clause> = bdd::bdd::_encode_bad(&bdd);
+                let mut a: Clauses = bdd::bdd::_encode_bad(&bdd);
 
                 //for n in &bdd.nodes {
                 //    println!("proc {} var {} range {} {} ", n.job_num, n.aux_var, n.range.0, n.range.1);
                 //}
                 bdds.push(bdd);
-                clauses.append(&mut a);
+                clauses.add_many_clauses(&mut a);
             }
 
-            if timeout.time_finished() {
+            if timeout.time_finished() || clauses.get_num_clauses() > max_num_clauses {
                 return false;
             }
         }
@@ -135,11 +139,11 @@ impl Encoder for PbInterDyn {
                 if bdds[j].nodes.is_empty() || bdds[i].nodes.is_empty() {
                     continue;
                 }
-                clauses.append(&mut bdd::bdd::encode_bdd_bijective_relation(
+                clauses.add_many_clauses(&mut bdd::bdd::encode_bdd_bijective_relation(
                     &bdds[i], &bdds[j],
                 ));
             }
-            if timeout.time_finished() {
+            if timeout.time_finished() || clauses.get_num_clauses() > max_num_clauses {
                 return false;
             }
         }
@@ -152,12 +156,10 @@ impl Encoder for PbInterDyn {
                 }
                 let fur_vars: Vec<(usize, usize)> =
                     self.get_fur_vars(&bdds[i], partial_solution, makespan);
-                // TODO: test the performance difference between adding explicit fur nodes, and only considering final nodes with range
-                // is of size one
                 for (job_num, fur_var) in fur_vars {
                     for j in i + 1..partial_solution.instance.num_processors {
                         if self.one_hot.position_vars[job_num][j].is_some() {
-                            clauses.push(Clause {
+                            clauses.add_clause(Clause {
                                 vars: vec![
                                     -(fur_var as i32),
                                     -(self.one_hot.position_vars[job_num][j].unwrap() as i32),
@@ -166,7 +168,7 @@ impl Encoder for PbInterDyn {
                         }
                     }
                 }
-                if timeout.time_finished() {
+                if timeout.time_finished() || clauses.get_num_clauses() > max_num_clauses {
                     return false;
                 }
             }
@@ -176,9 +178,10 @@ impl Encoder for PbInterDyn {
         return true;
     }
 
-    fn output(&self) -> Vec<Clause> {
-        let mut out = self.clauses.clone();
-        out.append(&mut self.one_hot.clauses.clone());
+    fn output(&mut self) -> Clauses {
+        let mut out: Clauses = Clauses::new();
+        std::mem::swap(&mut out, &mut self.clauses);
+        out.add_many_clauses(&mut self.one_hot.clauses);
         return out;
     }
 

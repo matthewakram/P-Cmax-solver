@@ -48,10 +48,10 @@ impl RandomizedChecker for OrderedJobAssignmentChecker {
         }
 
         let mut encoder = Box::new( Precedence::new(Box::new(PbPysatEncoder::new()), 1));
-        encoder.basic_encode(&reduced_sol, makespan_to_test, timeout);
+        encoder.basic_encode(&reduced_sol, makespan_to_test, timeout, 500_000_000);
         let encoding = encoder.output();
-        let solver = Kissat{};
-        let solution = solver.solve(&encoding, encoder.get_num_vars(),  timeout);
+        let mut solver = Kissat::new();
+        let solution = solver.solve(encoding, encoder.get_num_vars(),  timeout);
 
         
         if solution.is_sat() {

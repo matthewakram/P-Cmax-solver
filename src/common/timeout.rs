@@ -1,21 +1,42 @@
-use std::time::Instant;
+use std::{time::Instant, sync::{atomic::AtomicBool, Arc}};
 
 
+#[derive(Clone)]
 pub struct Timeout{
     remaining_time: f64,
     clock: Instant,
+    quit: Arc<AtomicBool>,
 }
+
+
 
 impl Timeout {
     pub fn new(time_out: f64) -> Timeout{
-        return Timeout { remaining_time: time_out, clock: Instant::now() }
+        return Timeout { remaining_time: time_out, clock: Instant::now() , quit: Arc::new(AtomicBool::new(false))}
+    }
+
+    pub fn new_concurrent(time_out: f64, quit: Arc<AtomicBool>) -> Timeout{
+        return Timeout { remaining_time: time_out, clock: Instant::now() , quit}
     }
 
     pub fn time_finished(&self) -> bool{
-        return self.remaining_time - self.clock.elapsed().as_secs_f64() < 0.0;
+        return self.remaining_time - self.clock.elapsed().as_secs_f64() < 0.0 || self.quit.load(std::sync::atomic::Ordering::Relaxed);
     }
 
     pub fn remaining_time(&self) -> f64{
         return self.remaining_time - self.clock.elapsed().as_secs_f64();
     }
+
+    pub fn finish(&self) {
+        self.quit.store(true, std::sync::atomic::Ordering::Relaxed);
+    }
+    
+    pub fn reset_finish(&self) {
+        self.quit.store(false, std::sync::atomic::Ordering::Relaxed);
+    }
+
+    pub fn get_finish_var(&self) -> Arc<AtomicBool>  {
+        return self.quit.clone();
+    }
+
 }

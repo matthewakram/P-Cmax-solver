@@ -1,6 +1,5 @@
-use rand::{thread_rng, seq::SliceRandom};
 
-use crate::{randomized_checkers::sss_ordered_randomized_checker::SSSOrderedRandomizedChecker, common::timeout::Timeout};
+use crate::common::timeout::Timeout;
 
 use super::{randomized_checker::RandomizedChecker, ordered_job_assignment_checker::OrderedJobAssignmentChecker};
 
@@ -20,7 +19,7 @@ impl RandomizedChecker for BinSearchOrderedJobAssignmentChecker {
 
         while num_attempts > 0.0 && !timeout.time_finished() {
             let num_jobs_to_assign = (lower + upper) / 2;
-            let mut order: Vec<usize> = (0..part.instance.num_jobs).collect();
+            let order: Vec<usize> = (0..part.instance.num_jobs).collect();
             let checker = OrderedJobAssignmentChecker{ job_order: order, num_jobs_to_assign  };
             let checker_time = Timeout::new(timeout.remaining_time() / num_attempts);
             num_attempts -= 1.0;

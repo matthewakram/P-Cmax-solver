@@ -2,14 +2,14 @@ use crate::{problem_instance::problem_instance::ProblemInstance, common::timeout
 
 use super::{
     binary_arithmetic::{self, BinaryNumber},
-    encoder::{Clause, Encoder, OneHotEncoder}, problem_encoding::one_hot_encoding::{OneHotProblemEncoding, OneHot},
+    encoder::{Encoder, OneHotEncoder, Clauses}, problem_encoding::one_hot_encoding::{OneHotProblemEncoding, OneHot},
 };
 
 
 #[derive(Clone)]
 pub struct BasicEncoder {
     pub problem: OneHotProblemEncoding,
-    pub clauses: Vec<Clause>,
+    pub clauses: Clauses,
     pub final_sum_vars: Vec<BinaryNumber>,
     pub weight_on_machine_vars: Vec<Vec<Option<BinaryNumber>>>,
     pub partial_sum_variables: Vec<Vec<Option<BinaryNumber>>>
@@ -19,7 +19,7 @@ impl BasicEncoder {
     pub fn new() -> BasicEncoder {
         return BasicEncoder {
             problem: OneHotProblemEncoding::new(),
-            clauses: vec![],
+            clauses: Clauses::new(),
             final_sum_vars: vec![],
             weight_on_machine_vars: vec![],
             partial_sum_variables: vec![]
@@ -32,10 +32,11 @@ impl Encoder for BasicEncoder {
         &mut self,
         partial_solution: &crate::problem_instance::partial_solution::PartialSolution,
         makespan: usize,
-        timeout: &Timeout
+        timeout: &Timeout,
+        _ : usize
     ) -> bool {
         self.problem.encode(partial_solution);
-        let mut clauses: Vec<Clause> = vec![];
+        let mut clauses: Clauses = Clauses::new();
 
         let mut weight_on_machine_vars: Vec<Vec<Option<BinaryNumber>>> = vec![];
         for job in 0..partial_solution.instance.num_jobs {
@@ -46,7 +47,7 @@ impl Encoder for BasicEncoder {
                         partial_solution.instance.job_sizes[job],
                         &mut self.problem.var_name_generator,
                     )));
-                    clauses.append(&mut binary_arithmetic::n_implies_m_in_j_encoding(
+                    clauses.add_many_clauses(&mut binary_arithmetic::n_implies_m_in_j_encoding(
                         self.problem.position_vars[job][processor].unwrap(),
                         &weight_on_machine_vars[job][processor].as_ref().unwrap(),
                         &vec![partial_solution.instance.job_sizes[job]],
@@ -80,7 +81,7 @@ impl Encoder for BasicEncoder {
                             &mut self.problem.var_name_generator,
                         );
 
-                        clauses.append(&mut sum_clauses);
+                        clauses.add_many_clauses(&mut sum_clauses);
                         sum = Some(next_sum);
                     }
                     partial_sum_variables[processor].push(sum.clone());
@@ -88,7 +89,7 @@ impl Encoder for BasicEncoder {
                     partial_sum_variables[processor].push(None);
                 }
             }
-            clauses.append(&mut binary_arithmetic::at_most_k_encoding(
+            clauses.add_many_clauses(&mut binary_arithmetic::at_most_k_encoding(
                 sum.as_ref().unwrap(),
                 makespan,
             ));
@@ -106,9 +107,10 @@ impl Encoder for BasicEncoder {
         return true;
     }
 
-    fn output(&self) -> Vec<Clause> {
-        let mut out = self.clauses.clone();
-        out.append(&mut self.problem.clauses.clone());
+    fn output(&mut self) -> Clauses {
+        let mut out: Clauses = Clauses::new();
+        std::mem::swap(&mut out, &mut self.clauses);
+        out.add_many_clauses(&mut self.problem.clauses);
         return out;
     }
 

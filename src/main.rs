@@ -1,5 +1,6 @@
 use std::{env, vec};
 
+mod _perf_tests;
 mod bdd;
 mod bounds;
 mod common;
@@ -9,9 +10,8 @@ mod makespan_scheduling;
 mod precedence_relations;
 mod problem_instance;
 mod problem_simplification;
-mod solvers;
 mod randomized_checkers;
-mod _perf_tests;
+mod solvers;
 //mod feasability_checking;
 extern crate bitvec;
 
@@ -32,7 +32,8 @@ use crate::encoding::pb_bdd_inter_better::PbInterDyn;
 use crate::encoding::pb_bdd_native::PbNativeEncoder;
 use crate::encoding::pb_bdd_pysat::PbPysatEncoder;
 use crate::makespan_scheduling::linear_makespan::LinearMakespan;
-use crate::solvers::sat_solver::{kissat, sat_solver_manager};
+use crate::solvers::sat_solver::kissat::Kissat;
+use crate::solvers::sat_solver::{multi_sat_solver_manager, sat_solver_manager};
 
 fn main() {
     // --------------READING THE INPUT--------------
@@ -41,7 +42,7 @@ fn main() {
     let instance = input_output::from_file::read_from_file(file_name);
 
     let timeout_given = args.index_of(&"-t".to_string());
-    let total_timeout  = if timeout_given.is_none() {
+    let total_timeout = if timeout_given.is_none() {
         60.0
     } else {
         args[timeout_given.unwrap() + 1].parse::<f64>().unwrap()
@@ -55,6 +56,7 @@ fn main() {
         Box::new(pigeon_hole::PigeonHole {}),
         Box::new(max_job_size::MaxJobSize {}),
         Box::new(middle::MiddleJobs {}),
+        Box::new(fs::FeketeSchepers{}),
         Box::new(lpt::LPT {}),
         Box::new(lptp::Lptp {}),
         //Box::new(martello_toth::MartelloToth {}),
@@ -64,14 +66,23 @@ fn main() {
         Box::new(mss::MSS {}),
     ];
 
-    let (mut lower_bound, mut upper_bound) = (0, None);
+    let (mut lower_bound, mut upper_bound) = (1, None);
     //TODO; make this dynamic
     for i in 0..bounds.len() {
         let bound = &bounds[i];
-        (lower_bound, upper_bound) = bound.bound(&instance, lower_bound, upper_bound, &precomp_timeout);
-        println!("lower: {} upper {}", lower_bound, if upper_bound.is_some() {upper_bound.as_ref().unwrap().makespan} else {0});
+        (lower_bound, upper_bound) =
+            bound.bound(&instance, lower_bound, upper_bound, &precomp_timeout);
+        println!(
+            "lower: {} upper {}",
+            lower_bound,
+            if upper_bound.is_some() {
+                upper_bound.as_ref().unwrap().makespan
+            } else {
+                0
+            }
+        );
         if precomp_timeout.time_finished()
-        || (upper_bound.is_some() && upper_bound.as_ref().unwrap().makespan == lower_bound)
+            || (upper_bound.is_some() && upper_bound.as_ref().unwrap().makespan == lower_bound)
         {
             break;
         }
@@ -111,7 +122,7 @@ fn main() {
         encoder = Box::new(PbInter::new());
     } else if args.contains(&"-inter+".to_string()) && args.contains(&"-prec".to_string()) {
         encoder = Box::new(Precedence::new(Box::new(PbInterDyn::new()), 2));
-    }else if args.contains(&"-basic".to_string()) && args.contains(&"-prec".to_string()) {
+    } else if args.contains(&"-basic".to_string()) && args.contains(&"-prec".to_string()) {
         encoder = Box::new(Precedence::new(Box::new(BasicEncoder::new()), 2));
     } else if args.contains(&"-basic".to_string()) {
         encoder = Box::new(BasicEncoder::new());
@@ -119,13 +130,32 @@ fn main() {
         panic!("need to specify one of the given options")
     }
 
-    let mut sat_solver = sat_solver_manager::SatSolverManager {
-        sat_solver: Box::new(kissat::Kissat {}),
-        makespan_scheduler: Box::new(LinearMakespan {}),
+    if args.contains(&"-test_new".to_string()) {
+        let mut multisat_solver = multi_sat_solver_manager::MultiSatSolverManager {
+            sat_solver: Box::new(Kissat::new()),
+            unsat_solver: Box::new(Kissat::new()),
+            makespan_scheduler: Box::new(LinearMakespan {}),
+            sat_encoder: Box::new(PbPysatEncoder::new()),
+            unsat_encoder: Box::new(PbNativeEncoder::new()),
+        };
+
+        let sol = multisat_solver
+            .solve(&instance, lower_bound, &upper_bound, &total_timeout, true)
+            .unwrap();
+        let final_solution = instance.finalize_solution(sol);
+        println!("solution found {}", final_solution.makespan);
+        return;
+    }
+
+    let mut sat_solver = sat_solver_manager::SatSolverManager::new(
+        Box::new(Kissat::new()),
+        Box::new(LinearMakespan {}),
         encoder,
-    };
-    
-    let sol = sat_solver.solve(&instance, lower_bound, &upper_bound, &total_timeout, true).unwrap();
+    );
+
+    let sol = sat_solver
+        .solve(&instance, lower_bound, &upper_bound, &total_timeout, true)
+        .unwrap();
     let final_solution = instance.finalize_solution(sol);
     println!("solution found {}", final_solution.makespan);
 }

@@ -1,21 +1,21 @@
 use crate::{bdd::{self, bdd::BDD}, problem_instance::problem_instance::ProblemInstance, common::timeout::Timeout};
 
 use super::{
-    encoder::{Clause, Encoder, OneHotEncoder},
+    encoder::{Encoder, OneHotEncoder, Clauses},
     problem_encoding::one_hot_encoding::{OneHot, OneHotProblemEncoding},
 };
 
 #[derive(Clone)]
 pub struct PbNativeEncoder {
     one_hot: OneHotProblemEncoding,
-    pub clauses: Vec<Clause>,
+    pub clauses: Clauses,
 }
 
 impl PbNativeEncoder {
     pub fn new() -> PbNativeEncoder {
         return PbNativeEncoder {
             one_hot: OneHotProblemEncoding::new(),
-            clauses: vec![],
+            clauses: Clauses::new(),
         };
     }
 }
@@ -25,10 +25,11 @@ impl Encoder for PbNativeEncoder {
         &mut self,
         partial_solution: &crate::problem_instance::partial_solution::PartialSolution,
         makespan: usize,
-        timeout: &Timeout
+        timeout: &Timeout,
+        max_num_clauses: usize
     ) -> bool{
         self.one_hot.encode(partial_solution);
-        let mut clauses: Vec<Clause> = vec![];
+        let mut clauses= Clauses::new();
 
         // for each processor, collect the vars that can go on it, and their weights, and build a bdd
         for proc in 0..partial_solution.instance.num_processors {
@@ -58,11 +59,14 @@ impl Encoder for PbNativeEncoder {
             //    let a = &bdd.nodes[i];
             //    println!("{}    var: {}, aux var: {} left {} right {}, left aux {} right aux {}", i, a.var, a.aux_var, a.left_child, a.right_child, bdd.nodes[a.left_child].aux_var, bdd.nodes[a.right_child].aux_var);
             //}
-            let mut a: Vec<Clause> = bdd::bdd::encode(&bdd);
+            let mut a: Clauses = bdd::bdd::encode(&bdd);
 
             //println!("{:?}", a);
-            clauses.append(&mut a);
+            clauses.add_many_clauses(&mut a);
             if timeout.time_finished() {
+                return false;
+            }
+            if clauses.get_num_clauses() > max_num_clauses {
                 return false;
             }
         }
@@ -71,9 +75,10 @@ impl Encoder for PbNativeEncoder {
         return true;
     }
 
-    fn output(&self) -> Vec<Clause> {
-        let mut out = self.clauses.clone();
-        out.append(&mut self.one_hot.clauses.clone());
+    fn output(&mut self) -> Clauses {
+        let mut out: Clauses = Clauses::new();
+        std::mem::swap(&mut out, &mut self.clauses);
+        out.add_many_clauses(&mut self.one_hot.clauses);
         return out;
     }
 

@@ -11,8 +11,8 @@ dyn_clone::clone_trait_object!(OneHotEncoder);
 
 
 pub trait Encoder : DynClone + Send {
-    fn basic_encode(&mut self, partial_solution: &PartialSolution, makespan: usize, timeout: &Timeout) -> bool;
-    fn output(&self) -> Vec<Clause>;
+    fn basic_encode(&mut self, partial_solution: &PartialSolution, makespan: usize, timeout: &Timeout, max_num_clauses: usize) -> bool;
+    fn output(&mut self) -> Clauses;
     fn decode(&self, instance: &ProblemInstance, solution: &Vec<i32>) -> Solution;
     fn get_num_vars(&self) -> usize;
 }
@@ -44,6 +44,40 @@ impl VarNameGenerator {
 }
 
 #[derive( Eq, PartialEq, Clone)]
+pub struct Clauses {
+    num_clauses: usize,
+    clauses : Vec<i32>
+}
+
+
+impl Clauses {
+    pub fn new() -> Clauses {
+        return Clauses {num_clauses: 0,  clauses: vec![] }
+    }
+    pub fn add_clause(&mut self, mut clause: Clause) {
+        self.clauses.append(&mut clause.vars);
+        self.clauses.push(0);
+        self.num_clauses += 1;
+    }
+
+    pub fn add_many_clauses(&mut self, clauses: &mut Clauses) {
+        self.num_clauses += clauses.num_clauses;
+        self.clauses.append(&mut clauses.clauses);
+    }
+
+    pub fn len(&self) -> usize {
+        return self.clauses.len();
+    } 
+
+    pub fn iter(self: &Self) -> impl Iterator<Item=&i32>{
+        self.clauses.iter()
+  }
+
+    pub fn get_num_clauses(&self) -> usize {
+        return self.num_clauses;
+    }
+}
+
 pub struct Clause{
     pub vars: Vec<i32>,
 }

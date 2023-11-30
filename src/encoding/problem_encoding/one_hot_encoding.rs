@@ -4,7 +4,7 @@ use crate::{
     common,
     encoding::{
         binary_arithmetic,
-        encoder::{Clause, VarNameGenerator},
+        encoder::{VarNameGenerator, Clauses},
     },
     problem_instance::{
         partial_solution::PartialSolution,
@@ -17,7 +17,7 @@ use crate::{
 pub struct OneHotProblemEncoding {
     pub var_name_generator: VarNameGenerator,
     pub position_vars: Vec<Vec<Option<usize>>>,
-    pub clauses: Vec<Clause>,
+    pub clauses: Clauses,
 }
 
 pub trait OneHotClone : OneHot + Clone {}
@@ -34,13 +34,13 @@ impl OneHotProblemEncoding {
         return OneHotProblemEncoding {
             var_name_generator,
             position_vars: vec![],
-            clauses: vec![],
+            clauses: Clauses::new(),
         };
     }
 
     pub fn encode(&mut self, partial_solution: &PartialSolution) {
         self.var_name_generator = VarNameGenerator::new();
-        let mut clauses: Vec<Clause> = vec![];
+        let mut clauses: Clauses = Clauses::new();
         // here the presence of a variable indicates that process i can be put on server j
         let mut position_variables: Vec<Vec<Option<usize>>> = vec![];
         for i in 0..partial_solution.instance.num_jobs {
@@ -52,7 +52,7 @@ impl OneHotProblemEncoding {
                     position_vars_i.push(None)
                 }
             }
-            clauses.push(binary_arithmetic::at_least_one_encoding(
+            clauses.add_clause(binary_arithmetic::at_least_one_encoding(
                 position_vars_i
                     .iter()
                     .filter(|x| x.is_some())
@@ -60,7 +60,7 @@ impl OneHotProblemEncoding {
                     .collect(),
             ));
             // TODO: check the effect of using different at most one encodings
-            clauses.append(&mut binary_arithmetic::pairwise_encoded_at_most_one(
+            clauses.add_many_clauses(&mut binary_arithmetic::pairwise_encoded_at_most_one(
                 &position_vars_i
                     .iter()
                     .filter(|x| x.is_some())

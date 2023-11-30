@@ -8,21 +8,21 @@ use std::{
 };
 
 use super::{
-    encoder::{Clause, Encoder, OneHotEncoder},
+    encoder::{Clause, Encoder, OneHotEncoder, Clauses},
     problem_encoding::one_hot_encoding::{OneHot, OneHotProblemEncoding},
 };
 
 #[derive(Clone)]
 pub struct PbPysatEncoder {
     one_hot: OneHotProblemEncoding,
-    pub clauses: Vec<Clause>,
+    pub clauses: Clauses,
 }
 
 impl PbPysatEncoder {
     pub fn new() -> PbPysatEncoder {
         return PbPysatEncoder {
             one_hot: OneHotProblemEncoding::new(),
-            clauses: vec![],
+            clauses: Clauses::new(),
         };
     }
 }
@@ -34,6 +34,7 @@ impl Encoder for PbPysatEncoder {
         partial_solution: &crate::problem_instance::partial_solution::PartialSolution,
         makespan: usize,
         timeout: &Timeout,
+        max_num_clauses: usize
     ) -> bool {
         let mut child = Command::new("python3")
                 .arg("./src/encoding/pb_with_pysat.py")
@@ -42,7 +43,7 @@ impl Encoder for PbPysatEncoder {
                 .spawn().unwrap();
 
         self.one_hot.encode(partial_solution);
-        let mut clauses: Vec<Clause> = vec![];
+        let mut clauses: Clauses = Clauses::new();
 
         let mut string = String::new();
         string += format!(
@@ -83,7 +84,7 @@ impl Encoder for PbPysatEncoder {
         let time_remaining = timeout.remaining_time();
         if time_remaining <= 0.0 || time_remaining.is_nan() || time_remaining.is_infinite() {
             child.kill().unwrap();
-            child.wait();
+            child.wait().unwrap();
             return false;
         }
 
@@ -103,7 +104,7 @@ impl Encoder for PbPysatEncoder {
         let mut max: usize = 0;
         for line in lines {
             let line = line.split(" ");
-            clauses.push(Clause {
+            clauses.add_clause(Clause {
                 vars: line
                     .clone()
                     .map(|x| x.parse::<i32>().unwrap())
@@ -123,9 +124,10 @@ impl Encoder for PbPysatEncoder {
         return true;
     }
 
-    fn output(&self) -> Vec<Clause> {
-        let mut out: Vec<Clause> = self.clauses.clone();
-        out.append(&mut self.one_hot.clauses.clone());
+    fn output(&mut self) -> Clauses {
+        let mut out: Clauses = Clauses::new();
+        std::mem::swap(&mut out, &mut self.clauses);
+        out.add_many_clauses(&mut self.one_hot.clauses);
         //let num_vars = self.get_num_vars();
         //for i in &out {
         //    for v in &i.vars{

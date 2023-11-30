@@ -21,11 +21,10 @@ mod tests {
         },
         randomized_checkers::{
             bin_search_checker::BinSearchChecker,
-            descending_multi_sss_randomized_checker::{self, DescendingMultiSSSRandomizedChecker},
-            randomized_checker::{self, RandomizedChecker},
+            descending_multi_sss_randomized_checker::DescendingMultiSSSRandomizedChecker,
+            randomized_checker::RandomizedChecker,
             randomized_multi_sss_randomized_checker::RandomizedMultiSSSRandomizedChecker, bin_search_job_assignment::BinSearchJobAssignmentChecker, bin_search_ordered_job_assignment::BinSearchOrderedJobAssignmentChecker,
         },
-        solvers::sat_solver::kissat::Kissat,
     };
 
     fn test_file(checker: &mut Box<dyn RandomizedChecker>, file_name: &String) -> Vec<String> {

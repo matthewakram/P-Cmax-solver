@@ -1,6 +1,6 @@
 use rand::{thread_rng, seq::SliceRandom};
 
-use crate::{randomized_checkers::sss_ordered_randomized_checker::SSSOrderedRandomizedChecker, common::timeout::Timeout};
+use crate::common::timeout::Timeout;
 
 use super::{randomized_checker::RandomizedChecker, ordered_job_assignment_checker::OrderedJobAssignmentChecker};
 

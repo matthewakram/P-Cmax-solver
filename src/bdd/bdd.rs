@@ -1,7 +1,7 @@
 
 
 use crate::common::timeout::Timeout;
-use crate::encoding::encoder::{Clause, VarNameGenerator};
+use crate::encoding::encoder::{Clause, VarNameGenerator, Clauses};
 
 use crate::bitvec::prelude::*;
 use crate::bitvec::vec::BitVec;
@@ -297,23 +297,23 @@ pub fn assign_aux_vars(mut bdd: BDD, var_name_generator: &mut VarNameGenerator) 
     return bdd;
 }
 
-pub fn _encode_bad(bdd: &BDD) -> Vec<Clause> {
-    let mut clauses: Vec<Clause> = vec![];
+pub fn _encode_bad(bdd: &BDD) -> Clauses {
+    let mut clauses: Clauses = Clauses::new();
 
     // we first have to handle that false and true nodes, as well as the root node
-    clauses.push(Clause {
+    clauses.add_clause(Clause {
         vars: vec![-(bdd.nodes[0].aux_var as i32)],
     });
-    clauses.push(Clause {
+    clauses.add_clause(Clause {
         vars: vec![bdd.nodes[1].aux_var as i32],
     });
-    clauses.push(Clause {
+    clauses.add_clause(Clause {
         vars: vec![bdd.nodes[bdd.root_num].aux_var as i32],
     });
     // now we handle the two clauses per node
     for i in 2..bdd.nodes.len() {
         // the first clause is -left_child_aux -> -node_aux
-        clauses.push(Clause {
+        clauses.add_clause(Clause {
             vars: vec![
                 // this is correct but makes it slower for some reason
                 (bdd.nodes[i].var as i32),
@@ -323,7 +323,7 @@ pub fn _encode_bad(bdd: &BDD) -> Vec<Clause> {
         });
         // the second clause is -right_child_aux & node_var -> -node_aux
 
-        clauses.push(Clause {
+        clauses.add_clause(Clause {
             vars: vec![
                 -(bdd.nodes[i].var as i32),
                 -(bdd.nodes[i].aux_var as i32),
@@ -410,24 +410,24 @@ pub fn _encode_bad_new(bdd: &BDD) -> Vec<Clause> {
     return clauses;
 }
 
-pub fn encode(bdd: &BDD) -> Vec<Clause> {
-    let mut clauses: Vec<Clause> = vec![];
+pub fn encode(bdd: &BDD) -> Clauses {
+    let mut clauses: Clauses = Clauses::new();
 
     // we first have to handle that false and true nodes, as well as the root node
-    clauses.push(Clause {
+    clauses.add_clause(Clause {
         vars: vec![-(bdd.nodes[0].aux_var as i32)],
     });
-    clauses.push(Clause {
+    clauses.add_clause(Clause {
         vars: vec![bdd.nodes[1].aux_var as i32],
     });
-    clauses.push(Clause {
+    clauses.add_clause(Clause {
         vars: vec![bdd.nodes[bdd.root_num].aux_var as i32],
     });
     // now we handle the two clauses per node
     for i in 2..bdd.nodes.len() {
         // the first clause is -left_child_aux -> -node_aux
         if bdd.nodes[i].aux_var != bdd.nodes[bdd.nodes[i].left_child].aux_var {
-            clauses.push(Clause {
+            clauses.add_clause(Clause {
                 vars: vec![
                     -(bdd.nodes[i].aux_var as i32),
                     (bdd.nodes[bdd.nodes[i].left_child].aux_var as i32),
@@ -449,7 +449,7 @@ pub fn encode(bdd: &BDD) -> Vec<Clause> {
         }
 
         // the second clause is -right_child_aux & node_var -> -node_aux
-        clauses.push(Clause {
+        clauses.add_clause(Clause {
             vars: vec![
                 -(bdd.nodes[i].var as i32),
                 -(bdd.nodes[i].aux_var as i32),
@@ -581,7 +581,7 @@ pub fn encode(bdd: &BDD) -> Vec<Clause> {
 //    });
 //}
 
-pub fn encode_bdd_bijective_relation(bdd1: &BDD, bdd2: &BDD) -> Vec<Clause> {
+pub fn encode_bdd_bijective_relation(bdd1: &BDD, bdd2: &BDD) -> Clauses {
     // bijection says that the node i in bdd1 is equivalent to the variable bijection[i] in bdd2
     let mut bijection: Vec<usize> = vec![0, 1];
     let mut bdd2_i = 2;
@@ -628,7 +628,7 @@ pub fn encode_bdd_bijective_relation(bdd1: &BDD, bdd2: &BDD) -> Vec<Clause> {
     //println!("{:?}", bijection);
     //println!("number of bijections found {}/{}", num_bis, bdd2.nodes.len());
 
-    let mut clauses = vec![];
+    let mut clauses = Clauses::new();
     for bdd1_node in 2..bdd1.nodes.len() {
         if bijection[bdd1_node] == usize::MAX {
             continue;
@@ -637,7 +637,7 @@ pub fn encode_bdd_bijective_relation(bdd1: &BDD, bdd2: &BDD) -> Vec<Clause> {
         let equiv_node = &bdd2.nodes[bijection[bdd1_node]];
         // this is reachable -> (that is reachable -> that is false)
         // this means that when multiple processors are on an equivalent value, that it will only try to insert it into the first one
-        clauses.push(Clause {
+        clauses.add_clause(Clause {
             vars: vec![
                 -(node.aux_var as i32),
                 -(equiv_node.aux_var as i32),

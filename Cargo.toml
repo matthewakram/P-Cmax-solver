@@ -16,6 +16,8 @@ wait-timeout = "0.2.0"
 timeout-readwrite = "0.3.3"
 rayon = "1.8.0"
 dyn-clone = "1.0.16"
+sysinfo = " 0.29.10"
+fraction = "0.14.0"
 
 [profile.release]
 # TODO: remove this for release

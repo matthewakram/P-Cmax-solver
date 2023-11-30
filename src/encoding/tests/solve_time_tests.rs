@@ -1,36 +1,40 @@
-
-
 // cargo test -r --test-threads=1 --features encoding_class_instances
 
 #[cfg(test)]
 mod tests {
-    use rayon::prelude::{ParallelIterator, IntoParallelIterator};
+    use rayon::prelude::{IntoParallelIterator, ParallelIterator};
+    use sysinfo::{System, SystemExt};
 
     use crate::{
         bounds::{
             bound::Bound,
-            lower_bounds::{
-                max_job_size, middle, pigeon_hole,
-            },
+            lower_bounds::{max_job_size, middle, pigeon_hole},
             upper_bounds::{lpt, lptp, lptpp},
         },
         common::timeout::Timeout,
         encoding::{
-            basic_encoder::BasicEncoder,
-            basic_with_precedence::Precedence,
-            encoder::Encoder,
-            pb_bdd_inter::PbInter,
-            pb_bdd_native::PbNativeEncoder,
-            pb_bdd_pysat::PbPysatEncoder, pb_bdd_inter_better::PbInterDyn,
+            basic_encoder::BasicEncoder, basic_with_precedence::Precedence, encoder::Encoder,
+            pb_bdd_inter::PbInter, pb_bdd_inter_better::PbInterDyn, pb_bdd_native::PbNativeEncoder,
+            pb_bdd_pysat::PbPysatEncoder,
         },
         input_output::{self},
         problem_instance::partial_solution::PartialSolution,
-        problem_simplification::{final_simp_rule, simplification_rule::SimpRule, half_size_rule, fill_up_rule},
+        problem_simplification::{
+            fill_up_rule, final_simp_rule, half_size_rule, simplification_rule::SimpRule,
+        },
         solvers::{sat_solver::kissat::Kissat, solver::SatSolver},
     };
-    use std::{fs::{self, File}, io::Write};
+    use std::{
+        fs::{self, File},
+        io::Write,
+        thread,
+        time::Duration,
+    };
 
-    fn test_file(encoder:  &mut Box<dyn Encoder>, file_name: &String) -> Vec<String> {
+    fn test_file(
+        encoder: &mut Box<dyn Encoder>,
+        file_name: &String,
+    ) -> Vec<String> {
         let instance = input_output::from_file::read_from_file(&file_name.to_string());
 
         let bounds: Vec<Box<dyn Bound>> = vec![
@@ -49,89 +53,109 @@ mod tests {
         }
         let upper_bound = upper_bound.unwrap();
         let pi = PartialSolution::new(instance);
-        let solver = Kissat {};
+        let mut solver = Kissat::new();
 
         let mut out: Vec<String> = vec![];
 
         println!("solving file {}", file_name);
         //let mut makespans_to_check = vec![lower_bound, lower_bound - 5, lower_bound - 10];
-//
+        //
         //if lower_bound != upper_bound.makespan {
         //    makespans_to_check.push(upper_bound.makespan);
         //}
         //makespans_to_check.push(upper_bound.makespan + 5);
         //makespans_to_check.push(upper_bound.makespan + 10);
-        let makespans_to_check = lower_bound..upper_bound.makespan+1;
+        let makespans_to_check = lower_bound..upper_bound.makespan + 1;
         for makespan in makespans_to_check {
             let mut hsr = half_size_rule::HalfSizeRule {};
             let mut fur = fill_up_rule::FillUpRule {};
             let mut finalize: final_simp_rule::FinalizeRule = final_simp_rule::FinalizeRule {};
-            let pi =  hsr.simplify(&pi, makespan);
-            if pi.is_none(){ continue;}
+            let pi = hsr.simplify(&pi, makespan);
+            if pi.is_none() {
+                continue;
+            }
             let pi = fur.simplify(pi.as_ref().unwrap(), makespan);
-            if pi.is_none(){ continue;}
+            if pi.is_none() {
+                continue;
+            }
             let pi = finalize.simplify(pi.as_ref().unwrap(), makespan);
             if pi.is_none() {
                 continue;
             }
             let pi: PartialSolution = pi.unwrap();
 
-            let succ = encoder.basic_encode(&pi, makespan, &Timeout::new(100.0));
+
+
+            loop {
+                let sys = System::new_all();
+                let available_mem = sys.available_memory();
+                if available_mem > 50000000000 {
+                    break;
+                }
+                thread::sleep(Duration::from_secs(5));
+            }
+            let succ = encoder.basic_encode(&pi, makespan, &Timeout::new(100.0), 500_000_000);
             if !succ {
                 continue;
             }
 
-            let solving_time: f64 = 100.0;
+            let solving_time: f64 = 300.0;
             let timer = &Timeout::new(solving_time);
             let res = encoder.output();
             let num_vars = encoder.get_num_vars();
-            let sol = std::panic::catch_unwind(|| solver.solve(&res, num_vars , &timer));
-            if sol.is_err() {
-                println!("OMYOMYOMYOMYOMYOYMYOMYOMYOYMOYMYOMYOMYOMYOMYOMYOMYOMYOMYOMYOMYOMYOYMOYMYOMY PANICED AT {}", file_name);
-                panic!("oh no");
-            }
-            let sol = sol.unwrap();
+            let len = res.len();
+
+            let sol = solver.solve(res, num_vars, &timer);
+
             let solving_time = solving_time - timer.remaining_time();
             if sol.is_timeout() {
                 continue;
             }
-
             out.push(format!(
                 "{}_{} {} {} {} {} {}",
                 file_name,
                 makespan,
                 solving_time,
-                if sol.is_sat() {1} else {0},
+                if sol.is_sat() { 1 } else { 0 },
                 pi.instance.num_jobs,
                 pi.instance.num_processors,
-                res.len(),
-                
+                len,
             ))
         }
         return out;
     }
 
-    
     fn test_encoder(encoder: &Box<dyn Encoder>, in_dirname: &str, out_dirname: &str) {
         let paths = fs::read_dir(in_dirname).unwrap();
-        let files: Vec<String> = paths.into_iter().filter(|path| path
-            .as_ref()
-            .unwrap()
-            .path()
-            .display()
-            .to_string()
-            .ends_with(".txt")).map(|p: Result<fs::DirEntry, std::io::Error>| p.unwrap().path().display().to_string()).collect();
+        let files: Vec<String> = paths
+            .into_iter()
+            .filter(|path| {
+                path.as_ref()
+                    .unwrap()
+                    .path()
+                    .display()
+                    .to_string()
+                    .ends_with(".txt")
+            })
+            .map(|p: Result<fs::DirEntry, std::io::Error>| p.unwrap().path().display().to_string())
+            .collect();
 
-        let files: Vec<(String, Box<dyn Encoder>)> = files.iter().map(|x| (x.clone(), encoder.clone())).collect::<Vec<_>>();
+        let files: Vec<(String, Box<dyn Encoder>)> = files
+            .iter()
+            .map(|x| (x.clone(), encoder.clone()))
+            .collect::<Vec<_>>();
         let result = files
-        .into_par_iter()
-        //.into_iter()
-        .map( |(path, mut encoder)| test_file(&mut encoder, &path))
-        .flat_map(|s| s)
-        .collect::<Vec<String>>();
+            .into_par_iter()
+            //.into_iter()
+            .map(|(path, mut encoder)| test_file(&mut encoder, &path))
+            .flat_map(|s| s)
+            .collect::<Vec<String>>();
 
-        let result = result.iter().map(|x| x.to_string())
-        .reduce(|accum, item| accum + &"\n" + &item ).unwrap();
+        let result = result
+            .iter()
+            .map(|x| x.to_string())
+            .reduce(|accum, item| accum + &"\n" + &item)
+            .unwrap();
 
         let mut file = File::create(out_dirname).unwrap();
         file.write_all(&result.as_bytes()).unwrap();
@@ -150,7 +174,7 @@ mod tests {
 
     #[test]
     #[ignore]
-    pub fn test_solve_time_class_pysat() {
+    pub fn test_solve_time_class_pysat_alone() {
         let mut a: Box<dyn Encoder> = Box::new(PbPysatEncoder::new());
         test_encoder(
             &mut a,
@@ -236,7 +260,6 @@ mod tests {
             "./bench/results/class_instances_inter+_prec.txt",
         )
     }
-
 
     #[test]
     #[ignore]
@@ -359,4 +382,5 @@ mod tests {
             "./bench/results/franca_frangioni_inter+_prec.txt",
         )
     }
+
 }

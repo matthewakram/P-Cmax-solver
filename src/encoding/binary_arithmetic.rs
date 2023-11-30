@@ -1,4 +1,4 @@
-use super::encoder::{Clause, VarNameGenerator};
+use super::encoder::{Clause, VarNameGenerator, Clauses};
 
 #[derive(Debug, Clone)]
 pub struct BinaryNumber {
@@ -57,15 +57,15 @@ pub fn to_binary(k: usize) -> Vec<bool> {
     return result;
 }
 
-pub fn at_most_k_encoding(n: &BinaryNumber, k: usize) -> Vec<Clause> {
+pub fn at_most_k_encoding(n: &BinaryNumber, k: usize) -> Clauses {
     // get the binary representation of k
     let k = to_binary(k);
     if n.bit_length < k.len() {
         // since we have a minimal representation of k, we know that in this case, n cannot be larger than k
-        return vec![];
+        return Clauses::new();
     }
 
-    let mut output: Vec<Clause> = vec![];
+    let mut output: Clauses = Clauses::new();
 
     for i in 0..k.len() {
         // encode if k_i == 0: n_i => !n_i' for at least one i' > i where k_i' == 1
@@ -76,12 +76,12 @@ pub fn at_most_k_encoding(n: &BinaryNumber, k: usize) -> Vec<Clause> {
                     vars.push(-(n.vars[j] as i32))
                 }
             }
-            output.push(Clause { vars });
+            output.add_clause(Clause { vars });
         }
     }
     // we also need to make sure that if n is longer than k, that the trailing variables are obviously false
     for i in k.len()..n.bit_length {
-        output.push(Clause {
+        output.add_clause(Clause {
             vars: vec![-(n.vars[i] as i32)],
         })
     }
@@ -94,7 +94,7 @@ pub fn bounded_sum_encoding(
     m: &BinaryNumber,
     max_bitlength: usize,
     var_name_generator: &mut VarNameGenerator,
-) -> (BinaryNumber, Vec<Clause>) {
+) -> (BinaryNumber, Clauses) {
     // w.l.o.g. n >= m
     let (n, m) = if n.max > m.max { (n, m) } else { (m, n) };
 
@@ -108,31 +108,31 @@ pub fn bounded_sum_encoding(
     let carry_bits: Vec<usize> = (0..n.bit_length)
         .map(|_| var_name_generator.next())
         .collect();
-    let mut assertions: Vec<Clause> = vec![];
+    let mut assertions: Clauses = Clauses::new();
 
     // we encode the first sum bit
-    assertions.push(Clause {
+    assertions.add_clause(Clause {
         vars: vec![
             -(sum_bits[0] as i32),
             (n.vars[0] as i32),
             (m.vars[0] as i32),
         ],
     });
-    assertions.push(Clause {
+    assertions.add_clause(Clause {
         vars: vec![
             (sum_bits[0] as i32),
             -(n.vars[0] as i32),
             (m.vars[0] as i32),
         ],
     });
-    assertions.push(Clause {
+    assertions.add_clause(Clause {
         vars: vec![
             (sum_bits[0] as i32),
             (n.vars[0] as i32),
             -(m.vars[0] as i32),
         ],
     });
-    assertions.push(Clause {
+    assertions.add_clause(Clause {
         vars: vec![
             -(sum_bits[0] as i32),
             -(n.vars[0] as i32),
@@ -141,13 +141,13 @@ pub fn bounded_sum_encoding(
     });
 
     // we encode the first carry bit
-    assertions.push(Clause {
+    assertions.add_clause(Clause {
         vars: vec![-(carry_bits[0] as i32), (n.vars[0] as i32)],
     });
-    assertions.push(Clause {
+    assertions.add_clause(Clause {
         vars: vec![-(carry_bits[0] as i32), (m.vars[0] as i32)],
     });
-    assertions.push(Clause {
+    assertions.add_clause(Clause {
         vars: vec![
             (carry_bits[0] as i32),
             -(n.vars[0] as i32),
@@ -159,7 +159,7 @@ pub fn bounded_sum_encoding(
         // remember that w.l.o.g. n >= m
         if i < m.bit_length {
             // assertions on the next sum bit
-            assertions.push(Clause {
+            assertions.add_clause(Clause {
                 vars: vec![
                     -(sum_bits[i] as i32),
                     (n.vars[i] as i32),
@@ -167,7 +167,7 @@ pub fn bounded_sum_encoding(
                     (carry_bits[i - 1] as i32),
                 ],
             });
-            assertions.push(Clause {
+            assertions.add_clause(Clause {
                 vars: vec![
                     (sum_bits[i] as i32),
                     -(n.vars[i] as i32),
@@ -175,7 +175,7 @@ pub fn bounded_sum_encoding(
                     (carry_bits[i - 1] as i32),
                 ],
             });
-            assertions.push(Clause {
+            assertions.add_clause(Clause {
                 vars: vec![
                     (sum_bits[i] as i32),
                     (n.vars[i] as i32),
@@ -183,7 +183,7 @@ pub fn bounded_sum_encoding(
                     (carry_bits[i - 1] as i32),
                 ],
             });
-            assertions.push(Clause {
+            assertions.add_clause(Clause {
                 vars: vec![
                     -(sum_bits[i] as i32),
                     -(n.vars[i] as i32),
@@ -191,7 +191,7 @@ pub fn bounded_sum_encoding(
                     (carry_bits[i - 1] as i32),
                 ],
             });
-            assertions.push(Clause {
+            assertions.add_clause(Clause {
                 vars: vec![
                     (sum_bits[i] as i32),
                     (n.vars[i] as i32),
@@ -199,7 +199,7 @@ pub fn bounded_sum_encoding(
                     -(carry_bits[i - 1] as i32),
                 ],
             });
-            assertions.push(Clause {
+            assertions.add_clause(Clause {
                 vars: vec![
                     -(sum_bits[i] as i32),
                     -(n.vars[i] as i32),
@@ -207,7 +207,7 @@ pub fn bounded_sum_encoding(
                     -(carry_bits[i - 1] as i32),
                 ],
             });
-            assertions.push(Clause {
+            assertions.add_clause(Clause {
                 vars: vec![
                     -(sum_bits[i] as i32),
                     (n.vars[i] as i32),
@@ -215,7 +215,7 @@ pub fn bounded_sum_encoding(
                     -(carry_bits[i - 1] as i32),
                 ],
             });
-            assertions.push(Clause {
+            assertions.add_clause(Clause {
                 vars: vec![
                     (sum_bits[i] as i32),
                     -(n.vars[i] as i32),
@@ -225,21 +225,21 @@ pub fn bounded_sum_encoding(
             });
 
             // assertions on the next carry bit
-            assertions.push(Clause {
+            assertions.add_clause(Clause {
                 vars: vec![
                     -(carry_bits[i] as i32),
                     (n.vars[i] as i32),
                     (m.vars[i] as i32),
                 ],
             });
-            assertions.push(Clause {
+            assertions.add_clause(Clause {
                 vars: vec![
                     -(carry_bits[i] as i32),
                     (n.vars[i] as i32),
                     (carry_bits[i - 1] as i32),
                 ],
             });
-            assertions.push(Clause {
+            assertions.add_clause(Clause {
                 vars: vec![
                     -(carry_bits[i] as i32),
                     (m.vars[i] as i32),
@@ -247,21 +247,21 @@ pub fn bounded_sum_encoding(
                 ],
             });
 
-            assertions.push(Clause {
+            assertions.add_clause(Clause {
                 vars: vec![
                     (carry_bits[i] as i32),
                     -(n.vars[i] as i32),
                     -(m.vars[i] as i32),
                 ],
             });
-            assertions.push(Clause {
+            assertions.add_clause(Clause {
                 vars: vec![
                     (carry_bits[i] as i32),
                     -(n.vars[i] as i32),
                     -(carry_bits[i - 1] as i32),
                 ],
             });
-            assertions.push(Clause {
+            assertions.add_clause(Clause {
                 vars: vec![
                     (carry_bits[i] as i32),
                     -(m.vars[i] as i32),
@@ -270,28 +270,28 @@ pub fn bounded_sum_encoding(
             });
         } else if i < n.bit_length {
             // in this case, we only need to focus on adding n to the carry bits
-            assertions.push(Clause {
+            assertions.add_clause(Clause {
                 vars: vec![
                     -(sum_bits[i] as i32),
                     (n.vars[i] as i32),
                     (carry_bits[i-1] as i32),
                 ],
             });
-            assertions.push(Clause {
+            assertions.add_clause(Clause {
                 vars: vec![
                     (sum_bits[i] as i32),
                     -(n.vars[i] as i32),
                     (carry_bits[i-1] as i32),
                 ],
             });
-            assertions.push(Clause {
+            assertions.add_clause(Clause {
                 vars: vec![
                     (sum_bits[i] as i32),
                     (n.vars[i] as i32),
                     -(carry_bits[i-1] as i32),
                 ],
             });
-            assertions.push(Clause {
+            assertions.add_clause(Clause {
                 vars: vec![
                     -(sum_bits[i] as i32),
                     -(n.vars[i] as i32),
@@ -299,13 +299,13 @@ pub fn bounded_sum_encoding(
                 ],
             });
 
-            assertions.push(Clause {
+            assertions.add_clause(Clause {
                 vars: vec![-(carry_bits[i] as i32), (n.vars[i] as i32)],
             });
-            assertions.push(Clause {
+            assertions.add_clause(Clause {
                 vars: vec![-(carry_bits[i] as i32), (carry_bits[i - 1] as i32)],
             });
-            assertions.push(Clause {
+            assertions.add_clause(Clause {
                 vars: vec![
                     (carry_bits[i] as i32),
                     -(n.vars[i] as i32),
@@ -321,7 +321,7 @@ pub fn bounded_sum_encoding(
     let bit_length = sum_bits.len();
     // lastly, make sure that you don't cause an overflow
     if carry_bits.len() ==  bit_length {
-        assertions.push(Clause {
+        assertions.add_clause(Clause {
             vars: vec![-(carry_bits[bit_length - 1] as i32)],
         })
     }
@@ -337,18 +337,18 @@ pub fn bounded_sum_encoding(
 }
 
 // used for testing
-pub fn _equals_constant_encoding(n: &BinaryNumber, k: usize) -> Vec<Clause> {
+pub fn _equals_constant_encoding(n: &BinaryNumber, k: usize) -> Clauses {
     let k = to_binary(k);
     assert!(k.len() <= n.bit_length);
-    let mut clauses: Vec<Clause> = vec![];
+    let mut clauses: Clauses = Clauses::new();
 
     for i in 0..n.bit_length {
         if i < k.len() && k[i] == true {
-            clauses.push(Clause {
+            clauses.add_clause(Clause {
                 vars: vec![(n.vars[i] as i32)],
             })
         } else {
-            clauses.push(Clause {
+            clauses.add_clause(Clause {
                 vars: vec![-(n.vars[i] as i32)],
             })
         }
@@ -372,11 +372,11 @@ pub fn not_equals_constant_encoding(n: &BinaryNumber, k: usize) -> Clause {
     return Clause { vars: out };
 }
 
-pub fn pairwise_encoded_at_most_one(variables: &Vec<i32>) -> Vec<Clause> {
-    let mut clauses: Vec<Clause> = vec![];
+pub fn pairwise_encoded_at_most_one(variables: &Vec<i32>) -> Clauses {
+    let mut clauses: Clauses = Clauses::new();
     for i in 0..variables.len() {
         for j in i + 1..variables.len() {
-            clauses.push(Clause {
+            clauses.add_clause(Clause {
                 vars: vec![-variables[i], -variables[j]],
             });
         }
@@ -393,8 +393,8 @@ pub fn n_equals_i_implies_m_in_j_encoding(
     i: usize,
     m: &BinaryNumber,
     j: &Vec<usize>,
-) -> Vec<Clause> {
-    let mut clauses: Vec<Clause> = vec![];
+) -> Clauses {
+    let mut clauses: Clauses = Clauses::new();
     // we encode n==i ==> m \in j as n!=i | m \in j
     let n_not_equals_i: Clause = not_equals_constant_encoding(&n, i);
 
@@ -454,7 +454,7 @@ pub fn n_equals_i_implies_m_in_j_encoding(
             clause.append(&mut n_not_equals_i.vars.clone());
 
             // now we have a clause ensuring the sign of this bit, we can then move on to the next bit
-            clauses.push(Clause { vars: clause })
+            clauses.add_clause(Clause { vars: clause })
         }
     }
 
@@ -465,6 +465,6 @@ pub fn n_implies_m_in_j_encoding(
     n: usize,
     m: &BinaryNumber,
     j: &Vec<usize>,
-) -> Vec<Clause> {
+) -> Clauses {
     return n_equals_i_implies_m_in_j_encoding(&BinaryNumber { vars: vec![n], max: 1, bit_length: 1 }, 1, m, j);
 }

@@ -5,7 +5,7 @@
 #[cfg(test)]
 mod tests {
     use rayon::prelude::{ParallelIterator, IntoParallelIterator};
-
+    use sysinfo::{System, SystemExt};
     use crate::{
         bounds::{
             bound::Bound,
@@ -26,7 +26,7 @@ mod tests {
         problem_instance::partial_solution::PartialSolution,
         problem_simplification::{final_simp_rule, simplification_rule::SimpRule, fill_up_rule, half_size_rule},
     };
-    use std::{fs::{self, File}, io::Write};
+    use std::{fs::{self, File}, io::Write, thread, time::Duration};
 
     fn test_file(encoder:  &mut Box<dyn Encoder>, file_name: &String) -> Vec<String> {
         let instance = input_output::from_file::read_from_file(&file_name.to_string());
@@ -66,8 +66,17 @@ mod tests {
             let pi: PartialSolution = pi.unwrap();
 
             let encoding_time: f64 = 60.0;
+            loop {
+                let sys = System::new_all();
+                let available_mem = sys.available_memory();
+                if available_mem > 10000000000 {
+                    break;
+                }
+                thread::sleep(Duration::from_secs(4));
+            }
+
             let timer = &Timeout::new(encoding_time);
-            let success = encoder.basic_encode(&pi, makespan, &timer);
+            let success = encoder.basic_encode(&pi, makespan, &timer, 500_000_000);
 
             if !success {
                 continue;

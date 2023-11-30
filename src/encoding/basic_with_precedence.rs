@@ -1,13 +1,13 @@
 use crate::{precedence_relations::{precedence_relation_generator::{PrecedenceRelation, PrecedenceRelationGenerator}, size_replacement::SizeReplacement, two_size_replacement::TwoSizeReplacement}, common::timeout::Timeout};
 
-use super::{encoder::{OneHotEncoder, Clause, Encoder}, problem_encoding::one_hot_encoding::OneHot};
+use super::{encoder::{OneHotEncoder, Clause, Encoder, Clauses}, problem_encoding::one_hot_encoding::OneHot};
 
 
 
 #[derive(Clone)]
 pub struct Precedence {
     pub basic: Box<dyn OneHotEncoder>,
-    pub clauses: Vec<Clause>,
+    pub clauses: Clauses,
     precedence_relations: Vec<Box<dyn PrecedenceRelationGenerator>>,
 
 }
@@ -26,7 +26,7 @@ impl Precedence {
         }
         return Precedence {
             basic: encoder,
-            clauses: vec![],
+            clauses: Clauses::new(),
             // TODO: have this be dynamic
             precedence_relations: precs,
         };
@@ -34,9 +34,9 @@ impl Precedence {
 }
 
 impl Encoder for Precedence {
-    fn basic_encode(&mut self, partial_solution: &crate::problem_instance::partial_solution::PartialSolution, makespan: usize, timeout: &Timeout) -> bool {
-        self.basic.basic_encode(partial_solution, makespan, &timeout);
-        let mut clauses: Vec<Clause> = vec![];
+    fn basic_encode(&mut self, partial_solution: &crate::problem_instance::partial_solution::PartialSolution, makespan: usize, timeout: &Timeout, max_num_clauses: usize) -> bool {
+        self.basic.basic_encode(partial_solution, makespan, &timeout, max_num_clauses);
+        let mut clauses: Clauses = Clauses::new();
         let precedence_relations: Vec<PrecedenceRelation> = self.precedence_relations.iter().map(|x| x.get_relations(&partial_solution.instance)).flat_map(|x| x).collect();
         
         for precedence in &precedence_relations {
@@ -54,7 +54,7 @@ impl Encoder for Precedence {
                     for future_position_var in &future_position_vars {
                         let mut clause: Vec<i32> = comes_now_clause.clone(); 
                         clause.push(*future_position_var);
-                        clauses.push(Clause { vars: clause});
+                        clauses.add_clause(Clause { vars: clause});
                     }
                 }
             }
@@ -67,9 +67,10 @@ impl Encoder for Precedence {
         return true;
     }
 
-    fn output(&self) -> Vec<Clause> {
-        let mut out = self.clauses.clone();
-        out.append(&mut self.basic.output());
+    fn output(&mut self) -> Clauses {
+        let mut out: Clauses = Clauses::new();
+        std::mem::swap(&mut out, &mut self.clauses);
+        out.add_many_clauses(&mut self.basic.output());
         return out;
     }
 
