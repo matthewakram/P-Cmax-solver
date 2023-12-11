@@ -20,7 +20,7 @@ mod tests {
             encoder::{Encoder, Clause},
             pb_bdd_inter::PbInter,
             pb_bdd_native::PbNativeEncoder,
-            pb_bdd_pysat::PbPysatEncoder,
+            pb_bdd_pysat::PbPysatEncoder, binmerge_native::BinmergeEncoder,
         },
         input_output::{self},
         problem_instance::partial_solution::PartialSolution,
@@ -66,14 +66,7 @@ mod tests {
             let pi: PartialSolution = pi.unwrap();
 
             let encoding_time: f64 = 60.0;
-            loop {
-                let sys = System::new_all();
-                let available_mem = sys.available_memory();
-                if available_mem > 10000000000 {
-                    break;
-                }
-                thread::sleep(Duration::from_secs(4));
-            }
+
 
             let timer = &Timeout::new(encoding_time);
             let success = encoder.basic_encode(&pi, makespan, &timer, 500_000_000);
@@ -84,13 +77,16 @@ mod tests {
 
             let encoding_time = encoding_time - timer.remaining_time();
 
+            let clauses = encoder.output();
+            let string_clauses = input_output::to_dimacs::to_dimacs(clauses, encoder.get_num_vars(), &Timeout::new(100.0)).unwrap();
             out.push(format!(
-                "{}_{} {} {} {}",
+                "{}_{} {} {} {} {}",
                 file_name,
                 makespan,
                 encoding_time,
                 pi.instance.num_jobs,
-                pi.instance.num_processors
+                pi.instance.num_processors,
+                string_clauses.len(),
             ))
         }
         return out;
@@ -123,8 +119,8 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(not(feature = "encoding_class_instances"), ignore)]
-    pub fn test_basic_class_encoding() {
+    #[ignore]
+    pub fn test_class_encoding_basic() {
         let mut encoder: Box<dyn Encoder> = Box::new(BasicEncoder::new());
         test_encoder(
             &mut encoder,
@@ -134,8 +130,8 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(not(feature = "encoding_class_instances"), ignore)]
-    pub fn test_pysat_class_encoding() {
+    #[ignore]
+    pub fn test_class_encoding_pysat() {
         let mut a: Box<dyn Encoder> = Box::new(PbPysatEncoder::new());
         test_encoder(
             &mut a,
@@ -145,8 +141,8 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(not(feature = "encoding_class_instances"), ignore)]
-    pub fn test_bdd_native_class_encoding() {
+    #[ignore]
+    pub fn test_class_encoding_bdd_native() {
         let mut a: Box<dyn Encoder> = Box::new(PbNativeEncoder::new());
         test_encoder(
             &mut a,
@@ -156,8 +152,8 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(not(feature = "encoding_class_instances"), ignore)]
-    pub fn test_inter_class_encoding() {
+    #[ignore]
+    pub fn test_class_encoding_inter() {
         let mut a: Box<dyn Encoder> = Box::new(PbInter::new());
         test_encoder(
             &mut a,
@@ -166,9 +162,20 @@ mod tests {
         )
     }
 
+    #[test]
+    #[ignore]
+    pub fn test_class_encoding_binmerge() {
+        let mut a: Box<dyn Encoder> = Box::new(BinmergeEncoder::new());
+        test_encoder(
+            &mut a,
+            "./bench/class_instances/",
+            "./bench/results/encoding_class_instances_binmerge.txt",
+        )
+    }
+
 
     #[test]
-    #[cfg_attr(not(feature = "encoding_franca"), ignore)]
+    #[ignore]
     pub fn test_basic_franca_encoding() {
         let mut encoder: Box<dyn Encoder> = Box::new(BasicEncoder::new());
         test_encoder(
@@ -179,8 +186,8 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(not(feature = "encoding_franca"), ignore)]
-    pub fn test_pysat_franca_encoding() {
+    #[ignore]
+    pub fn tes_franca_encoding_pysat() {
         let mut a: Box<dyn Encoder> = Box::new(PbPysatEncoder::new());
         test_encoder(
             &mut a,
@@ -190,8 +197,8 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(not(feature = "encoding_franca"), ignore)]
-    pub fn test_bdd_native_franca_encoding() {
+    #[ignore]
+    pub fn test_franca_encoding_bdd_native() {
         let mut a: Box<dyn Encoder> = Box::new(PbNativeEncoder::new());
         test_encoder(
             &mut a,
@@ -203,8 +210,8 @@ mod tests {
     }
 
     #[test]
-    #[cfg_attr(not(feature = "encoding_franca"), ignore)]
-    pub fn test_inter_franca_encoding() {
+    #[ignore]
+    pub fn test_franca_encoding_inter() {
         let mut a: Box<dyn Encoder> = Box::new(PbInter::new());
         test_encoder(
             &mut a,

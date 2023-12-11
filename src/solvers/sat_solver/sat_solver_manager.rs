@@ -83,8 +83,11 @@ impl SatSolverManager {
             let partial_solution = partial_solution.unwrap();
 
             let encoding_time = Instant::now();
-            self.encoder
+            let success = self.encoder
                 .basic_encode(&partial_solution, makespan_to_test, timeout, 500_000_000);
+            if !success {
+                return None;
+            }
             let clauses = self.encoder.output();
             self.stats.insert(encoding_time_key.clone(), self.stats.get(&encoding_time_key).unwrap() +  encoding_time.elapsed().as_secs_f64());
 
@@ -120,11 +123,12 @@ impl SatSolverManager {
                     println!("UNSAT");
                 }
             } else {
-                let mss: MSS = MSS {};
+                let mss: MSS = MSS::new();
                 let old_bound = solution.makespan;
                 solution = self
                     .encoder
                     .decode(instance, var_assingment.as_ref().unwrap());
+                // TODO: put this back in after verfyfing that everything works
                 let (_, improved_solution) =
                     mss.bound(instance, lower, Some(solution), &Timeout::new(1.0));
                 solution = improved_solution.unwrap();
@@ -136,7 +140,8 @@ impl SatSolverManager {
                     println!("SAT");
                 }
                 if old_bound <= new_bound {
-                    println!("what, how did the solution get worse {}", solution);
+                    println!("what, how did the solution get worse, was {}, but now is\n{} on an instance n{} m{}", old_bound ,solution, partial_solution.instance.num_jobs, partial_solution.instance.num_processors);
+                    //println!("{:?}", solution.assignment.iter().enumerate().filter(|(i,x)| **x == 74).map(|(i,x)| partial_solution.instance.job_sizes[i]).collect::<Vec<usize>>());
                     break;
                 }
             }

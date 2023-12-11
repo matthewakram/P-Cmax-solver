@@ -53,7 +53,6 @@ impl Encoder for RandomEncoder{
                 continue;
             }
 
-            // TODO: remove assigned makespan from part_sol, Not sure if it is ever used.
             let proc_num = part_sol.possible_allocations[job][proc];
             part_sol.possible_allocations[job].remove(proc);
             max_processor_size[proc_num] -= part_sol.instance.job_sizes[job];

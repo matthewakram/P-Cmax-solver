@@ -1,10 +1,22 @@
 
-use rand::{Rng, rngs::ThreadRng, seq::SliceRandom};
+use rand::{Rng, rngs::StdRng, seq::SliceRandom, SeedableRng};
 
 use crate::{problem_instance::{problem_instance::ProblemInstance, solution::Solution}, bounds::bound::Bound, common::{timeout::Timeout, self}};
 
 
-pub struct MSS {}
+pub struct MSS {
+    seed: u64
+}
+
+impl MSS {
+    pub fn new_deterministic(seed: u64) -> MSS {
+        return MSS{seed};
+    }
+
+    pub fn new() -> MSS {
+        return MSS { seed: rand::thread_rng().gen() }
+    }
+}
 
 fn subset_sum(elements: &Vec<usize>, goal: usize, lower_bound: usize) -> Vec<usize> {
     let mut dp: Vec<i16> = vec![-1; goal.max(lower_bound) + 1];
@@ -43,7 +55,7 @@ fn subset_sum(elements: &Vec<usize>, goal: usize, lower_bound: usize) -> Vec<usi
 }
 
 impl MSS{
-    fn improve_procs(&self, instance: &ProblemInstance, first_proc: usize, second_proc: usize, assignments: &mut Vec<Vec<usize>>, assigned_makespans: &mut Vec<usize>, rng: &mut ThreadRng, lower_bound: usize) {
+    fn improve_procs(&self, instance: &ProblemInstance, first_proc: usize, second_proc: usize, assignments: &mut Vec<Vec<usize>>, assigned_makespans: &mut Vec<usize>, rng: &mut StdRng, lower_bound: usize) {
 
         if assigned_makespans[first_proc] == assigned_makespans[second_proc] 
         || assigned_makespans[first_proc] == assigned_makespans[second_proc] - 1
@@ -86,10 +98,12 @@ impl MSS{
 
 impl Bound for MSS {
     fn bound(&self, problem: &ProblemInstance, lower_bound: usize, upper_bound: Option<Solution>, timeout: &Timeout) -> (usize, Option<Solution>) {
-        
+        if problem.num_processors == 1 {
+            return (lower_bound, upper_bound);
+        }
         assert!(upper_bound.is_some());
         let upper_bound = upper_bound.unwrap();
-        let mut rng: rand::prelude::ThreadRng = rand::thread_rng();
+        let mut rng: StdRng = StdRng::seed_from_u64(self.seed);
 
         let mut proc_assignments: Vec<Vec<usize>> = vec![vec![]; problem.num_processors];
         let mut assigned_makespans = vec![0;problem.num_processors];
@@ -108,7 +122,7 @@ impl Bound for MSS {
         let mut num_iter_without_improvement = 0;
         let max_num_iter_without_improvement = (problem.num_processors * problem.num_processors + 10).min(100);
         let mut pertubation_amount = 1;
-        let max_num_pertubations = (2 * problem.num_jobs / problem.num_processors);
+        let max_num_pertubations = 2 * problem.num_jobs / problem.num_processors;
         
         loop {
             let first_proc: usize = rng.gen_range(0..problem.num_processors);

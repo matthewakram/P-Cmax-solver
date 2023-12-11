@@ -1,7 +1,7 @@
 
 #[cfg(test)]
 mod tests {
-    use crate::{encoding::{binary_arithmetic, encoder::{VarNameGenerator, Clauses}}, input_output::to_dimacs, common::timeout::Timeout};
+    use crate::{encoding::{binary_arithmetic, encoder::{VarNameGenerator, Clauses, Clause}, cardinality_networks::{basic_sort, basic_merge, half_merge, half_sort}}, input_output::to_dimacs, common::timeout::Timeout, solvers::{sat_solver::kissat::Kissat, solver::SatSolver}};
 
     #[test]
     pub fn binary_arithmetic_bit_length_test() {
@@ -86,4 +86,122 @@ mod tests {
 
         //to_dimacs::print_to_dimacs("./test", clauses, 100);
     }
+
+    #[test]
+    pub fn simp_sorter_test(){
+        let mut name_generator = VarNameGenerator::new();
+        let vars = vec![name_generator.next(), name_generator.next(), name_generator.next() , name_generator.next(), name_generator.next()];
+        let (mut clauses, sorted) = basic_sort(&vars, 5, &mut name_generator);
+        clauses.add_clause(Clause{ vars: vec![(vars[0] as i32)]});
+        clauses.add_clause(Clause{ vars: vec![(vars[1] as i32)]});
+        clauses.add_clause(Clause{ vars: vec![(vars[2] as i32)]});
+        clauses.add_clause(Clause{ vars: vec![(vars[3] as i32)]});
+        clauses.add_clause(Clause{ vars: vec![(vars[4] as i32)]});
+
+        let mut solver = Kissat::new();
+        let res = solver.solve(clauses, name_generator.peek(), &Timeout::new(10.0));
+        assert!(res.is_sat());
+        let res = res.unwrap().unwrap();
+        let mut result = vec![0;20];
+        for i in 0..20 {
+            if res.contains(&(i as i32)) {
+                result[i] = 1;
+            }
+        }
+        println!("{:?}", result);
+    }
+
+    #[test]
+    pub fn merge_test(){
+        let mut name_generator = VarNameGenerator::new();
+        let vars1 = vec![name_generator.next(), name_generator.next(), name_generator.next() , name_generator.next(), name_generator.next()];
+        let vars2 = vec![name_generator.next(), name_generator.next(), name_generator.next() , name_generator.next(), name_generator.next()];
+        
+        let (mut clauses, merged) = basic_merge(&vars1, &vars2, 5, &mut name_generator);
+
+        clauses.add_clause(Clause{ vars: vec![-(vars1[0] as i32)]});
+        clauses.add_clause(Clause{ vars: vec![-(vars1[1] as i32)]});
+        clauses.add_clause(Clause{ vars: vec![-(vars1[2] as i32)]});
+        clauses.add_clause(Clause{ vars: vec![-(vars1[3] as i32)]});
+        clauses.add_clause(Clause{ vars: vec![-(vars1[4] as i32)]});
+        clauses.add_clause(Clause{ vars: vec![(vars2[0] as i32)]});
+        clauses.add_clause(Clause{ vars: vec![-(vars2[1] as i32)]});
+        clauses.add_clause(Clause{ vars: vec![-(vars2[2] as i32)]});
+        clauses.add_clause(Clause{ vars: vec![-(vars2[3] as i32)]});
+        clauses.add_clause(Clause{ vars: vec![-(vars2[4] as i32)]});
+
+        let mut solver = Kissat::new();
+        let res = solver.solve(clauses, name_generator.peek(), &Timeout::new(10.0));
+        assert!(res.is_sat());
+        let res = res.unwrap().unwrap();
+        let mut result = vec![0;merged.len()];
+        for i in 0..merged.len() {
+            if res.contains(&(merged[i] as i32)) {
+                result[i] = 1;
+            }
+        }
+        println!("{:?}", result);
+    }
+
+    #[test]
+    pub fn half_merge_test(){
+        let mut name_generator = VarNameGenerator::new();
+        let vars1 = vec![name_generator.next(), name_generator.next(), name_generator.next(), name_generator.next()];
+        let vars2 = vec![name_generator.next(), name_generator.next()];
+        
+        let (mut clauses, merged) = half_merge(&vars1, &vars2, 3, &mut name_generator);
+
+        clauses.add_clause(Clause{ vars: vec![(vars1[0] as i32)]});
+        clauses.add_clause(Clause{ vars: vec![(vars1[1] as i32)]});
+        clauses.add_clause(Clause{ vars: vec![-(vars1[2] as i32)]});
+        //clauses.add_clause(Clause{ vars: vec![-(vars1[3] as i32)]});
+        //clauses.add_clause(Clause{ vars: vec![-(vars1[4] as i32)]});
+        clauses.add_clause(Clause{ vars: vec![(vars2[0] as i32)]});
+        clauses.add_clause(Clause{ vars: vec![-(vars2[1] as i32)]});
+        //clauses.add_clause(Clause{ vars: vec![-(vars2[2] as i32)]});
+        //clauses.add_clause(Clause{ vars: vec![-(vars2[3] as i32)]});
+        //clauses.add_clause(Clause{ vars: vec![-(vars2[4] as i32)]});
+        clauses.add_clause(Clause{ vars: vec![(merged[0] as i32)]});
+        //clauses.add_clause(Clause{ vars: vec![(merged[1] as i32)]});
+        clauses.add_clause(Clause{ vars: vec![-(merged[2] as i32)]});
+        //clauses.add_clause(Clause{ vars: vec![-(merged[3] as i32)]});
+        //clauses.add_clause(Clause{ vars: vec![-(merged[4] as i32)]});
+
+        let mut solver = Kissat::new();
+        let res = solver.solve(clauses.clone(), name_generator.peek(), &Timeout::new(10.0));
+        assert!(res.is_sat());
+        let res = res.unwrap().unwrap();
+        let mut result = vec![0;merged.len()];
+        for i in 0..merged.len() {
+            if res.contains(&(merged[i] as i32)) {
+                result[i] = 1;
+            }
+        }
+        println!("{:?}", result);
+    }
+
+    #[test]
+    pub fn half_sorter_test(){
+        let mut name_generator = VarNameGenerator::new();
+        let vars = vec![name_generator.next(), name_generator.next(), name_generator.next() , name_generator.next(), name_generator.next()];
+        let (mut clauses, sorted) = half_sort(&vars, 4, &mut name_generator);
+        clauses.add_clause(Clause{ vars: vec![(vars[0] as i32)]});
+        clauses.add_clause(Clause{ vars: vec![(vars[1] as i32)]});
+        clauses.add_clause(Clause{ vars: vec![(vars[2] as i32)]});
+        clauses.add_clause(Clause{ vars: vec![(vars[3] as i32)]});
+        clauses.add_clause(Clause{ vars: vec![(vars[4] as i32)]});
+
+        let mut solver = Kissat::new();
+        let res = solver.solve(clauses, name_generator.peek(), &Timeout::new(10.0));
+        assert!(res.is_sat());
+        let res = res.unwrap().unwrap();
+        let mut result = vec![0;20];
+        for i in 0..20 {
+            if res.contains(&(i as i32)) {
+                result[i] = 1;
+            }
+        }
+        println!("{:?}", result);
+    }
+
 }

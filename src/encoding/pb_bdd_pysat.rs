@@ -28,13 +28,13 @@ impl PbPysatEncoder {
 }
 
 impl Encoder for PbPysatEncoder {
-    // TODO add timeout to encode
+
     fn basic_encode(
         &mut self,
         partial_solution: &crate::problem_instance::partial_solution::PartialSolution,
         makespan: usize,
         timeout: &Timeout,
-        max_num_clauses: usize
+        _max_num_clauses: usize
     ) -> bool {
         let mut child = Command::new("python3")
                 .arg("./src/encoding/pb_with_pysat.py")

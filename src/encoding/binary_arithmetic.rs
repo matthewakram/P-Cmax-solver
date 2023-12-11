@@ -22,6 +22,15 @@ impl BinaryNumber {
         };
     }
 
+    pub fn new_from_vec(vars: Vec<usize>, max: usize) -> BinaryNumber {
+        let bit_length = vars.len();
+        return BinaryNumber {
+            vars,
+            max,
+            bit_length,
+        };
+    }
+
     pub fn _from_assignment(&self, assignment: &Vec<i32>) -> usize{
         let mut total: usize = 0;
         for bit in 0..self.bit_length {

@@ -25,6 +25,8 @@ use crate::common::timeout::Timeout;
 use crate::encoding::basic_encoder::BasicEncoder;
 //use crate::encoding::basic_with_fill_up::BasicWithFillUp;
 use crate::encoding::basic_with_precedence::Precedence;
+use crate::encoding::bdd_inter_comp::BddInterComp;
+use crate::encoding::binmerge_native::BinmergeEncoder;
 use crate::encoding::encoder::Encoder;
 use crate::encoding::pb_bdd_inter::PbInter;
 use crate::encoding::pb_bdd_inter_better::PbInterDyn;
@@ -62,8 +64,8 @@ fn main() {
         //Box::new(martello_toth::MartelloToth {}),
         Box::new(sss_bound_tightening::SSSBoundStrengthening {}),
         Box::new(lptpp::Lptpp {}),
-        Box::new(lifting::Lifting {}),
-        Box::new(mss::MSS {}),
+        Box::new(lifting::Lifting::new()),
+        Box::new(mss::MSS::new()),
     ];
 
     let (mut lower_bound, mut upper_bound) = (1, None);
@@ -126,7 +128,11 @@ fn main() {
         encoder = Box::new(Precedence::new(Box::new(BasicEncoder::new()), 2));
     } else if args.contains(&"-basic".to_string()) {
         encoder = Box::new(BasicEncoder::new());
-    } else {
+    } else if args.contains(&"-intercomp".to_string()) && args.contains(&"-prec".to_string()) {
+        encoder = Box::new(Precedence::new(Box::new(BddInterComp::new()), 1));
+    } else if args.contains(&"-binmerge".to_string()) {
+        encoder = Box::new(BinmergeEncoder::new());
+    } else{
         panic!("need to specify one of the given options")
     }
 

@@ -35,7 +35,10 @@ impl Precedence {
 
 impl Encoder for Precedence {
     fn basic_encode(&mut self, partial_solution: &crate::problem_instance::partial_solution::PartialSolution, makespan: usize, timeout: &Timeout, max_num_clauses: usize) -> bool {
-        self.basic.basic_encode(partial_solution, makespan, &timeout, max_num_clauses);
+        let success = self.basic.basic_encode(partial_solution, makespan, &timeout, max_num_clauses);
+        if !success {
+            return false;
+        }
         let mut clauses: Clauses = Clauses::new();
         let precedence_relations: Vec<PrecedenceRelation> = self.precedence_relations.iter().map(|x| x.get_relations(&partial_solution.instance)).flat_map(|x| x).collect();
         

@@ -13,3 +13,6 @@ pub mod random_encoder;
 pub mod pb_bdd_inter;
 pub mod tests;
 pub mod pb_bdd_inter_better;
+pub mod bdd_inter_comp;
+pub mod cardinality_networks;
+pub mod binmerge_native;

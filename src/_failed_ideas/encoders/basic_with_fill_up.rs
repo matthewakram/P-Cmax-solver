@@ -26,7 +26,10 @@ impl Encoder for BasicWithFillUp {
         partial_solution: &crate::problem_instance::partial_solution::PartialSolution,
         makespan: usize,
     ) {
-        self.basic.basic_encode(partial_solution, makespan);
+        let success = self.basic.basic_encode(partial_solution, makespan);
+        if !success {
+            return false;
+        }
         let mut clauses: Vec<Clause> = vec![];
         let mut already_assigned_vars: Vec<Vec<Option<usize>>> = vec![];
         for job in 0..partial_solution.instance.num_jobs {

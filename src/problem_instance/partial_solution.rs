@@ -1,9 +1,10 @@
 use super::problem_instance::ProblemInstance;
 
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct PartialSolution{
     pub instance: ProblemInstance,
+    /// The procs you can assign this job to. i.e. possible_allocations[job] contains possible allocations
     pub possible_allocations: Vec<Vec<usize>>,
     pub assigned_makespan: Vec<usize>
 }

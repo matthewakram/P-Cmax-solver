@@ -66,7 +66,6 @@ impl MultiSatSolverManager {
                 continue;
             }
             let partial_solution = partial_solution.unwrap();
-            timeout.reset_finish();
 
             // ----------- SAT Preparation -------------------------
 
@@ -122,7 +121,7 @@ impl MultiSatSolverManager {
                     if res.is_sat() {
                         let res = sat_encoder
                             .decode(&sat_partial_solution_clone.instance, &res.unwrap().unwrap());
-                        let mss: MSS = MSS {};
+                        let mss: MSS = MSS::new();
                         let (_, improved_solution) = mss.bound(
                             &sat_partial_solution_clone.instance,
                             lower,
@@ -174,7 +173,7 @@ impl MultiSatSolverManager {
                             &unsat_partial_solution_clone.instance,
                             &res.unwrap().unwrap(),
                         );
-                        let mss: MSS = MSS {};
+                        let mss: MSS = MSS::new();
                         let (_, improved_solution) = mss.bound(
                             &unsat_partial_solution_clone.instance,
                             lower,
@@ -192,6 +191,7 @@ impl MultiSatSolverManager {
 
             let (sat_timeout, sat_result) = sat_query.join().unwrap();
             let (unsat_timeout, unsat_result) = unsat_query.join().unwrap();
+            timeout.reset_finish();
 
             if sat_timeout && unsat_timeout {
                 return None;

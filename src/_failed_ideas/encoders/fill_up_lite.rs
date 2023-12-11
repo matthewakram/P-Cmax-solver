@@ -24,7 +24,10 @@ impl Encoder for FillUpLite {
         partial_solution: &crate::problem_instance::partial_solution::PartialSolution,
         makespan: usize,
     ) {
-        self.basic.basic_encode(partial_solution, makespan);
+        let success = self.basic.basic_encode(partial_solution, makespan);
+        if !success {
+            return false;
+        }
         let mut clauses: Vec<Clause> = vec![];
 
 

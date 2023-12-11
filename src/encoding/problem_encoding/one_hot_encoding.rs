@@ -75,7 +75,6 @@ impl OneHotProblemEncoding {
 
     pub fn decode(&self, instance: &ProblemInstance, var_assignment: &Vec<i32>) -> Solution {
         let mut assignment: Vec<usize> = vec![];
-        // TODO: gotta improve this dramatically
         let mut assignment_set: HashSet<usize> = HashSet::new();
         for a in var_assignment {
             if *a >= 0 {

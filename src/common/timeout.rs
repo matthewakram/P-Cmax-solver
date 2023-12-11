@@ -39,4 +39,10 @@ impl Timeout {
         return self.quit.clone();
     }
 
+    pub fn clone_with_new_timeout(&self, time: f64) -> Timeout {
+        let mut out = self.clone();
+        out.remaining_time = self.clock.elapsed().as_secs_f64() + time;
+        return out;
+    }
+
 }
