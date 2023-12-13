@@ -84,9 +84,7 @@ impl Encoder for PbInter {
                 }
             }
             if jobs.len() == 0 {
-                bdds.push(BDD {
-                    nodes: vec![],
-                })
+                bdds.push(BDD { nodes: vec![] })
             } else {
                 // now we construct the bdd to assert that this machine is not too full
                 let bdd = bdd::bdd::leq(

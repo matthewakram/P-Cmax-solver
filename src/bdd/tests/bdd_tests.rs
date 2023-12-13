@@ -84,7 +84,8 @@ mod tests {
                 0,
                 &range_table,
                 &Timeout::new(5.0),
-            ).unwrap();
+            )
+            .unwrap();
 
             for _ in 0..40 {
                 let mut sum = 0;

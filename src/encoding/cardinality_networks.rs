@@ -119,12 +119,16 @@ pub fn basic_merge(
     let mut clauses = Clauses::new();
     if vars1.is_empty() {
         if vars2.len() > max_true {
-            clauses.add_clause(Clause {vars : vec![-(vars2[max_true] as i32)]});
+            clauses.add_clause(Clause {
+                vars: vec![-(vars2[max_true] as i32)],
+            });
         }
         return (clauses, vars2.clone());
     } else if vars2.is_empty() {
         if vars1.len() > max_true {
-            clauses.add_clause(Clause {vars : vec![-(vars1[max_true] as i32)]});
+            clauses.add_clause(Clause {
+                vars: vec![-(vars1[max_true] as i32)],
+            });
         }
         return (clauses, vars1.clone());
     }
@@ -203,14 +207,18 @@ pub fn half_merge(
         return (clauses, out_vars);
     } else if vars1.len() == 0 {
         if vars2.len() > max_true {
-            clauses.add_clause(Clause {vars : vec![-(vars2[max_true] as i32)]});
+            clauses.add_clause(Clause {
+                vars: vec![-(vars2[max_true] as i32)],
+            });
             return (clauses, vars2[0..max_true + 1].to_vec());
         } else {
             return (clauses, vars2.clone());
         }
     } else if vars2.len() == 0 {
         if vars1.len() > max_true {
-            clauses.add_clause(Clause {vars : vec![-(vars1[max_true] as i32)]});
+            clauses.add_clause(Clause {
+                vars: vec![-(vars1[max_true] as i32)],
+            });
             return (clauses, vars1[0..max_true + 1].to_vec());
         } else {
             return (clauses, vars1.clone());

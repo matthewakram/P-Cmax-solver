@@ -1,4 +1,3 @@
-mod tests;
 mod bdd;
 pub mod bounds;
 pub mod common;
@@ -9,5 +8,6 @@ mod precedence_relations;
 mod problem_instance;
 pub mod problem_simplification;
 pub mod solvers;
+mod tests;
 //mod feasability_checking;
 extern crate bitvec;

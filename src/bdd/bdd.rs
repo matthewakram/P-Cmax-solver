@@ -142,9 +142,7 @@ pub fn leq(
     //    println!("var: {}  left: {}  right: {}, range: [{}, {}]", node.var, node.left_child, node.right_child, node.range.0, node.range.1);
     //}
     let root_index = nodes.len() - 1;
-    return Some(BDD {
-        nodes: nodes,
-    });
+    return Some(BDD { nodes: nodes });
 }
 
 pub fn assign_aux_vars(mut bdd: BDD, var_name_generator: &mut VarNameGenerator) -> BDD {

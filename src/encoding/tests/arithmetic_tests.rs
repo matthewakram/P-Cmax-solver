@@ -277,7 +277,11 @@ mod tests {
                 let (mut merge_clauses, merged_vars) =
                     cardinality_networks::half_merge(&vars1, &vars2, 10, &mut var_name_generator);
                 clauses.add_many_clauses(&mut merge_clauses);
-                let sol = solver.solve(clauses.clone(), var_name_generator.peek(), &Timeout::new(1.0));
+                let sol = solver.solve(
+                    clauses.clone(),
+                    var_name_generator.peek(),
+                    &Timeout::new(1.0),
+                );
                 if num_true_1 + num_true_2 > 10 {
                     assert!(sol.is_unsat());
                 } else {

@@ -455,5 +455,4 @@ mod tests {
             "./bench/results/complete_franca_frangioni_inter+.txt",
         )
     }
-
 }
