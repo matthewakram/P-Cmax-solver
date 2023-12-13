@@ -40,7 +40,5 @@ fn main() {
 
             let str = std::str::from_utf8(&out.stdout).unwrap();
             println!("{}", str);
-
-            assert!(false);
     }
 }
