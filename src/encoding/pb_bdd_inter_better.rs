@@ -102,7 +102,6 @@ impl Encoder for PbInterDyn {
             if jobs.len() == 0 {
                 bdds.push(BDD {
                     nodes: vec![],
-                    root_num: 0,
                 })
             } else {
                 // now we construct the bdd to assert that this machine is not too full
@@ -120,7 +119,7 @@ impl Encoder for PbInterDyn {
                 }
                 let bdd = bdd.unwrap();
                 let bdd = bdd::bdd::assign_aux_vars(bdd, &mut self.one_hot.var_name_generator);
-                let mut a: Clauses = bdd::bdd::_encode_bad(&bdd);
+                let mut a: Clauses = bdd::bdd::encode_bad(&bdd);
 
                 //for n in &bdd.nodes {
                 //    println!("proc {} var {} range {} {} ", n.job_num, n.aux_var, n.range.0, n.range.1);

@@ -1,4 +1,3 @@
-mod arithmetic_tests;
 pub mod basic_encoder;
 pub mod binary_arithmetic;
 pub mod encoder;

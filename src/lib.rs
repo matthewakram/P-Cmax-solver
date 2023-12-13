@@ -1,0 +1,13 @@
+mod tests;
+mod bdd;
+pub mod bounds;
+pub mod common;
+pub mod encoding;
+pub mod input_output;
+pub mod makespan_scheduling;
+mod precedence_relations;
+mod problem_instance;
+pub mod problem_simplification;
+pub mod solvers;
+//mod feasability_checking;
+extern crate bitvec;

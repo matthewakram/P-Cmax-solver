@@ -48,7 +48,7 @@ impl Encoder for BddInterComp {
             .iter()
             .map(|i| partial_solution.instance.job_sizes[*i])
             .collect();
-        let range_table = bdd_dyn::RangeTable::new(undesignated_jobs, job_sizes, makespan);
+        let range_table = bdd_dyn::RangeTable::new(&undesignated_jobs, &job_sizes, makespan);
 
         // for each processor, collect the vars that can go on it, and their weights, and build a bdd
         for proc in 0..partial_solution.instance.num_processors {
@@ -73,7 +73,6 @@ impl Encoder for BddInterComp {
                     &job_vars,
                     &weights,
                     makespan,
-                    false,
                     partial_solution.assigned_makespan[proc],
                     &range_table,
                     timeout,

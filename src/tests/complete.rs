@@ -456,39 +456,4 @@ mod tests {
         )
     }
 
-    // Ok so this isnt something to write home about, but for very large formulas we can use cache efficiency to speed up transfer times
-    // These formulas can be like 2GB+ though, before it makes a diff, and those 10 seconds spared are probs not that important
-    #[test]
-    #[ignore]
-    pub fn silly_test() {
-        let start = Timeout::new(1000.0);
-        let mut clauses: Vec<Clause> = vec![];
-        for _ in 0..100000000 {
-            clauses.push(Clause {
-                vars: vec![1, 2, 3, 4],
-            });
-        }
-
-        let mut out = String::new();
-        for a in clauses {
-            for v in a.vars {
-                out += &format!("{} ", v);
-            }
-            out += "0\n"
-        }
-
-        print!("regular took {} seconds", 1000.0 - start.remaining_time());
-        let start = Timeout::new(1000.0);
-        let mut clauses: Vec<i32> = vec![];
-        for _ in 0..100000000 {
-            clauses.append(&mut vec![1, 2, 3, 4]);
-            clauses.push(0);
-        }
-
-        let mut out = String::new();
-        for a in clauses {
-            out += &format!("{} ", a);
-        }
-        print!("Better took {} seconds", 1000.0 - start.remaining_time());
-    }
 }

@@ -1,41 +1,26 @@
 use std::{env, vec};
 
-mod _perf_tests;
-mod bdd;
-mod bounds;
-mod common;
-mod encoding;
-mod input_output;
-mod makespan_scheduling;
-mod precedence_relations;
-mod problem_instance;
-mod problem_simplification;
-mod randomized_checkers;
-mod solvers;
-//mod feasability_checking;
-extern crate bitvec;
+use p_cmax_solver::{bounds, input_output};
 
 use bounds::lower_bounds::*;
 use bounds::upper_bounds::lpt;
 
-use crate::bounds::bound::Bound;
-use crate::bounds::upper_bounds::{lptp, lptpp, mss};
-use crate::common::common::IndexOf;
-use crate::common::timeout::Timeout;
-use crate::encoding::basic_encoder::BasicEncoder;
-//use crate::encoding::basic_with_fill_up::BasicWithFillUp;
-use crate::encoding::basic_with_precedence::Precedence;
-use crate::encoding::bdd_inter_comp::BddInterComp;
-use crate::encoding::binmerge_native::BinmergeEncoder;
-use crate::encoding::encoder::Encoder;
-use crate::encoding::pb_bdd_inter::PbInter;
-use crate::encoding::pb_bdd_inter_better::PbInterDyn;
-//use crate::encoding::fill_up_lite::FillUpLite;
-use crate::encoding::pb_bdd_native::PbNativeEncoder;
-use crate::encoding::pb_bdd_pysat::PbPysatEncoder;
-use crate::makespan_scheduling::linear_makespan::LinearMakespan;
-use crate::solvers::sat_solver::kissat::Kissat;
-use crate::solvers::sat_solver::{multi_sat_solver_manager, sat_solver_manager};
+use p_cmax_solver::bounds::bound::Bound;
+use p_cmax_solver::bounds::upper_bounds::{lptp, lptpp, mss};
+use p_cmax_solver::common::common::IndexOf;
+use p_cmax_solver::common::timeout::Timeout;
+use p_cmax_solver::encoding::basic_encoder::BasicEncoder;
+use p_cmax_solver::encoding::basic_with_precedence::Precedence;
+use p_cmax_solver::encoding::bdd_inter_comp::BddInterComp;
+use p_cmax_solver::encoding::binmerge_native::BinmergeEncoder;
+use p_cmax_solver::encoding::encoder::Encoder;
+use p_cmax_solver::encoding::pb_bdd_inter::PbInter;
+use p_cmax_solver::encoding::pb_bdd_inter_better::PbInterDyn;
+use p_cmax_solver::encoding::pb_bdd_native::PbNativeEncoder;
+use p_cmax_solver::encoding::pb_bdd_pysat::PbPysatEncoder;
+use p_cmax_solver::makespan_scheduling::linear_makespan::LinearMakespan;
+use p_cmax_solver::solvers::sat_solver::kissat::Kissat;
+use p_cmax_solver::solvers::sat_solver::{multi_sat_solver_manager, sat_solver_manager};
 
 fn main() {
     // --------------READING THE INPUT--------------
@@ -61,7 +46,6 @@ fn main() {
         Box::new(fs::FeketeSchepers {}),
         Box::new(lpt::LPT {}),
         Box::new(lptp::Lptp {}),
-        //Box::new(martello_toth::MartelloToth {}),
         Box::new(sss_bound_tightening::SSSBoundStrengthening {}),
         Box::new(lptpp::Lptpp {}),
         Box::new(lifting::Lifting::new()),
@@ -98,7 +82,6 @@ fn main() {
     if lower_bound == upper_bound.makespan {
         //TODO: this
         println!("solution found {}", upper_bound.makespan);
-        //println!("jobs sizes {:?}", instance.job_sizes);
         return;
     }
 

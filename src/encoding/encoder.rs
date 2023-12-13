@@ -52,7 +52,7 @@ impl VarNameGenerator {
     }
 }
 
-#[derive(Eq, PartialEq, Clone)]
+#[derive(Eq, PartialEq, Clone, Debug)]
 pub struct Clauses {
     num_clauses: usize,
     clauses: Vec<i32>,

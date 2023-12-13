@@ -43,7 +43,7 @@ impl RangeTable {
         return Some(self.ranges[index][value]);
     }
 
-    pub fn new(jobs: Vec<usize>, job_sizes: Vec<usize>, makespan: usize) -> RangeTable {
+    pub fn new(jobs: &Vec<usize>, job_sizes: &Vec<usize>, makespan: usize) -> RangeTable {
         let mut ranges: Vec<Vec<usize>> = vec![vec![0; makespan + 1]; job_sizes.len() - 1];
         ranges.push(vec![0; makespan - job_sizes[job_sizes.len() - 1] + 1]);
         ranges[job_sizes.len() - 1].append(&mut vec![1; job_sizes[job_sizes.len() - 1]]);
@@ -109,7 +109,6 @@ impl DynBDD {
         vars: &Vec<usize>,
         weights: &Vec<usize>,
         limit: usize,
-        with_fur_nodes: bool,
         already_assigned: usize,
         range_table: &RangeTable,
         timeout: &Timeout,
@@ -205,7 +204,6 @@ impl DynBDD {
                     if nodes[nodes.len() - 1].left_child != new_node.left_child
                         || nodes[nodes.len() - 1].right_child != new_node.right_child
                         || nodes[nodes.len() - 1].var != new_node.var
-                        || (with_fur_nodes && reachable_i == limit - weights[i + 1])
                     {
                         let node_id: usize = nodes.len();
                         nodes.push(new_node);
