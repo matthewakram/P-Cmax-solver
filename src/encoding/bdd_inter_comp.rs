@@ -1,7 +1,7 @@
 use crate::{
-    bdd::{self, bdd_dyn::{DynBDD, self}},
+    bdd::bdd_dyn::{DynBDD, self},
     common::timeout::Timeout,
-    problem_instance::{partial_solution::PartialSolution, problem_instance::ProblemInstance},
+    problem_instance::problem_instance::ProblemInstance,
 };
 
 use super::{
@@ -38,7 +38,7 @@ impl Encoder for BddInterComp {
         self.one_hot.encode(partial_solution);
         let mut clauses: Clauses = Clauses::new();
         let mut bdds: Vec<DynBDD> = vec![];
-        let undesignated_jobs: Vec<usize> = partial_solution.possible_allocations.iter().enumerate().filter(|(i,x)| x.len() > 1).map(|(i, _)| i).collect();
+        let undesignated_jobs: Vec<usize> = partial_solution.possible_allocations.iter().enumerate().filter(|(_,x)| x.len() > 1).map(|(i, _)| i).collect();
         let job_sizes: Vec<usize> = undesignated_jobs.iter().map(|i| partial_solution.instance.job_sizes[*i]).collect();
         let range_table = bdd_dyn::RangeTable::new(undesignated_jobs, job_sizes, makespan);
 

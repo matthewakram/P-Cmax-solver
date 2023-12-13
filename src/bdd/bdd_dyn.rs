@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use bitvec::{prelude::*, vec::BitVec};
-use rayon::range;
+
 
 use crate::{
     common::timeout::Timeout,
@@ -359,8 +359,8 @@ impl DynBDD {
                 if node.job_num == next_job {
                     break;
                 }
-                let (lower, upper) = node.range;
-                let (range_lower, range_upper) = range_table.get_range_bound(node.range_num);
+                let (_, upper) = node.range;
+                let (_, range_upper) = range_table.get_range_bound(node.range_num);
                 
                 if fur_val == upper || fur_val == range_upper {
                     //println!("job size: {} range {} {}, node range {} {}", solution.instance.job_sizes[job], range_lower, range_upper, lower, upper);

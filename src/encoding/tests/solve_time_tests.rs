@@ -3,7 +3,6 @@
 #[cfg(test)]
 mod tests {
     use rayon::{prelude::{IntoParallelIterator, ParallelIterator}, iter::IntoParallelRefIterator};
-    use sysinfo::{System, SystemExt};
 
     use crate::{
         bounds::{
@@ -30,8 +29,6 @@ mod tests {
     use std::{
         fs::{self, File},
         io::Write,
-        thread,
-        time::Duration,
     };
 
     fn bound_file(file_name: &String) -> Vec<(String, PartialSolution, usize)> {

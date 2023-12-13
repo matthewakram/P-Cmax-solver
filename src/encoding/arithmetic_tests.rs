@@ -91,7 +91,7 @@ mod tests {
     pub fn simp_sorter_test(){
         let mut name_generator = VarNameGenerator::new();
         let vars = vec![name_generator.next(), name_generator.next(), name_generator.next() , name_generator.next(), name_generator.next()];
-        let (mut clauses, sorted) = basic_sort(&vars, 5, &mut name_generator);
+        let (mut clauses, _sorted) = basic_sort(&vars, 5, &mut name_generator);
         clauses.add_clause(Clause{ vars: vec![(vars[0] as i32)]});
         clauses.add_clause(Clause{ vars: vec![(vars[1] as i32)]});
         clauses.add_clause(Clause{ vars: vec![(vars[2] as i32)]});
@@ -184,7 +184,7 @@ mod tests {
     pub fn half_sorter_test(){
         let mut name_generator = VarNameGenerator::new();
         let vars = vec![name_generator.next(), name_generator.next(), name_generator.next() , name_generator.next(), name_generator.next()];
-        let (mut clauses, sorted) = half_sort(&vars, 4, &mut name_generator);
+        let (mut clauses, _sorted) = half_sort(&vars, 4, &mut name_generator);
         clauses.add_clause(Clause{ vars: vec![(vars[0] as i32)]});
         clauses.add_clause(Clause{ vars: vec![(vars[1] as i32)]});
         clauses.add_clause(Clause{ vars: vec![(vars[2] as i32)]});

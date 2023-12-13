@@ -5,7 +5,6 @@
 #[cfg(test)]
 mod tests {
     use rayon::prelude::{ParallelIterator, IntoParallelIterator};
-    use sysinfo::{System, SystemExt};
     use crate::{
         bounds::{
             bound::Bound,
@@ -26,7 +25,7 @@ mod tests {
         problem_instance::partial_solution::PartialSolution,
         problem_simplification::{final_simp_rule, simplification_rule::SimpRule, fill_up_rule, half_size_rule},
     };
-    use std::{fs::{self, File}, io::Write, thread, time::Duration};
+    use std::{fs::{self, File}, io::Write};
 
     fn test_file(encoder:  &mut Box<dyn Encoder>, file_name: &String) -> Vec<String> {
         let instance = input_output::from_file::read_from_file(&file_name.to_string());

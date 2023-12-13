@@ -1,5 +1,3 @@
-use bitvec::macros::internal::funty::Fundamental;
-use bitvec::vec;
 
 use crate::encoding::encoder::Clause;
 

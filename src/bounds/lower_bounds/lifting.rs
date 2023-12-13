@@ -14,6 +14,8 @@ pub struct Lifting{
 }
 
 impl Lifting {
+    
+    #[cfg(test)]
     pub fn new_deterministic(seed: u64) -> Lifting {
         return Lifting{seed}
     }

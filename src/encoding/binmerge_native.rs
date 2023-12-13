@@ -1,11 +1,6 @@
-use timeout_readwrite::TimeoutReader;
 
-use crate::{common::timeout::Timeout, problem_instance::problem_instance::ProblemInstance, input_output};
-use std::{
-    io::{BufWriter, Read, Write},
-    process::{Command, Stdio},
-    time::Duration,
-};
+use crate::{common::timeout::Timeout, problem_instance::problem_instance::ProblemInstance};
+
 
 use super::{
     binary_arithmetic, cardinality_networks,
@@ -41,7 +36,7 @@ impl Encoder for BinmergeEncoder {
         partial_solution: &crate::problem_instance::partial_solution::PartialSolution,
         makespan: usize,
         timeout: &Timeout,
-        _max_num_clauses: usize,
+        max_num_clauses: usize,
     ) -> bool {
         self.one_hot.encode(partial_solution);
         let mut clauses: Clauses = Clauses::new();
@@ -55,6 +50,9 @@ impl Encoder for BinmergeEncoder {
         let mut all_merged: Vec<Vec<Vec<usize>>> = vec![];
         let mut all_sum_vals: Vec<Vec<usize>> = vec![];
         for proc in 0..partial_solution.instance.num_processors {
+            if timeout.time_finished() || max_num_clauses > clauses.get_num_clauses() {
+                return false;
+            }
             let mut bit_level_sorted_vars: Vec<Vec<usize>> = vec![];
             let makespan_remaining = makespan- partial_solution.assigned_makespan[proc];
             let makespan_bitlength = binary_arithmetic::number_bitlength(makespan_remaining);
