@@ -1,8 +1,6 @@
 use std::process::Command;
 
 fn main() {
-    println!("cargo:rerun-if-changed=src/hello.c");
-
     if cfg!(target_os = "macos") {
         let _ = Command::new("git")
             .args([

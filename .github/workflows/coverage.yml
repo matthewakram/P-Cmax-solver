@@ -17,7 +17,7 @@ jobs:
       - run: cargo build
       - run: echo sdafijinsadfvbadifshovhbadskhjbasdhukfbasdhkbfkasdfhklhasdbfjkyasdhfbkasdbfkhadsjbfjkhasfbhadisbfjkadshfbkasdjhbfdsajhfvadslfkgasdkfasbdjlhfbasdkfjsadbfkjhasdkjhsda
       - name: Generate code coverage
-        run: cargo tarpaulin --timeout 120 --out xml
+        run: cargo build && cargo tarpaulin --timeout 120 --out xml
       - name: Upload to codecov.io
         uses: codecov/codecov-action@v2
         with:
