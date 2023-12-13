@@ -2,9 +2,21 @@ name: coverage
 
 on: [push]
 jobs:
+  build:
+    name: Rust build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+      - uses: actions-rs/cargo@v1
+        with:
+          command: build
+          args: --release
   test:
     name: coverage
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-latest
     container:
       image: xd009642/tarpaulin:develop-nightly
       options: --security-opt seccomp=unconfined
