@@ -1,7 +1,7 @@
 use std::process::Command;
 
 fn main() {
-    if cfg!(target_os = "macos") {
+    if cfg!(target_os = "macos") || cfg!(target_os = "linux") {
         let out = Command::new("git")
             .args([
                 "clone",
