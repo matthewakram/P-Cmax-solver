@@ -24,7 +24,7 @@ fn main() {
             .output()
             .expect("failed to execute process");
 
-        let _ = Command::new("mv")
+        let out = Command::new("mv")
             .args(["./kissat_files/build/kissat", "./kissat"])
             .output()
             .expect("failed to execute process");
