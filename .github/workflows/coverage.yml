@@ -16,9 +16,7 @@ jobs:
           toolchain: stable
       - run: cargo build
       - name: Generate code coverage
-        run: |
-          cargo +nightly tarpaulin --verbose --all-features --workspace --timeout 120 --out xml
-
+        run: cargo tarpaulin --timeout 120 --out xml
       - name: Upload to codecov.io
         uses: codecov/codecov-action@v2
         with:
