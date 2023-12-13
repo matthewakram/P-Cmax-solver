@@ -6,28 +6,29 @@ mod tests {
 
     use crate::{
         bounds::{
+            self,
             bound::Bound,
             lower_bounds::{
                 lifting, max_job_size, middle, pigeon_hole,
                 sss_bound_tightening::{self},
             },
-            upper_bounds::{lpt, lptp, lptpp, mss}, self,
+            upper_bounds::{lpt, lptp, lptpp, mss},
         },
         common::timeout::Timeout,
         encoding::{
             basic_encoder::BasicEncoder,
             basic_with_precedence::Precedence,
+            bdd_inter_comp::BddInterComp,
+            binmerge_native::BinmergeEncoder,
             encoder::{Clause, Encoder},
             pb_bdd_inter::PbInter,
+            pb_bdd_inter_better::PbInterDyn,
             pb_bdd_native::PbNativeEncoder,
-            pb_bdd_pysat::PbPysatEncoder, pb_bdd_inter_better::PbInterDyn, bdd_inter_comp::BddInterComp, binmerge_native::BinmergeEncoder,
+            pb_bdd_pysat::PbPysatEncoder,
         },
         input_output::{self},
         makespan_scheduling::linear_makespan::LinearMakespan,
-        solvers::sat_solver::{
-                kissat::Kissat,
-                sat_solver_manager, multi_sat_solver_manager,
-            },
+        solvers::sat_solver::{kissat::Kissat, multi_sat_solver_manager, sat_solver_manager},
     };
     use std::{
         fs::{self, File},
@@ -61,8 +62,8 @@ mod tests {
             let bound = &bounds[i];
             (lower_bound, upper_bound) =
                 bound.bound(&instance, lower_bound, upper_bound, &precomp_timeout);
-            if precomp_timeout.time_finished() 
-            || (upper_bound.is_some() && upper_bound.as_ref().unwrap().makespan == lower_bound)
+            if precomp_timeout.time_finished()
+                || (upper_bound.is_some() && upper_bound.as_ref().unwrap().makespan == lower_bound)
             {
                 break;
             }
@@ -86,13 +87,16 @@ mod tests {
         println!("solving file {}", file_name);
 
         //--------------SOLVING---------------------------
-        let mut sat_solver = sat_solver_manager::SatSolverManager::new(Box::new(Kissat::new()), Box::new(LinearMakespan {}), encoder);
+        let mut sat_solver = sat_solver_manager::SatSolverManager::new(
+            Box::new(Kissat::new()),
+            Box::new(LinearMakespan {}),
+            encoder,
+        );
 
         let sol = sat_solver.solve(&instance, lower_bound, &upper_bound, &total_timeout, false);
         if sol.is_none() {
             return None;
         }
-
 
         if sat_solver.stats.len() < 7 {
             return Some(format!(
@@ -121,7 +125,11 @@ mod tests {
         ));
     }
 
-    fn test_file_multi(satencoder: Box<dyn Encoder>, unsatencoder: Box<dyn Encoder>, file_name: &String) -> Option<String> {
+    fn test_file_multi(
+        satencoder: Box<dyn Encoder>,
+        unsatencoder: Box<dyn Encoder>,
+        file_name: &String,
+    ) -> Option<String> {
         println!("solving file {}", file_name);
         let instance = input_output::from_file::read_from_file(file_name);
         let total_timeout_f64: f64 = 100.0;
@@ -148,12 +156,13 @@ mod tests {
         let mut num_remaining_bounds = bounds.len() as f64;
         for i in 0..bounds.len() {
             let bound = &bounds[i];
-            let bound_timeout = Timeout::new(precomp_timeout.remaining_time() / num_remaining_bounds);
+            let bound_timeout =
+                Timeout::new(precomp_timeout.remaining_time() / num_remaining_bounds);
             num_remaining_bounds -= 1.0;
             (lower_bound, upper_bound) =
                 bound.bound(&instance, lower_bound, upper_bound, &bound_timeout);
-            if precomp_timeout.time_finished() 
-            || (upper_bound.is_some() && upper_bound.as_ref().unwrap().makespan == lower_bound)
+            if precomp_timeout.time_finished()
+                || (upper_bound.is_some() && upper_bound.as_ref().unwrap().makespan == lower_bound)
             {
                 break;
             }
@@ -227,7 +236,7 @@ mod tests {
             //.into_iter()
             .enumerate()
             .map(|(_file_num, (path, encoder))| {
-            //    println!("solving file num {}", file_num);
+                //    println!("solving file num {}", file_num);
                 test_file(encoder, &path)
             })
             .filter(|x| x.is_some())
@@ -244,8 +253,16 @@ mod tests {
         file.write_all(&result.as_bytes()).unwrap();
     }
 
-    fn test_multi_encoders(satencoder: &Box<dyn Encoder>, unsatencoder: &Box<dyn Encoder>, in_dirname: &str, out_dirname: &str) {
-        rayon::ThreadPoolBuilder::new().num_threads(6).build_global().unwrap();
+    fn test_multi_encoders(
+        satencoder: &Box<dyn Encoder>,
+        unsatencoder: &Box<dyn Encoder>,
+        in_dirname: &str,
+        out_dirname: &str,
+    ) {
+        rayon::ThreadPoolBuilder::new()
+            .num_threads(6)
+            .build_global()
+            .unwrap();
         let paths = fs::read_dir(in_dirname).unwrap();
         let files: Vec<String> = paths
             .into_iter()
@@ -269,7 +286,7 @@ mod tests {
             //.into_iter()
             .enumerate()
             .map(|(_file_num, (path, satencoder, unsatencoder))| {
-            //    println!("solving file num {}", file_num);
+                //    println!("solving file num {}", file_num);
                 test_file_multi(satencoder, unsatencoder, &path)
             })
             .filter(|x| x.is_some())
@@ -355,7 +372,8 @@ mod tests {
     #[test]
     #[ignore]
     pub fn complete_test_class_binmerge() {
-        let mut a: Box<dyn Encoder> = Box::new(Precedence::new(Box::new(BinmergeEncoder::new()), 1));
+        let mut a: Box<dyn Encoder> =
+            Box::new(Precedence::new(Box::new(BinmergeEncoder::new()), 1));
         test_encoder(
             &mut a,
             "./bench/class_instances/",
@@ -366,16 +384,16 @@ mod tests {
     #[test]
     #[ignore]
     pub fn complete_test_class_multi() {
-        let mut a: Box<dyn Encoder> = Box::new(Precedence::new(Box::new(BinmergeEncoder::new()), 1));
+        let mut a: Box<dyn Encoder> =
+            Box::new(Precedence::new(Box::new(BinmergeEncoder::new()), 1));
         let mut b: Box<dyn Encoder> = Box::new(Precedence::new(Box::new(BddInterComp::new()), 1));
         test_multi_encoders(
             &mut a,
-            &mut b, 
+            &mut b,
             "./bench/class_instances/",
             "./bench/results/complete_class_instances_multi.txt",
         )
     }
-
 
     #[test]
     #[ignore]

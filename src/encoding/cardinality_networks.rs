@@ -1,4 +1,3 @@
-
 use crate::encoding::encoder::Clause;
 
 use super::encoder::{Clauses, VarNameGenerator};
@@ -85,8 +84,18 @@ pub fn half_sort(
     }
 
     let half_size = vars.len() / 2;
-    let lower_half: Vec<usize> = vars.iter().enumerate().filter(|(i,_)| *i < half_size).map(|(_,x)| *x).collect();
-    let upper_half: Vec<usize> = vars.iter().enumerate().filter(|(i,_)| *i >= half_size).map(|(_,x)| *x).collect();
+    let lower_half: Vec<usize> = vars
+        .iter()
+        .enumerate()
+        .filter(|(i, _)| *i < half_size)
+        .map(|(_, x)| *x)
+        .collect();
+    let upper_half: Vec<usize> = vars
+        .iter()
+        .enumerate()
+        .filter(|(i, _)| *i >= half_size)
+        .map(|(_, x)| *x)
+        .collect();
 
     let (mut clauses_lower, sorted_lower) = half_sort(&lower_half, max_true, var_name_generator);
     let (mut clauses_upper, sorted_upper) = half_sort(&upper_half, max_true, var_name_generator);
@@ -94,7 +103,8 @@ pub fn half_sort(
     clauses.add_many_clauses(&mut clauses_lower);
     clauses.add_many_clauses(&mut clauses_upper);
 
-    let (mut clauses_merge, sorted_vars) = half_merge(&sorted_lower, &sorted_upper, max_true, var_name_generator);
+    let (mut clauses_merge, sorted_vars) =
+        half_merge(&sorted_lower, &sorted_upper, max_true, var_name_generator);
     clauses.add_many_clauses(&mut clauses_merge);
 
     return (clauses, sorted_vars);

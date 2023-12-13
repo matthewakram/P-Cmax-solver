@@ -8,7 +8,7 @@ use std::{
 };
 
 use super::{
-    encoder::{Clause, Encoder, OneHotEncoder, Clauses},
+    encoder::{Clause, Clauses, Encoder, OneHotEncoder},
     problem_encoding::one_hot_encoding::{OneHot, OneHotProblemEncoding},
 };
 
@@ -28,19 +28,19 @@ impl PbPysatEncoder {
 }
 
 impl Encoder for PbPysatEncoder {
-
     fn basic_encode(
         &mut self,
         partial_solution: &crate::problem_instance::partial_solution::PartialSolution,
         makespan: usize,
         timeout: &Timeout,
-        _max_num_clauses: usize
+        _max_num_clauses: usize,
     ) -> bool {
         let mut child = Command::new("python3")
-                .arg("./src/encoding/pb_with_pysat.py")
-                .stdin(Stdio::piped())
-                .stdout(Stdio::piped())
-                .spawn().unwrap();
+            .arg("./src/encoding/pb_with_pysat.py")
+            .stdin(Stdio::piped())
+            .stdout(Stdio::piped())
+            .spawn()
+            .unwrap();
 
         self.one_hot.encode(partial_solution);
         let mut clauses: Clauses = Clauses::new();

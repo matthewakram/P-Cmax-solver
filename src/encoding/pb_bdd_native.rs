@@ -1,7 +1,11 @@
-use crate::{bdd::{self, bdd::BDD}, problem_instance::problem_instance::ProblemInstance, common::timeout::Timeout};
+use crate::{
+    bdd::{self, bdd::BDD},
+    common::timeout::Timeout,
+    problem_instance::problem_instance::ProblemInstance,
+};
 
 use super::{
-    encoder::{Encoder, OneHotEncoder, Clauses},
+    encoder::{Clauses, Encoder, OneHotEncoder},
     problem_encoding::one_hot_encoding::{OneHot, OneHotProblemEncoding},
 };
 
@@ -26,10 +30,10 @@ impl Encoder for PbNativeEncoder {
         partial_solution: &crate::problem_instance::partial_solution::PartialSolution,
         makespan: usize,
         timeout: &Timeout,
-        max_num_clauses: usize
-    ) -> bool{
+        max_num_clauses: usize,
+    ) -> bool {
         self.one_hot.encode(partial_solution);
-        let mut clauses= Clauses::new();
+        let mut clauses = Clauses::new();
 
         // for each processor, collect the vars that can go on it, and their weights, and build a bdd
         for proc in 0..partial_solution.instance.num_processors {
@@ -37,7 +41,9 @@ impl Encoder for PbNativeEncoder {
             let mut weights: Vec<usize> = vec![];
             let mut jobs: Vec<usize> = vec![];
             for job in 0..partial_solution.instance.num_jobs {
-                if self.one_hot.position_vars[job][proc].is_some() && partial_solution.possible_allocations[job].len() > 1 {
+                if self.one_hot.position_vars[job][proc].is_some()
+                    && partial_solution.possible_allocations[job].len() > 1
+                {
                     job_vars.push(self.one_hot.position_vars[job][proc].unwrap());
                     jobs.push(job);
                     weights.push(partial_solution.instance.job_sizes[job]);
@@ -47,13 +53,20 @@ impl Encoder for PbNativeEncoder {
                 continue;
             }
             // now we construct the bdd to assert that this machine is not too full
-            let bdd: Option<BDD> = bdd::bdd::leq(&jobs, &job_vars, &weights, makespan, false, partial_solution.assigned_makespan[proc], timeout);
+            let bdd: Option<BDD> = bdd::bdd::leq(
+                &jobs,
+                &job_vars,
+                &weights,
+                makespan,
+                false,
+                partial_solution.assigned_makespan[proc],
+                timeout,
+            );
             if bdd.is_none() {
                 return false;
             }
             let bdd = bdd.unwrap();
             let bdd: BDD = bdd::bdd::assign_aux_vars(bdd, &mut self.one_hot.var_name_generator);
-            
 
             //for i in 0..bdd.nodes.len(){
             //    let a = &bdd.nodes[i];

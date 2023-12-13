@@ -1,9 +1,10 @@
-
-use crate::{problem_instance::{problem_instance::ProblemInstance, solution::Solution}, bounds::bound::Bound, common::timeout::Timeout};
-
+use crate::{
+    bounds::bound::Bound,
+    common::timeout::Timeout,
+    problem_instance::{problem_instance::ProblemInstance, solution::Solution},
+};
 
 pub struct Lptp {}
-
 
 fn is_feasable(instance: &ProblemInstance, max_makespan: usize) -> Option<Solution> {
     let mut assignment: Vec<usize> = vec![usize::MAX; instance.num_jobs];
@@ -14,7 +15,12 @@ fn is_feasable(instance: &ProblemInstance, max_makespan: usize) -> Option<Soluti
         if assignment[i] != usize::MAX {
             continue;
         }
-        let emptiest_processor: usize = total_sizes.iter().enumerate().min_by_key(|(_,x)| *x).map(|(i,_)| i).unwrap();
+        let emptiest_processor: usize = total_sizes
+            .iter()
+            .enumerate()
+            .min_by_key(|(_, x)| *x)
+            .map(|(i, _)| i)
+            .unwrap();
         total_sizes[emptiest_processor] += instance.job_sizes[i];
         assignment[i] = emptiest_processor;
         available_sizes[i] = 0;
@@ -23,12 +29,13 @@ fn is_feasable(instance: &ProblemInstance, max_makespan: usize) -> Option<Soluti
             return None;
         }
 
-        if total_sizes[emptiest_processor] == max_makespan{
+        if total_sizes[emptiest_processor] == max_makespan {
             continue;
         }
-        
-        
-        let index_of_fur_element: Option<usize> = available_sizes[i+1..].iter().position(|x| x == &(max_makespan - total_sizes[emptiest_processor]));
+
+        let index_of_fur_element: Option<usize> = available_sizes[i + 1..]
+            .iter()
+            .position(|x| x == &(max_makespan - total_sizes[emptiest_processor]));
         if index_of_fur_element.is_some() {
             let index = index_of_fur_element.unwrap() + i + 1;
             total_sizes[emptiest_processor] += instance.job_sizes[index];
@@ -36,18 +43,23 @@ fn is_feasable(instance: &ProblemInstance, max_makespan: usize) -> Option<Soluti
             available_sizes[index] = 0;
         }
     }
-    
+
     let makespan = *total_sizes.iter().max().unwrap();
 
-    return Some( Solution{
+    return Some(Solution {
         makespan,
-        assignment: assignment
-    })
+        assignment: assignment,
+    });
 }
 
-
-impl Bound for Lptp{
-    fn bound(&self, problem: &ProblemInstance, lower_bound: usize, upper_bound: Option<Solution>, timeout: &Timeout) -> (usize, Option<Solution>) {
+impl Bound for Lptp {
+    fn bound(
+        &self,
+        problem: &ProblemInstance,
+        lower_bound: usize,
+        upper_bound: Option<Solution>,
+        timeout: &Timeout,
+    ) -> (usize, Option<Solution>) {
         let mut makespan_to_check = lower_bound;
         let current_bound = upper_bound.as_ref().unwrap();
 
@@ -55,7 +67,7 @@ impl Bound for Lptp{
             if makespan_to_check >= current_bound.makespan || timeout.time_finished() {
                 return (lower_bound, upper_bound);
             }
-            
+
             let sol = is_feasable(problem, makespan_to_check);
             if sol.is_some() {
                 return (lower_bound, sol);

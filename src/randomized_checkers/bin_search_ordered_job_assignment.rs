@@ -1,17 +1,20 @@
-
 use crate::common::timeout::Timeout;
 
-use super::{randomized_checker::RandomizedChecker, ordered_job_assignment_checker::OrderedJobAssignmentChecker};
-
+use super::{
+    ordered_job_assignment_checker::OrderedJobAssignmentChecker,
+    randomized_checker::RandomizedChecker,
+};
 
 #[derive(Clone)]
-pub struct BinSearchOrderedJobAssignmentChecker{
-
-}
+pub struct BinSearchOrderedJobAssignmentChecker {}
 
 impl RandomizedChecker for BinSearchOrderedJobAssignmentChecker {
-    fn is_sat(&self, part: &crate::problem_instance::partial_solution::PartialSolution, makespan_to_test: usize, timeout: &Timeout) -> Option<crate::problem_instance::solution::Solution> {
-
+    fn is_sat(
+        &self,
+        part: &crate::problem_instance::partial_solution::PartialSolution,
+        makespan_to_test: usize,
+        timeout: &Timeout,
+    ) -> Option<crate::problem_instance::solution::Solution> {
         let mut num_attempts: f64 = timeout.remaining_time() * 0.6;
 
         let mut lower = 0;
@@ -20,7 +23,10 @@ impl RandomizedChecker for BinSearchOrderedJobAssignmentChecker {
         while num_attempts > 0.0 && !timeout.time_finished() {
             let num_jobs_to_assign = (lower + upper) / 2;
             let order: Vec<usize> = (0..part.instance.num_jobs).collect();
-            let checker = OrderedJobAssignmentChecker{ job_order: order, num_jobs_to_assign  };
+            let checker = OrderedJobAssignmentChecker {
+                job_order: order,
+                num_jobs_to_assign,
+            };
             let checker_time = Timeout::new(timeout.remaining_time() / num_attempts);
             num_attempts -= 1.0;
             let sol = checker.is_sat(part, makespan_to_test, &checker_time);
@@ -35,9 +41,8 @@ impl RandomizedChecker for BinSearchOrderedJobAssignmentChecker {
             } else {
                 return sol;
             }
-
         }
-        
+
         return None;
     }
 }

@@ -83,15 +83,21 @@ impl SatSolverManager {
             let partial_solution = partial_solution.unwrap();
 
             let encoding_time = Instant::now();
-            let success = self.encoder
-                .basic_encode(&partial_solution, makespan_to_test, timeout, 500_000_000);
+            let success = self.encoder.basic_encode(
+                &partial_solution,
+                makespan_to_test,
+                timeout,
+                500_000_000,
+            );
             if !success {
                 return None;
             }
             let clauses = self.encoder.output();
-            self.stats.insert(encoding_time_key.clone(), self.stats.get(&encoding_time_key).unwrap() +  encoding_time.elapsed().as_secs_f64());
+            self.stats.insert(
+                encoding_time_key.clone(),
+                self.stats.get(&encoding_time_key).unwrap() + encoding_time.elapsed().as_secs_f64(),
+            );
 
-            
             let result =
                 self.sat_solver
                     .as_mut()
@@ -106,7 +112,8 @@ impl SatSolverManager {
 
             for stat in solver_stats {
                 if self.stats.contains_key(&stat.0) {
-                    self.stats.insert(stat.0.clone(), self.stats.get(&stat.0).unwrap() + stat.1);
+                    self.stats
+                        .insert(stat.0.clone(), self.stats.get(&stat.0).unwrap() + stat.1);
                 } else {
                     self.stats.insert(stat.0.clone(), stat.1);
                 }
@@ -117,7 +124,10 @@ impl SatSolverManager {
             if var_assingment.is_none() {
                 lower = makespan_to_test + 1;
 
-                self.stats.insert(num_unsat_calls_key.clone(), self.stats.get(&num_unsat_calls_key).unwrap() +  1.0);
+                self.stats.insert(
+                    num_unsat_calls_key.clone(),
+                    self.stats.get(&num_unsat_calls_key).unwrap() + 1.0,
+                );
 
                 if verbose {
                     println!("UNSAT");
@@ -134,7 +144,10 @@ impl SatSolverManager {
                 solution = improved_solution.unwrap();
                 let new_bound = solution.makespan;
 
-                self.stats.insert(num_sat_calls_key.clone(), self.stats.get(&num_sat_calls_key).unwrap() +  1.0);
+                self.stats.insert(
+                    num_sat_calls_key.clone(),
+                    self.stats.get(&num_sat_calls_key).unwrap() + 1.0,
+                );
 
                 if verbose {
                     println!("SAT");

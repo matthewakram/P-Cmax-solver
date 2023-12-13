@@ -2,7 +2,6 @@ use std::collections::HashMap;
 
 use bitvec::{prelude::*, vec::BitVec};
 
-
 use crate::{
     common::timeout::Timeout,
     encoding::encoder::{Clause, Clauses, VarNameGenerator},
@@ -47,11 +46,10 @@ impl RangeTable {
     pub fn new(jobs: Vec<usize>, job_sizes: Vec<usize>, makespan: usize) -> RangeTable {
         let mut ranges: Vec<Vec<usize>> = vec![vec![0; makespan + 1]; job_sizes.len() - 1];
         ranges.push(vec![0; makespan - job_sizes[job_sizes.len() - 1] + 1]);
-        ranges[job_sizes.len()-1].append(&mut vec![1; job_sizes[job_sizes.len() - 1]]);
+        ranges[job_sizes.len() - 1].append(&mut vec![1; job_sizes[job_sizes.len() - 1]]);
         let mut range_sizes: Vec<(usize, usize)> = vec![];
         range_sizes.push((0, makespan - job_sizes[job_sizes.len() - 1]));
         range_sizes.push((makespan - job_sizes[job_sizes.len() - 1] + 1, makespan));
-
 
         let mut range_num = 2;
         for job in (0..job_sizes.len() - 1).rev() {
@@ -63,12 +61,12 @@ impl RangeTable {
                 let new_right = if i + 1 + job_size > makespan {
                     usize::MAX
                 } else {
-                    ranges[job + 1][i + job_size+1]
+                    ranges[job + 1][i + job_size + 1]
                 };
-                let new_left =  if i + 1  > makespan {
+                let new_left = if i + 1 > makespan {
                     usize::MAX
                 } else {
-                    ranges[job + 1][i +1]
+                    ranges[job + 1][i + 1]
                 };
                 ranges[job][i] = range_num;
                 if new_left != previous_left || new_right != previous_right {
@@ -91,7 +89,7 @@ impl RangeTable {
 
         //println!("{:?}", ranges);
         //println!("{:?}", range_sizes);
-        let out =  RangeTable {
+        let out = RangeTable {
             ranges,
             job_position,
             range_sizes,
@@ -341,9 +339,9 @@ impl DynBDD {
                 jobs_in_bdd.push(i.job_num);
             }
         }
-    
+
         let mut out: Vec<(usize, usize)> = vec![];
-    
+
         for i in 0..jobs_in_bdd.len() {
             let job = jobs_in_bdd[i];
             let next_job = if i != jobs_in_bdd.len() - 1 {
@@ -361,16 +359,14 @@ impl DynBDD {
                 }
                 let (_, upper) = node.range;
                 let (_, range_upper) = range_table.get_range_bound(node.range_num);
-                
+
                 if fur_val == upper || fur_val == range_upper {
                     //println!("job size: {} range {} {}, node range {} {}", solution.instance.job_sizes[job], range_lower, range_upper, lower, upper);
                     out.push((job, node.aux_var));
                 }
             }
         }
-    
+
         return out;
     }
 }
-
-

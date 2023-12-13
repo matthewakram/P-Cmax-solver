@@ -39,22 +39,24 @@ impl Encoder for PbNativeEncoderFE {
                 }
             }
             // now we construct the bdd to assert that this machine is not too full
-            let bdd = if proc < partial_solution.instance.num_processors/2 {
+            let bdd = if proc < partial_solution.instance.num_processors / 2 {
                 let tbdd = bdd::bdd::eq(&job_vars, &weights, makespan);
                 if tbdd.is_none() {
-                    self.clauses = vec![Clause{vars: vec![1]}, Clause{vars: vec![-1]}];
+                    self.clauses = vec![Clause { vars: vec![1] }, Clause { vars: vec![-1] }];
                     return;
                 }
                 tbdd.unwrap()
-            } else { bdd::bdd::leq(&job_vars, &weights, makespan)};
+            } else {
+                bdd::bdd::leq(&job_vars, &weights, makespan)
+            };
 
             let bdd = bdd::bdd::assign_aux_vars(bdd, &mut self.one_hot.var_name_generator);
-            let mut a = if proc < partial_solution.instance.num_processors/2 {
+            let mut a = if proc < partial_solution.instance.num_processors / 2 {
                 bdd::bdd::encode_bad(&bdd)
-            } else{
+            } else {
                 bdd::bdd::encode(&bdd)
             };
-            
+
             //println!("{:?}", a);
             clauses.append(&mut a);
         }

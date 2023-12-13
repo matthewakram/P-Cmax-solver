@@ -20,7 +20,6 @@ impl ProblemInstance {
         let job_order = unordered_jobs.iter().map(|(i, _)| *i).collect();
         let job_sizes = unordered_jobs.iter().map(|(_, x)| *x).collect();
 
-
         ProblemInstance {
             num_processors,
             num_jobs,

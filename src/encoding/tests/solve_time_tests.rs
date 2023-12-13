@@ -2,26 +2,28 @@
 
 #[cfg(test)]
 mod tests {
-    use rayon::{prelude::{IntoParallelIterator, ParallelIterator}, iter::IntoParallelRefIterator};
+    use rayon::{
+        iter::IntoParallelRefIterator,
+        prelude::{IntoParallelIterator, ParallelIterator},
+    };
 
     use crate::{
         bounds::{
             bound::Bound,
-            lower_bounds::{max_job_size, middle, pigeon_hole, lifting::Lifting},
+            lower_bounds::{lifting::Lifting, max_job_size, middle, pigeon_hole},
             upper_bounds::{lpt, lptp, lptpp, mss::MSS},
         },
         common::timeout::Timeout,
         encoding::{
-            basic_encoder::BasicEncoder, basic_with_precedence::Precedence, encoder::Encoder,
-            pb_bdd_inter::PbInter, pb_bdd_inter_better::PbInterDyn, pb_bdd_native::PbNativeEncoder,
-            pb_bdd_pysat::PbPysatEncoder, binmerge_native::BinmergeEncoder,
+            basic_encoder::BasicEncoder, basic_with_precedence::Precedence,
+            binmerge_native::BinmergeEncoder, encoder::Encoder, pb_bdd_inter::PbInter,
+            pb_bdd_inter_better::PbInterDyn, pb_bdd_native::PbNativeEncoder,
+            pb_bdd_pysat::PbPysatEncoder,
         },
         input_output::{self},
         problem_instance::partial_solution::PartialSolution,
         problem_simplification::{
-            fill_up_rule::FillUpRule,
-            final_simp_rule::FinalizeRule,
-            half_size_rule::HalfSizeRule,
+            fill_up_rule::FillUpRule, final_simp_rule::FinalizeRule, half_size_rule::HalfSizeRule,
             simplification_rule::SimpRule,
         },
         solvers::{sat_solver::kissat::Kissat, solver::SatSolver},
@@ -78,11 +80,14 @@ mod tests {
         }
 
         return out;
-
-        
     }
 
-    fn solve_instance(pi : &PartialSolution, makespan_to_test: usize, encoder: &mut Box<dyn Encoder>, file_name: &String) -> Option<String> {
+    fn solve_instance(
+        pi: &PartialSolution,
+        makespan_to_test: usize,
+        encoder: &mut Box<dyn Encoder>,
+        file_name: &String,
+    ) -> Option<String> {
         //loop {
         //    let sys = System::new_all();
         //    let available_mem = sys.available_memory();
@@ -91,7 +96,10 @@ mod tests {
         //    }
         //    thread::sleep(Duration::from_secs(5));
         //}
-        println!("solving file {} with makespan {}", file_name, makespan_to_test);
+        println!(
+            "solving file {} with makespan {}",
+            file_name, makespan_to_test
+        );
         let succ = encoder.basic_encode(&pi, makespan_to_test, &Timeout::new(100.0), 500_000_000);
         if !succ {
             return None;
@@ -126,7 +134,7 @@ mod tests {
             pi.instance.num_jobs,
             pi.instance.num_processors,
             len,
-        ))
+        ));
     }
 
     fn test_encoder(encoder: &Box<dyn Encoder>, in_dirname: &str, out_dirname: &str) {
@@ -144,17 +152,27 @@ mod tests {
             .map(|p: Result<fs::DirEntry, std::io::Error>| p.unwrap().path().display().to_string())
             .collect();
 
-        let instances: Vec<(String, PartialSolution, usize)> = files.par_iter().map(|x| bound_file(x)).flat_map(|x| x).collect();
+        let instances: Vec<(String, PartialSolution, usize)> = files
+            .par_iter()
+            .map(|x| bound_file(x))
+            .flat_map(|x| x)
+            .collect();
         println!("testing {} instances", instances.len());
 
-        let instances_with_encoder:  Vec<(String, PartialSolution, usize, Box<dyn Encoder>)> = instances.into_iter().map(|(x, y, z)| (x, y, z, encoder.clone())).collect();
+        let instances_with_encoder: Vec<(String, PartialSolution, usize, Box<dyn Encoder>)> =
+            instances
+                .into_iter()
+                .map(|(x, y, z)| (x, y, z, encoder.clone()))
+                .collect();
 
         let result: Vec<String> = instances_with_encoder
-        .into_par_iter()
-        .map(|(file_name, pi, makespan_to_test, mut encoder)| solve_instance(&pi, makespan_to_test, &mut encoder, &file_name))
-        .filter(|x| x.is_some())
-        .map(|x| x.unwrap())
-        .collect();
+            .into_par_iter()
+            .map(|(file_name, pi, makespan_to_test, mut encoder)| {
+                solve_instance(&pi, makespan_to_test, &mut encoder, &file_name)
+            })
+            .filter(|x| x.is_some())
+            .map(|x| x.unwrap())
+            .collect();
 
         let result = result
             .iter()
@@ -266,7 +284,6 @@ mod tests {
         )
     }
 
-
     #[test]
     #[ignore]
     pub fn test_solve_time_class_interp_with_precedence_1() {
@@ -292,7 +309,8 @@ mod tests {
     #[test]
     #[ignore]
     pub fn test_solve_time_class_binmerge_native() {
-        let mut a: Box<dyn Encoder> = Box::new(Precedence::new(Box::new(BinmergeEncoder::new()), 1));
+        let mut a: Box<dyn Encoder> =
+            Box::new(Precedence::new(Box::new(BinmergeEncoder::new()), 1));
         test_encoder(
             &mut a,
             "./bench/class_instances/",

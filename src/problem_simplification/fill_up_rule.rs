@@ -1,4 +1,3 @@
-
 use crate::problem_instance::partial_solution::PartialSolution;
 
 use super::simplification_rule::SimpRule;
@@ -17,7 +16,10 @@ impl SimpRule for FillUpRule {
 
         for process in 0..out.instance.num_processors {
             for job in 0..out.instance.num_jobs {
-                if out.instance.job_sizes[job] == max_makespan - out.assigned_makespan[process]&& out.possible_allocations[job].len() != 1 && out.possible_allocations[job].contains(&process)  {
+                if out.instance.job_sizes[job] == max_makespan - out.assigned_makespan[process]
+                    && out.possible_allocations[job].len() != 1
+                    && out.possible_allocations[job].contains(&process)
+                {
                     out.possible_allocations[job] = vec![process];
                     out.assigned_makespan[process] = max_makespan;
                     break;

@@ -1,5 +1,5 @@
 use crate::{
-    bdd::bdd_dyn::{DynBDD, self},
+    bdd::bdd_dyn::{self, DynBDD},
     common::timeout::Timeout,
     problem_instance::problem_instance::ProblemInstance,
 };
@@ -24,7 +24,6 @@ impl BddInterComp {
             opt_all: true,
         };
     }
-
 }
 
 impl Encoder for BddInterComp {
@@ -38,8 +37,17 @@ impl Encoder for BddInterComp {
         self.one_hot.encode(partial_solution);
         let mut clauses: Clauses = Clauses::new();
         let mut bdds: Vec<DynBDD> = vec![];
-        let undesignated_jobs: Vec<usize> = partial_solution.possible_allocations.iter().enumerate().filter(|(_,x)| x.len() > 1).map(|(i, _)| i).collect();
-        let job_sizes: Vec<usize> = undesignated_jobs.iter().map(|i| partial_solution.instance.job_sizes[*i]).collect();
+        let undesignated_jobs: Vec<usize> = partial_solution
+            .possible_allocations
+            .iter()
+            .enumerate()
+            .filter(|(_, x)| x.len() > 1)
+            .map(|(i, _)| i)
+            .collect();
+        let job_sizes: Vec<usize> = undesignated_jobs
+            .iter()
+            .map(|i| partial_solution.instance.job_sizes[*i])
+            .collect();
         let range_table = bdd_dyn::RangeTable::new(undesignated_jobs, job_sizes, makespan);
 
         // for each processor, collect the vars that can go on it, and their weights, and build a bdd
@@ -57,9 +65,7 @@ impl Encoder for BddInterComp {
                 }
             }
             if jobs.len() == 0 {
-                bdds.push(DynBDD {
-                    nodes: vec![],
-                })
+                bdds.push(DynBDD { nodes: vec![] })
             } else {
                 // now we construct the bdd to assert that this machine is not too full
                 let bdd = DynBDD::leq(
@@ -86,7 +92,6 @@ impl Encoder for BddInterComp {
                 clauses.add_many_clauses(&mut a);
             }
 
-
             if timeout.time_finished() || clauses.get_num_clauses() > max_num_clauses {
                 return false;
             }
@@ -97,9 +102,7 @@ impl Encoder for BddInterComp {
                 if bdds[j].nodes.is_empty() || bdds[i].nodes.is_empty() {
                     continue;
                 }
-                clauses.add_many_clauses(&mut bdds[i].encode_bdd_bijective_relation(
-                    &bdds[j],
-                ));
+                clauses.add_many_clauses(&mut bdds[i].encode_bdd_bijective_relation(&bdds[j]));
             }
             if timeout.time_finished() || clauses.get_num_clauses() > max_num_clauses {
                 return false;

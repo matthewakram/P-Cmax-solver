@@ -58,7 +58,7 @@ fn main() {
         Box::new(pigeon_hole::PigeonHole {}),
         Box::new(max_job_size::MaxJobSize {}),
         Box::new(middle::MiddleJobs {}),
-        Box::new(fs::FeketeSchepers{}),
+        Box::new(fs::FeketeSchepers {}),
         Box::new(lpt::LPT {}),
         Box::new(lptp::Lptp {}),
         //Box::new(martello_toth::MartelloToth {}),
@@ -132,7 +132,7 @@ fn main() {
         encoder = Box::new(Precedence::new(Box::new(BddInterComp::new()), 1));
     } else if args.contains(&"-binmerge".to_string()) {
         encoder = Box::new(BinmergeEncoder::new());
-    } else{
+    } else {
         panic!("need to specify one of the given options")
     }
 

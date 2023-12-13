@@ -6,18 +6,21 @@ use super::super::super::problem_instance::problem_instance::ProblemInstance;
 
 /// implements the lpt heuristic for upper and lower bounds
 
-pub struct LPT{
-    
-}
+pub struct LPT {}
 
-
-fn index_of_min(list: &Vec<usize>) -> usize{
+fn index_of_min(list: &Vec<usize>) -> usize {
     let (index, _) = list.iter().enumerate().min_by_key(|(_, x)| *x).unwrap();
     return index;
 }
 
 impl Bound for LPT {
-    fn bound(&self, instance: &ProblemInstance, lower_bound: usize, upper_bound: Option<Solution>, _timeout: &Timeout) -> (usize, Option<Solution>) {
+    fn bound(
+        &self,
+        instance: &ProblemInstance,
+        lower_bound: usize,
+        upper_bound: Option<Solution>,
+        _timeout: &Timeout,
+    ) -> (usize, Option<Solution>) {
         let mut solution: Vec<usize> = vec![];
         let mut total_sizes: Vec<usize> = vec![0; instance.num_processors];
 
@@ -33,11 +36,14 @@ impl Bound for LPT {
         let lower_bound = new_lower_bound.max(lower_bound);
 
         if upper_bound.is_none() || upper_bound.as_ref().unwrap().makespan > makespan {
-            return (lower_bound, Some( Solution{
-                makespan,
-                assignment: solution
-            }))
+            return (
+                lower_bound,
+                Some(Solution {
+                    makespan,
+                    assignment: solution,
+                }),
+            );
         }
-        return (lower_bound, upper_bound)
+        return (lower_bound, upper_bound);
     }
 }

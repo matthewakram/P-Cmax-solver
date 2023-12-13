@@ -4,12 +4,10 @@ use crate::{
     common,
     encoding::{
         binary_arithmetic,
-        encoder::{VarNameGenerator, Clauses},
+        encoder::{Clauses, VarNameGenerator},
     },
     problem_instance::{
-        partial_solution::PartialSolution,
-        problem_instance::ProblemInstance,
-        solution::Solution,
+        partial_solution::PartialSolution, problem_instance::ProblemInstance, solution::Solution,
     },
 };
 
@@ -20,12 +18,11 @@ pub struct OneHotProblemEncoding {
     pub clauses: Clauses,
 }
 
-pub trait OneHotClone : OneHot + Clone {}
+pub trait OneHotClone: OneHot + Clone {}
 
 pub trait OneHot {
     fn get_position_var(&self, job_num: usize, proc_num: usize) -> Option<usize>;
 }
-
 
 impl OneHotProblemEncoding {
     pub fn new() -> OneHotProblemEncoding {
@@ -85,8 +82,7 @@ impl OneHotProblemEncoding {
         for job in 0..self.position_vars.len() {
             for process in 0..self.position_vars[job].len() {
                 if self.position_vars[job][process].is_some()
-                    && assignment_set
-                        .contains(&self.position_vars[job][process].as_ref().unwrap())
+                    && assignment_set.contains(&self.position_vars[job][process].as_ref().unwrap())
                 {
                     assignment.push(process);
                 }

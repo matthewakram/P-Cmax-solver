@@ -4,7 +4,6 @@ use std::{
     thread,
 };
 
-
 use crate::{
     bounds::{bound::Bound, upper_bounds::mss::MSS},
     common::timeout::Timeout,

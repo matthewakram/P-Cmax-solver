@@ -1,7 +1,7 @@
-
 use super::{
     basic_encoder::BasicEncoder,
-    encoder::{Clause, Encoder}, binary_arithmetic,
+    binary_arithmetic,
+    encoder::{Clause, Encoder},
 };
 
 pub struct FillUpLite {
@@ -30,7 +30,6 @@ impl Encoder for FillUpLite {
         }
         let mut clauses: Vec<Clause> = vec![];
 
-
         // now we implement the fill up rule
         for job in 0..partial_solution.instance.num_jobs {
             for processor in 0..partial_solution.instance.num_processors {
@@ -39,12 +38,28 @@ impl Encoder for FillUpLite {
                     // in essence this means partial_sum_i == weight ==> pos_var_job_1 | pos_var_job_2 | ...| pos_var_job_i
                     // TODO this
                     let goal_sum = makespan - partial_solution.instance.job_sizes[job];
-                    if goal_sum > self.basic.partial_sum_variables[processor][job].as_ref().unwrap().max {
+                    if goal_sum
+                        > self.basic.partial_sum_variables[processor][job]
+                            .as_ref()
+                            .unwrap()
+                            .max
+                    {
                         continue;
                     }
 
-                    let mut ne_clause = binary_arithmetic::not_equals_constant_encoding(self.basic.partial_sum_variables[processor][job].as_ref().unwrap(), goal_sum);
-                    let mut previous_position_clauses: Vec<i32> = self.basic.problem.position_vars[job].iter().enumerate().filter(|(i,x)| *i <= processor && x.is_some()).map(|(_, x)| (x.unwrap() as i32)).collect();
+                    let mut ne_clause = binary_arithmetic::not_equals_constant_encoding(
+                        self.basic.partial_sum_variables[processor][job]
+                            .as_ref()
+                            .unwrap(),
+                        goal_sum,
+                    );
+                    let mut previous_position_clauses: Vec<i32> = self.basic.problem.position_vars
+                        [job]
+                        .iter()
+                        .enumerate()
+                        .filter(|(i, x)| *i <= processor && x.is_some())
+                        .map(|(_, x)| (x.unwrap() as i32))
+                        .collect();
                     ne_clause.vars.append(&mut previous_position_clauses);
 
                     clauses.push(ne_clause);

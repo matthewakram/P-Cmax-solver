@@ -1,9 +1,6 @@
 use std::{fs::File, io::Write};
 
-use crate::{
-    common::timeout::Timeout,
-    encoding::encoder::Clauses,
-};
+use crate::{common::timeout::Timeout, encoding::encoder::Clauses};
 
 pub fn _print_to_dimacs(
     file_name: &str,
@@ -28,7 +25,14 @@ pub fn to_dimacs(
     let log_2 = (usize::BITS - number_of_variables.leading_zeros()) as usize;
     let clause_size = log_2 * clauses.len();
     let mut out = String::with_capacity(clause_size);
-    out.push_str(format!("p cnf {} {}\n", number_of_variables, clauses.get_num_clauses()).as_str());
+    out.push_str(
+        format!(
+            "p cnf {} {}\n",
+            number_of_variables,
+            clauses.get_num_clauses()
+        )
+        .as_str(),
+    );
 
     let mut num_chars_done: usize = 0;
     for var in clauses.iter() {

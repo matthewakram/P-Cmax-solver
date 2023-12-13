@@ -1,9 +1,8 @@
-
 use crate::{
+    bounds::bound::Bound,
     common::{common, timeout::Timeout},
-    problem_instance::{problem_instance::ProblemInstance, solution::Solution}, bounds::bound::Bound,
+    problem_instance::{problem_instance::ProblemInstance, solution::Solution},
 };
-
 
 pub struct Lptpp {}
 
@@ -71,9 +70,14 @@ fn is_feasable(instance: &ProblemInstance, max_makespan: usize) -> Option<Soluti
     });
 }
 
-
-impl Bound for Lptpp{
-    fn bound(&self, problem: &ProblemInstance, lower_bound: usize, upper_bound: Option<Solution>, timeout: &Timeout) -> (usize, Option<Solution>) {
+impl Bound for Lptpp {
+    fn bound(
+        &self,
+        problem: &ProblemInstance,
+        lower_bound: usize,
+        upper_bound: Option<Solution>,
+        timeout: &Timeout,
+    ) -> (usize, Option<Solution>) {
         let mut makespan_to_check = lower_bound;
         let current_bound = upper_bound.as_ref().unwrap();
         loop {

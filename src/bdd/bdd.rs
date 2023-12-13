@@ -1,7 +1,5 @@
-
-
 use crate::common::timeout::Timeout;
-use crate::encoding::encoder::{Clause, VarNameGenerator, Clauses};
+use crate::encoding::encoder::{Clause, Clauses, VarNameGenerator};
 
 use crate::bitvec::prelude::*;
 use crate::bitvec::vec::BitVec;
@@ -158,7 +156,6 @@ pub fn leq(
 }
 
 pub fn assign_aux_vars(mut bdd: BDD, var_name_generator: &mut VarNameGenerator) -> BDD {
-
     for i in (0..bdd.nodes.len()).rev() {
         if bdd.nodes[i].aux_var == 0 {
             bdd.nodes[i].aux_var = var_name_generator.next();
@@ -200,7 +197,6 @@ pub fn _encode_bad(bdd: &BDD) -> Clauses {
                 (bdd.nodes[bdd.nodes[i].right_child].aux_var as i32),
             ],
         });
-
     }
 
     return clauses;

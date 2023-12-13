@@ -1,10 +1,10 @@
-use crate::{problem_instance::problem_instance::ProblemInstance, common::timeout::Timeout};
+use crate::{common::timeout::Timeout, problem_instance::problem_instance::ProblemInstance};
 
 use super::{
     binary_arithmetic::{self, BinaryNumber},
-    encoder::{Encoder, OneHotEncoder, Clauses}, problem_encoding::one_hot_encoding::{OneHotProblemEncoding, OneHot},
+    encoder::{Clauses, Encoder, OneHotEncoder},
+    problem_encoding::one_hot_encoding::{OneHot, OneHotProblemEncoding},
 };
-
 
 #[derive(Clone)]
 pub struct BasicEncoder {
@@ -12,7 +12,7 @@ pub struct BasicEncoder {
     pub clauses: Clauses,
     pub final_sum_vars: Vec<BinaryNumber>,
     pub weight_on_machine_vars: Vec<Vec<Option<BinaryNumber>>>,
-    pub partial_sum_variables: Vec<Vec<Option<BinaryNumber>>>
+    pub partial_sum_variables: Vec<Vec<Option<BinaryNumber>>>,
 }
 
 impl BasicEncoder {
@@ -22,7 +22,7 @@ impl BasicEncoder {
             clauses: Clauses::new(),
             final_sum_vars: vec![],
             weight_on_machine_vars: vec![],
-            partial_sum_variables: vec![]
+            partial_sum_variables: vec![],
         };
     }
 }
@@ -33,7 +33,7 @@ impl Encoder for BasicEncoder {
         partial_solution: &crate::problem_instance::partial_solution::PartialSolution,
         makespan: usize,
         timeout: &Timeout,
-        _ : usize
+        _: usize,
     ) -> bool {
         self.problem.encode(partial_solution);
         let mut clauses: Clauses = Clauses::new();
@@ -128,9 +128,9 @@ impl Encoder for BasicEncoder {
 }
 
 impl OneHot for BasicEncoder {
-    fn get_position_var(&self, job_num: usize, proc_num: usize) -> Option<usize>{
+    fn get_position_var(&self, job_num: usize, proc_num: usize) -> Option<usize> {
         return self.problem.position_vars[job_num][proc_num];
     }
 }
 
-impl OneHotEncoder for BasicEncoder{}
+impl OneHotEncoder for BasicEncoder {}

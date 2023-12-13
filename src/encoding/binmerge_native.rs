@@ -1,6 +1,4 @@
-
 use crate::{common::timeout::Timeout, problem_instance::problem_instance::ProblemInstance};
-
 
 use super::{
     binary_arithmetic, cardinality_networks,
@@ -11,8 +9,8 @@ use super::{
 #[derive(Clone)]
 pub struct BinmergeEncoder {
     one_hot: OneHotProblemEncoding,
-    sorted : Vec<Vec<Vec<usize>>>,
-    merged : Vec<Vec<Vec<usize>>>,
+    sorted: Vec<Vec<Vec<usize>>>,
+    merged: Vec<Vec<Vec<usize>>>,
     sum_vals: Vec<Vec<usize>>,
     clauses: Clauses,
 }
@@ -21,7 +19,7 @@ impl BinmergeEncoder {
     pub fn new() -> BinmergeEncoder {
         return BinmergeEncoder {
             one_hot: OneHotProblemEncoding::new(),
-            sorted : vec![],
+            sorted: vec![],
             merged: vec![],
             sum_vals: vec![],
             clauses: Clauses::new(),
@@ -40,11 +38,11 @@ impl Encoder for BinmergeEncoder {
     ) -> bool {
         self.one_hot.encode(partial_solution);
         let mut clauses: Clauses = Clauses::new();
-        
-        
 
         let false_var = self.one_hot.var_name_generator.next();
-        clauses.add_clause(Clause { vars: vec![-(false_var as i32)] });
+        clauses.add_clause(Clause {
+            vars: vec![-(false_var as i32)],
+        });
 
         let mut all_sorted: Vec<Vec<Vec<usize>>> = vec![];
         let mut all_merged: Vec<Vec<Vec<usize>>> = vec![];
@@ -54,10 +52,20 @@ impl Encoder for BinmergeEncoder {
                 return false;
             }
             let mut bit_level_sorted_vars: Vec<Vec<usize>> = vec![];
-            let makespan_remaining = makespan- partial_solution.assigned_makespan[proc];
+            let makespan_remaining = makespan - partial_solution.assigned_makespan[proc];
             let makespan_bitlength = binary_arithmetic::number_bitlength(makespan_remaining);
-           //println!("proc {}", proc);
-            let max_weight = partial_solution.instance.job_sizes.iter().enumerate().filter(|(i,_)| partial_solution.possible_allocations[*i].len() > 1 && partial_solution.possible_allocations[*i].contains(&proc)).map(|(_,x)| x).max();
+            //println!("proc {}", proc);
+            let max_weight = partial_solution
+                .instance
+                .job_sizes
+                .iter()
+                .enumerate()
+                .filter(|(i, _)| {
+                    partial_solution.possible_allocations[*i].len() > 1
+                        && partial_solution.possible_allocations[*i].contains(&proc)
+                })
+                .map(|(_, x)| x)
+                .max();
             if max_weight.is_none() {
                 continue;
             }
@@ -83,9 +91,7 @@ impl Encoder for BinmergeEncoder {
                 let mut total_asigned = 0;
                 for i in (0..relevant_jobs.len()).rev() {
                     let relevant_job_size = partial_solution.instance.job_sizes[relevant_jobs[i]];
-                    if total_asigned + relevant_job_size
-                        <= makespan_remaining
-                    {
+                    if total_asigned + relevant_job_size <= makespan_remaining {
                         total_asigned += relevant_job_size;
                         max_num_assigned += 1;
                     } else {
@@ -93,15 +99,18 @@ impl Encoder for BinmergeEncoder {
                     }
                 }
 
-               //println!("relevant_job sizes {:?}", relevant_jobs.iter().map(|i| partial_solution.instance.job_sizes[*i]).collect::<Vec<usize>>());
+                //println!("relevant_job sizes {:?}", relevant_jobs.iter().map(|i| partial_solution.instance.job_sizes[*i]).collect::<Vec<usize>>());
 
-                let vars : Vec<usize> = relevant_jobs.iter().map(|x| self.one_hot.position_vars[*x][proc].unwrap()).collect();
+                let vars: Vec<usize> = relevant_jobs
+                    .iter()
+                    .map(|x| self.one_hot.position_vars[*x][proc].unwrap())
+                    .collect();
                 let (mut bitlength_clauses, sorted) = cardinality_networks::half_sort(
                     &vars,
                     max_num_assigned,
                     &mut self.one_hot.var_name_generator,
                 );
-               //println!("max_num_assigned {}, total_remaning {}", max_num_assigned, makespan_remaining);
+                //println!("max_num_assigned {}, total_remaning {}", max_num_assigned, makespan_remaining);
                 clauses.add_many_clauses(&mut bitlength_clauses);
 
                 bit_level_sorted_vars.push(sorted);
@@ -112,7 +121,6 @@ impl Encoder for BinmergeEncoder {
             // 2) extract the exact value of the sum from the merged levels
             // 3 assert that this sum is smaller than makespan
 
-            
             let mut merge_bits: Vec<Vec<usize>> = vec![];
             merge_bits.push(bit_level_sorted_vars[0].clone());
             let mut sum_val: Vec<usize> = vec![];
@@ -137,7 +145,11 @@ impl Encoder for BinmergeEncoder {
 
                 let empty_vec = vec![];
                 let (mut merge_claues, next_merge_bits) = cardinality_networks::half_merge(
-                    if bit_depth < bit_level_sorted_vars.len() {&bit_level_sorted_vars[bit_depth]} else {&empty_vec},
+                    if bit_depth < bit_level_sorted_vars.len() {
+                        &bit_level_sorted_vars[bit_depth]
+                    } else {
+                        &empty_vec
+                    },
                     &previous_carry_bits,
                     (1 << (makespan_bitlength - bit_depth)) - 1,
                     &mut self.one_hot.var_name_generator,
@@ -163,17 +175,19 @@ impl Encoder for BinmergeEncoder {
 
             let final_sum =
                 binary_arithmetic::BinaryNumber::new_from_vec(sum_val, makespan_remaining);
-            clauses.add_many_clauses(&mut binary_arithmetic::at_most_k_encoding(&final_sum, makespan_remaining));
+            clauses.add_many_clauses(&mut binary_arithmetic::at_most_k_encoding(
+                &final_sum,
+                makespan_remaining,
+            ));
         }
 
         self.merged = all_merged;
         self.sorted = all_sorted;
         self.sum_vals = all_sum_vals;
         self.clauses = clauses;
-       //println!("{:?}", self.sorted);
-       //println!("{:?}", self.merged);
-       //println!("{:?}", self.sum_vals);
-
+        //println!("{:?}", self.sorted);
+        //println!("{:?}", self.merged);
+        //println!("{:?}", self.sum_vals);
 
         return true;
     }
@@ -200,35 +214,35 @@ impl Encoder for BinmergeEncoder {
         instance: &ProblemInstance,
         var_assignment: &Vec<i32>,
     ) -> crate::problem_instance::solution::Solution {
-       //println!("assignment {:?}", var_assignment);
-       // for proc in 0..self.merged.len() {
-       //    //println!("sorted_vals, proc {}", proc);
-       //     for i in 0..self.sorted[proc].len() {
-       //         let mut values = vec![];
-       //         for var in &self.sorted[proc][i] {
-       //             if var_assignment.contains(&(*var as i32)) {
-       //                 values.push(1);
-       //             } else {
-       //                 values.push(0);
-       //             }
-       //         }
-       //        //println!("{:?}", values);
-       //         
-       //     }
-       //    //println!("merged_vals, proc {}", proc);
-       //     for i in 0..self.merged[proc].len() {
-       //         let mut values = vec![];
-       //         for var in &self.merged[proc][i] {
-       //             if var_assignment.contains(&(*var as i32)) {
-       //                 values.push(1);
-       //             } else {
-       //                 values.push(0);
-       //             }
-       //         }
-       //        //println!("{:?}", values);
-       //         
-       //     }
-       // }
+        //println!("assignment {:?}", var_assignment);
+        // for proc in 0..self.merged.len() {
+        //    //println!("sorted_vals, proc {}", proc);
+        //     for i in 0..self.sorted[proc].len() {
+        //         let mut values = vec![];
+        //         for var in &self.sorted[proc][i] {
+        //             if var_assignment.contains(&(*var as i32)) {
+        //                 values.push(1);
+        //             } else {
+        //                 values.push(0);
+        //             }
+        //         }
+        //        //println!("{:?}", values);
+        //
+        //     }
+        //    //println!("merged_vals, proc {}", proc);
+        //     for i in 0..self.merged[proc].len() {
+        //         let mut values = vec![];
+        //         for var in &self.merged[proc][i] {
+        //             if var_assignment.contains(&(*var as i32)) {
+        //                 values.push(1);
+        //             } else {
+        //                 values.push(0);
+        //             }
+        //         }
+        //        //println!("{:?}", values);
+        //
+        //     }
+        // }
         return self.one_hot.decode(instance, var_assignment);
     }
 

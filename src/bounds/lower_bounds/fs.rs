@@ -14,7 +14,7 @@ fn lp(k: usize, problem: &ProblemInstance, makespan: usize) -> bool {
         .iter()
         .map(|x: &usize| {
             if ((k + 1) * x) % makespan != 0 {
-                let rounded = Fraction::from(((k + 1) * x) % makespan/ makespan);
+                let rounded = Fraction::from(((k + 1) * x) % makespan / makespan);
                 rounded / Fraction::from(k)
             } else {
                 Fraction::from(*x / makespan)
@@ -23,7 +23,6 @@ fn lp(k: usize, problem: &ProblemInstance, makespan: usize) -> bool {
         .collect();
 
     let normalized_sum: Fraction = normalized_job_sizes.iter().sum();
-    
 
     let mut upper_pointer = 0;
     let mut lower_pointer = normalized_job_sizes.len() - 1;
