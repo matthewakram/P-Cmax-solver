@@ -15,7 +15,7 @@ mod tests {
         },
         common::timeout::Timeout,
         encoding::{
-            basic_encoder::BasicEncoder, basic_with_precedence::Precedence,
+            basic_encoder::BasicEncoder, precedence_encoder::Precedence,
             binmerge_native::BinmergeEncoder, encoder::Encoder, pb_bdd_inter::PbInter,
             pb_bdd_inter_better::PbInterDyn, pb_bdd_native::PbNativeEncoder,
             pb_bdd_pysat::PbPysatEncoder,

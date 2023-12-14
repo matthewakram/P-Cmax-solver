@@ -41,8 +41,7 @@ impl SatSolver for Kissat {
         let mut start_lock = self.pid.lock().unwrap();
         let mut child: std::process::Child = Command::new("./kissat")
             .arg("-q")
-            // TODO: change this back
-            .stdout(Stdio::piped())
+                        .stdout(Stdio::piped())
             .stdin(Stdio::piped())
             .spawn()
             .unwrap();

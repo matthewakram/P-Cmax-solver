@@ -10,7 +10,7 @@ use p_cmax_solver::bounds::upper_bounds::{lptp, lptpp, mss};
 use p_cmax_solver::common::common::IndexOf;
 use p_cmax_solver::common::timeout::Timeout;
 use p_cmax_solver::encoding::basic_encoder::BasicEncoder;
-use p_cmax_solver::encoding::basic_with_precedence::Precedence;
+use p_cmax_solver::encoding::precedence_encoder::Precedence;
 use p_cmax_solver::encoding::bdd_inter_comp::BddInterComp;
 use p_cmax_solver::encoding::binmerge_native::BinmergeEncoder;
 use p_cmax_solver::encoding::encoder::Encoder;

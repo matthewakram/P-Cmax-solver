@@ -17,7 +17,7 @@ mod tests {
         common::timeout::Timeout,
         encoding::{
             basic_encoder::BasicEncoder,
-            basic_with_precedence::Precedence,
+            precedence_encoder::Precedence,
             bdd_inter_comp::BddInterComp,
             binmerge_native::BinmergeEncoder,
             encoder::{Clause, Encoder},

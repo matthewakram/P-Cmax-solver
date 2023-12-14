@@ -212,7 +212,6 @@ impl DynBDD {
                         let node_id = nodes.len() - 1;
                         reachable_i_nodes[reachable_i] = node_id;
                         nodes[node_id].range = (nodes[node_id].range.0, reachable_i);
-                        //nodes[node_id].point_set.insert(reachable_i);
                     }
                 }
             }

@@ -7,7 +7,7 @@ use crate::{
     },
     common::timeout::Timeout,
     encoding::{
-        basic_with_precedence::Precedence, encoder::Encoder, pb_bdd_inter_better::PbInterDyn,
+        precedence_encoder::Precedence, encoder::Encoder, pb_bdd_inter_better::PbInterDyn,
     },
     makespan_scheduling::linear_makespan::LinearMakespan,
     problem_instance::{problem_instance::ProblemInstance, solution::Solution},
