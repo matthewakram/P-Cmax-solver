@@ -1,24 +1,21 @@
-name: coverage
+name: Make Coverage Badge
+on:
+  push:
+    branches: [main]
 
-on: [push]
 jobs:
-  test:
-    name: coverage
+  build:
     runs-on: ubuntu-latest
-    container:
-      image: xd009642/tarpaulin:develop-nightly
-      options: --security-opt seccomp=unconfined
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v2
-      - uses: actions-rs/toolchain@v1
+      - uses: actions/checkout@v3
+      - uses: action-badges/create-orphan-branch@0.1.0
         with:
-          toolchain: stable
-      - name: Generate code coverage
-        run: cargo tarpaulin --timeout 120 --out xml
-      
-      - name: Code Coverage Summary Report
-        uses: irongut/CodeCoverageSummary@v1.3.0
+          branch-name: badges
+
+      - name: Make Coverage Badge
+        uses: action-badges/cobertura-coverage-xml-badges@0.3.0
         with:
-          filename: cobertura.xml
-          badge: true
+          file-name: coverage.svg
+          badge-branch: badges
+          github-token: '${{ secrets.GITHUB_TOKEN }}'
+          coverage-file-name: ./coverage.xml
