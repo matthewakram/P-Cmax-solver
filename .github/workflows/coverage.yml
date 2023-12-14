@@ -15,9 +15,16 @@ jobs:
         with:
           toolchain: stable
       - name: Generate code coverage
-        run: cargo build && cargo tarpaulin --timeout 120 --out xml
-
-      - name: Upload to codecov.io
-        uses: codecov/codecov-action@v2
+        run: cargo tarpaulin --timeout 120 --out xml
+      
+      - uses: actions/checkout@v3
+      - uses: action-badges/create-orphan-branch@0.1.0
         with:
-          fail_ci_if_error: true
+          branch-name: badges
+      - name: Make Coverage Badge
+        uses: action-badges/cobertura-coverage-xml-badges@0.3.0
+        with:
+          file-name: coverage.svg
+          badge-branch: badges
+          github-token: '${{ secrets.GITHUB_TOKEN }}'
+          coverage-file-name: ./cobertura.xml
