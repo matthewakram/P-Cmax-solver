@@ -16,16 +16,19 @@ pub trait SatSolver: DynClone + Send {
     /// # Examples
     /// 
     /// ```
+    /// # use p_cmax_solver::solvers::sat_solver::kissat::Kissat;
+    /// # use crate::p_cmax_solver::solvers::solver::SatSolver;
     /// let solver = Kissat::new();
     /// let pid = solver.get_pid();
-    /// ...
+    /// // Start Solving
+    /// // ...
     /// // In a different thread
     /// let mut pid = pid.lock().unwrap();
     /// if *pid != 0 {
-    ///     ...
     ///     // kill process
-    ///     ...
-    ///     *sat_pid = 0;
+    ///     // ...
+    /// 
+    ///     *pid = 0;
     /// }
     /// drop(pid);
     /// ```
