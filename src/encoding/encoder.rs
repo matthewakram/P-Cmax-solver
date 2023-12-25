@@ -87,8 +87,23 @@ impl Clauses {
     pub fn get_num_clauses(&self) -> usize {
         return self.num_clauses;
     }
+
+    pub fn unflatten(&self) -> Vec<Clause> {
+        let mut out: Vec<Clause> = vec![];
+        let mut current_clause = vec![];
+        for i in &self.clauses {
+            if i == &0 {
+                out.push(Clause {vars: current_clause});
+                current_clause = vec![];
+            } else {
+                current_clause.push(*i);
+            }
+        }
+        return out;
+    }
 }
 
+#[derive(Clone)]
 pub struct Clause {
     pub vars: Vec<i32>,
 }

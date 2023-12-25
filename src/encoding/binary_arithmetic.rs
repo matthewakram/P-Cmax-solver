@@ -1,3 +1,5 @@
+use bitvec::vec;
+
 use super::encoder::{Clause, Clauses, VarNameGenerator};
 
 #[derive(Debug, Clone)]
@@ -96,6 +98,81 @@ pub fn at_most_k_encoding(n: &BinaryNumber, k: usize) -> Clauses {
     }
 
     return output;
+}
+
+pub fn at_most_k_exact_encoding(
+    n: &BinaryNumber,
+    k: usize,
+    var_name_generator: &mut VarNameGenerator,
+) -> (Clauses, usize) {
+    // get the binary representation of k
+    let k = to_binary(k);
+    let mut clauses = Clauses::new();
+    let out_var = var_name_generator.next();
+    if n.bit_length < k.len() {
+        // since we have a minimal representation of k, we know that in this case, n cannot be larger than k
+        clauses.add_clause(Clause {
+            vars: vec![out_var as i32],
+        });
+        return (clauses, out_var);
+    }
+
+    for i in 0..k.len() {
+        // encode if k_i == 0: n_i => !n_i' for at least one i' > i where k_i' == 1
+        let mut vars: Vec<i32> = if k[i] == true {
+            vec![(n.vars[i] as i32), out_var as i32]
+        } else {
+            vec![-(n.vars[i] as i32), -(out_var as i32)]
+        };
+
+        for j in i + 1..k.len() {
+            if k[j] == true {
+                vars.push(-(n.vars[j] as i32));
+            } else {
+                vars.push(n.vars[j] as i32);
+            }
+        }
+        clauses.add_clause(Clause { vars });
+    }
+    // we also need to make sure that if n is longer than k, that the trailing variables are obviously false
+    for i in k.len()..n.bit_length {
+        clauses.add_clause(Clause {
+            vars: vec![-(n.vars[i] as i32)],
+        })
+    }
+
+    return (clauses, out_var);
+}
+
+pub fn greater_than_logical_encoding(
+    n: &BinaryNumber,
+    k: usize,
+    var_name_generator: &mut VarNameGenerator,
+) -> (Clauses, usize) {
+    let clauses = at_most_k_encoding(n, k);
+    let out_var = var_name_generator.next();
+    let mut out_clauses = Clauses::new();
+    for mut clause in clauses.unflatten() {
+        clause.vars.push(out_var as i32);
+        out_clauses.add_clause(clause);
+    }
+    return (out_clauses, out_var);
+}
+
+pub fn greater_than_exact_logical_encoding(
+    n: &BinaryNumber,
+    k: usize,
+    var_name_generator: &mut VarNameGenerator,
+) -> (Clauses, usize) {
+    let (mut clauses, leq_var) = at_most_k_exact_encoding(n, k, var_name_generator);
+    let gt_var = var_name_generator.next();
+    clauses.add_clause(Clause {
+        vars: vec![-(gt_var as i32), -(leq_var as i32)],
+    });
+    clauses.add_clause(Clause {
+        vars: vec![(gt_var as i32), (leq_var as i32)],
+    });
+    return (clauses, gt_var);
 }
 
 pub fn bounded_sum_encoding(
@@ -365,7 +442,6 @@ pub fn _equals_constant_encoding(n: &BinaryNumber, k: usize) -> Clauses {
     return clauses;
 }
 
-//used for testing
 pub fn not_equals_constant_encoding(n: &BinaryNumber, k: usize) -> Clause {
     let k = to_binary(k);
     assert!(k.len() <= n.bit_length);
@@ -480,4 +556,86 @@ pub fn n_implies_m_in_j_encoding(n: usize, m: &BinaryNumber, j: &Vec<usize>) -> 
         m,
         j,
     );
+}
+
+pub fn equals_encoding(
+    number1: &BinaryNumber,
+    number2: &BinaryNumber,
+    name_generator: &mut VarNameGenerator,
+) -> (Clauses, usize) {
+    let out = name_generator.next();
+
+    let (number1, number2) = if number1.bit_length < number2.bit_length {
+        (number1, number2)
+    } else {
+        (number2, number1)
+    };
+
+    let mut clauses = Clauses::new();
+    for i in 0..number1.bit_length {
+        clauses.add_clause(Clause {
+            vars: vec![
+                (number1.vars[i] as i32),
+                -(number2.vars[i] as i32),
+                -(out as i32),
+            ],
+        });
+        clauses.add_clause(Clause {
+            vars: vec![
+                -(number1.vars[i] as i32),
+                (number2.vars[i] as i32),
+                -(out as i32),
+            ],
+        });
+    }
+
+    for i in number1.bit_length..number2.bit_length {
+        clauses.add_clause(Clause {
+            vars: vec![-(number2.vars[i] as i32), -(out as i32)],
+        });
+    }
+
+    return (clauses, out);
+}
+
+pub fn exact_equals_encoding(
+    number1: &BinaryNumber,
+    number2: &BinaryNumber,
+    name_generator: &mut VarNameGenerator,
+) -> (Clauses, usize) {
+    let (mut clauses, out) = equals_encoding(number1, number2, name_generator);
+
+    let (number1, number2) = if number1.bit_length < number2.bit_length {
+        (number1, number2)
+    } else {
+        (number2, number1)
+    };
+
+    let mut helper_vars: Vec<usize> = (0..number1.bit_length)
+        .into_iter()
+        .map(|_| name_generator.next())
+        .collect();
+    helper_vars.append(&mut number2.vars[number1.bit_length..number2.bit_length].to_vec());
+    for i in 0..number1.bit_length {
+        clauses.add_clause(Clause {
+            vars: vec![
+                -(number1.vars[i] as i32),
+                -(number2.vars[i] as i32),
+                -(helper_vars[i] as i32),
+            ],
+        });
+        clauses.add_clause(Clause {
+            vars: vec![
+                (number1.vars[i] as i32),
+                (number2.vars[i] as i32),
+                -(helper_vars[i] as i32),
+            ],
+        });
+    }
+
+    let mut final_clause: Vec<i32> = helper_vars.into_iter().map(|x| x as i32).collect();
+    final_clause.push(out as i32);
+
+    clauses.add_clause(Clause { vars: final_clause });
+    return (clauses, out);
 }

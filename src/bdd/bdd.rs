@@ -141,7 +141,6 @@ pub fn leq(
     //for node in &nodes {
     //    println!("var: {}  left: {}  right: {}, range: [{}, {}]", node.var, node.left_child, node.right_child, node.range.0, node.range.1);
     //}
-    let root_index = nodes.len() - 1;
     return Some(BDD { nodes: nodes });
 }
 

@@ -335,4 +335,93 @@ mod tests {
             }
         }
     }
+
+    #[test]
+    pub fn equals_test() {
+        let mut rng = rand::thread_rng();
+
+        let mut solver = Kissat::new();
+        for i in 0..20 {
+            for j in 0..20 {
+                let mut var_name_generator = VarNameGenerator::new();
+                let number1 = BinaryNumber::new(i, &mut var_name_generator);
+                let number2 = BinaryNumber::new(j, &mut var_name_generator);
+
+                for k in 0..20 {
+                    let number1_value: usize = rng.gen_range(0..i + 1);
+                    let number2_value: usize = rng.gen_range(0..j + 1);
+                    let mut clauses =
+                        binary_arithmetic::_equals_constant_encoding(&number1, number1_value);
+                    clauses.add_many_clauses(&mut binary_arithmetic::_equals_constant_encoding(
+                        &number2,
+                        number2_value,
+                    ));
+
+                    let (mut equals_clauses, equals_val) = binary_arithmetic::equals_encoding(
+                        &number1,
+                        &number2,
+                        &mut var_name_generator,
+                    );
+                    clauses.add_many_clauses(&mut equals_clauses);
+
+                    clauses.add_clause(Clause {
+                        vars: vec![(equals_val as i32)],
+                    });
+
+                    let sol = solver.solve(clauses, var_name_generator.peek(), &Timeout::new(5.0));
+
+                    if number1_value == number2_value {
+                        assert!(sol.is_sat());
+                    } else {
+                        assert!(sol.is_unsat());
+                    }
+                }
+            }
+        }
+    }
+
+    #[test]
+    pub fn equals_exact_test() {
+        let mut rng = rand::thread_rng();
+
+        let mut solver = Kissat::new();
+        for i in 0..20 {
+            for j in 0..20 {
+                let mut var_name_generator = VarNameGenerator::new();
+                let number1 = BinaryNumber::new(i, &mut var_name_generator);
+                let number2 = BinaryNumber::new(j, &mut var_name_generator);
+
+                for k in 0..20 {
+                    let number1_value: usize = rng.gen_range(0..i + 1);
+                    let number2_value: usize = rng.gen_range(0..j + 1);
+                    let mut clauses =
+                        binary_arithmetic::_equals_constant_encoding(&number1, number1_value);
+                    clauses.add_many_clauses(&mut binary_arithmetic::_equals_constant_encoding(
+                        &number2,
+                        number2_value,
+                    ));
+
+                    let (mut equals_clauses, equals_val) = binary_arithmetic::exact_equals_encoding(
+                        &number1,
+                        &number2,
+                        &mut var_name_generator,
+                    );
+                    clauses.add_many_clauses(&mut equals_clauses);
+
+                    clauses.add_clause(Clause {
+                        vars: vec![(equals_val as i32)],
+                    });
+
+                    let sol = solver.solve(clauses, var_name_generator.peek(), &Timeout::new(5.0));
+
+                    if number1_value == number2_value {
+                        assert!(sol.is_sat());
+                    } else {
+                        assert!(sol.is_unsat());
+                    }
+                }
+            }
+        }
+    }
+
 }

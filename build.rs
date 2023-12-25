@@ -2,7 +2,6 @@ use std::process::Command;
 
 fn main() {
     println!("cargo:rerun-if-changed=build.rs");
-    println!("cargo:rerun-if-changed=kissat");
     if cfg!(target_os = "macos") || cfg!(target_os = "linux") {
         let out = Command::new("git")
             .args([

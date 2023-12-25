@@ -1,5 +1,7 @@
 use std::{env, vec};
 
+use p_cmax_solver::encoding::binmerge_inter::BinmergeInterEncoder;
+use p_cmax_solver::encoding::binmerge_simp::BinmergeSimpEncoder;
 use p_cmax_solver::{bounds, input_output};
 
 use bounds::lower_bounds::*;
@@ -73,7 +75,8 @@ fn main() {
             break;
         }
     }
-    let upper_bound = upper_bound.unwrap();
+    let mut upper_bound = upper_bound.unwrap();
+    upper_bound.makespan += 1;
 
     // -------------CHECKING IF SOLUTION HAS BEEN FOUND-----------
     // We maintain that the solution is within [lower_bound, upper_bound]. Note that this is inclusive.
@@ -114,7 +117,7 @@ fn main() {
     } else if args.contains(&"-intercomp".to_string()) && args.contains(&"-prec".to_string()) {
         encoder = Box::new(Precedence::new(Box::new(BddInterComp::new()), 1));
     } else if args.contains(&"-binmerge".to_string()) {
-        encoder = Box::new(BinmergeEncoder::new());
+        encoder = Box::new(BinmergeInterEncoder::new());
     } else {
         panic!("need to specify one of the given options")
     }

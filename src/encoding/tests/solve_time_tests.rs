@@ -18,7 +18,7 @@ mod tests {
             basic_encoder::BasicEncoder, precedence_encoder::Precedence,
             binmerge_native::BinmergeEncoder, encoder::Encoder, pb_bdd_inter::PbInter,
             pb_bdd_inter_better::PbInterDyn, pb_bdd_native::PbNativeEncoder,
-            pb_bdd_pysat::PbPysatEncoder,
+            pb_bdd_pysat::PbPysatEncoder, binmerge_inter::BinmergeInterEncoder, binmerge_simp::BinmergeSimpEncoder,
         },
         input_output::{self},
         problem_instance::partial_solution::PartialSolution,
@@ -315,6 +315,30 @@ mod tests {
             &mut a,
             "./bench/class_instances/",
             "./bench/results/class_instances_binmerge_prec_1.txt",
+        )
+    }
+
+    #[test]
+    #[ignore]
+    pub fn test_solve_time_class_binter() {
+        let mut a: Box<dyn Encoder> =
+            Box::new(Precedence::new(Box::new(BinmergeInterEncoder::new()), 1));
+        test_encoder(
+            &mut a,
+            "./bench/class_instances/",
+            "./bench/results/class_instances_binter_prec_1.txt",
+        )
+    }
+
+    #[test]
+    #[ignore]
+    pub fn test_solve_time_class_binsimp() {
+        let mut a: Box<dyn Encoder> =
+            Box::new(Precedence::new(Box::new(BinmergeSimpEncoder::new()), 1));
+        test_encoder(
+            &mut a,
+            "./bench/class_instances/",
+            "./bench/results/class_instances_binsimp_prec_1.txt",
         )
     }
 

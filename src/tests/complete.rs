@@ -24,7 +24,7 @@ mod tests {
             pb_bdd_inter::PbInter,
             pb_bdd_inter_better::PbInterDyn,
             pb_bdd_native::PbNativeEncoder,
-            pb_bdd_pysat::PbPysatEncoder,
+            pb_bdd_pysat::PbPysatEncoder, binmerge_inter::BinmergeInterEncoder, binmerge_simp::BinmergeSimpEncoder,
         },
         input_output::{self},
         makespan_scheduling::linear_makespan::LinearMakespan,
@@ -378,6 +378,30 @@ mod tests {
             &mut a,
             "./bench/class_instances/",
             "./bench/results/complete_class_instances_binmerge.txt",
+        )
+    }
+
+    #[test]
+    #[ignore]
+    pub fn complete_test_class_binter() {
+        let mut a: Box<dyn Encoder> =
+            Box::new(Precedence::new(Box::new(BinmergeInterEncoder::new()), 1));
+        test_encoder(
+            &mut a,
+            "./bench/class_instances/",
+            "./bench/results/complete_class_instances_binmerge_inter.txt",
+        )
+    }
+
+    #[test]
+    #[ignore]
+    pub fn complete_test_class_binsimp() {
+        let mut a: Box<dyn Encoder> =
+            Box::new(Precedence::new(Box::new(BinmergeSimpEncoder::new()), 1));
+        test_encoder(
+            &mut a,
+            "./bench/class_instances/",
+            "./bench/results/complete_class_instances_binmerge_simp.txt",
         )
     }
 

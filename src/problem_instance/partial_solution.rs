@@ -29,4 +29,8 @@ impl PartialSolution {
             assigned_makespan,
         };
     }
+
+    pub fn is_assigned(&self, job: usize ) -> bool {
+        return self.possible_allocations[job].len() == 1;
+    }
 }

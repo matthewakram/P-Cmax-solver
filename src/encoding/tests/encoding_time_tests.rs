@@ -15,7 +15,7 @@ mod tests {
             encoder::{Clause, Encoder},
             pb_bdd_inter::PbInter,
             pb_bdd_native::PbNativeEncoder,
-            pb_bdd_pysat::PbPysatEncoder,
+            pb_bdd_pysat::PbPysatEncoder, binmerge_simp::BinmergeSimpEncoder,
         },
         input_output::{self},
         problem_instance::partial_solution::PartialSolution,
@@ -52,7 +52,6 @@ mod tests {
         let mut out: Vec<String> = vec![];
 
         for makespan in lower_bound..(upper_bound.makespan + 1).min(lower_bound + 10) {
-            print!("a");
             let mut hsr = half_size_rule::HalfSizeRule {};
             let mut fur = fill_up_rule::FillUpRule {};
             let mut finalize: final_simp_rule::FinalizeRule = final_simp_rule::FinalizeRule {};
@@ -189,6 +188,18 @@ mod tests {
             &mut a,
             "./bench/class_instances/",
             "./bench/results/encoding_class_instances_binmerge.txt",
+        )
+    }
+
+    #[test]
+    #[ignore]
+    pub fn test_class_encoding_binmerge_simp() {
+        let mut a: Box<dyn Encoder> =
+        Box::new(BinmergeSimpEncoder::new());
+        test_encoder(
+            &mut a,
+            "./bench/class_instances/",
+            "./bench/results/encoding_class_instances_binmerge_simp.txt",
         )
     }
 
