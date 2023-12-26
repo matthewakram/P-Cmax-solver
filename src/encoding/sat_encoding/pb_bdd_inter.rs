@@ -1,32 +1,60 @@
 use crate::{
-    bdd::bdd_dyn::{self, DynBDD},
+    bdd::{self, bdd::BDD},
     common::timeout::Timeout,
-    problem_instance::problem_instance::ProblemInstance,
+    problem_instance::{partial_solution::PartialSolution, problem_instance::ProblemInstance}, encoding::encoder::{Clauses, Encoder, Clause, OneHotEncoder},
 };
 
-use super::{
-    encoder::{Clause, Clauses, Encoder, OneHotEncoder},
-    problem_encoding::one_hot_encoding::{OneHot, OneHotProblemEncoding},
-};
+use super::problem_encoding::one_hot_encoding::{OneHot, OneHotProblemEncoding};
 
 #[derive(Clone)]
-pub struct BddInterComp {
+pub struct PbInter {
     one_hot: OneHotProblemEncoding,
     pub clauses: Clauses,
     opt_all: bool,
 }
 
-impl BddInterComp {
-    pub fn new() -> BddInterComp {
-        return BddInterComp {
+impl PbInter {
+    pub fn new() -> PbInter {
+        return PbInter {
             one_hot: OneHotProblemEncoding::new(),
             clauses: Clauses::new(),
             opt_all: true,
         };
     }
+
+    pub fn _new_unopt() -> PbInter {
+        return PbInter {
+            one_hot: OneHotProblemEncoding::new(),
+            clauses: Clauses::new(),
+            opt_all: false,
+        };
+    }
+
+    // this returns all of the vars of the nodes that represent the fur situation
+    fn get_fur_vars(
+        &self,
+        bdd1: &BDD,
+        solution: &PartialSolution,
+        makespan_to_check: usize,
+    ) -> Vec<(usize, usize)> {
+        let mut out: Vec<(usize, usize)> = vec![];
+        for i in &bdd1.nodes {
+            if i.job_num == usize::MAX {
+                continue;
+            }
+            let (lower, upper) = i.range;
+            let job_size: usize = solution.instance.job_sizes[i.job_num];
+            let fur_val = makespan_to_check - job_size;
+            if lower <= fur_val && fur_val <= upper {
+                //println!("job size {}, makespan {}, node_range {} {}", job_size, makespan_to_check, lower, upper);
+                out.push((i.job_num, i.aux_var));
+            }
+        }
+        return out;
+    }
 }
 
-impl Encoder for BddInterComp {
+impl Encoder for PbInter {
     fn basic_encode(
         &mut self,
         partial_solution: &crate::problem_instance::partial_solution::PartialSolution,
@@ -36,19 +64,7 @@ impl Encoder for BddInterComp {
     ) -> bool {
         self.one_hot.encode(partial_solution);
         let mut clauses: Clauses = Clauses::new();
-        let mut bdds: Vec<DynBDD> = vec![];
-        let undesignated_jobs: Vec<usize> = partial_solution
-            .possible_allocations
-            .iter()
-            .enumerate()
-            .filter(|(_, x)| x.len() > 1)
-            .map(|(i, _)| i)
-            .collect();
-        let job_sizes: Vec<usize> = undesignated_jobs
-            .iter()
-            .map(|i| partial_solution.instance.job_sizes[*i])
-            .collect();
-        let range_table = bdd_dyn::RangeTable::new(&undesignated_jobs, &job_sizes, makespan);
+        let mut bdds: Vec<BDD> = vec![];
 
         // for each processor, collect the vars that can go on it, and their weights, and build a bdd
         for proc in 0..partial_solution.instance.num_processors {
@@ -65,24 +81,24 @@ impl Encoder for BddInterComp {
                 }
             }
             if jobs.len() == 0 {
-                bdds.push(DynBDD { nodes: vec![] })
+                bdds.push(BDD { nodes: vec![] })
             } else {
                 // now we construct the bdd to assert that this machine is not too full
-                let bdd = DynBDD::leq(
+                let bdd = bdd::bdd::leq(
                     &jobs,
                     &job_vars,
                     &weights,
                     makespan,
+                    false,
                     partial_solution.assigned_makespan[proc],
-                    &range_table,
-                    timeout,
+                    &timeout,
                 );
                 if bdd.is_none() {
                     return false;
                 }
-                let mut bdd = bdd.unwrap();
-                bdd.assign_aux_vars(&mut self.one_hot.var_name_generator);
-                let mut a: Clauses = bdd.encode();
+                let bdd = bdd.unwrap();
+                let bdd = bdd::bdd::assign_aux_vars(bdd, &mut self.one_hot.var_name_generator);
+                let mut a: Clauses = bdd::bdd::encode_bad(&bdd);
 
                 //for n in &bdd.nodes {
                 //    println!("proc {} var {} range {} {} ", n.job_num, n.aux_var, n.range.0, n.range.1);
@@ -101,7 +117,9 @@ impl Encoder for BddInterComp {
                 if bdds[j].nodes.is_empty() || bdds[i].nodes.is_empty() {
                     continue;
                 }
-                clauses.add_many_clauses(&mut bdds[i].encode_bdd_bijective_relation(&bdds[j]));
+                clauses.add_many_clauses(&mut bdd::bdd::encode_bdd_bijective_relation(
+                    &bdds[i], &bdds[j],
+                ));
             }
             if timeout.time_finished() || clauses.get_num_clauses() > max_num_clauses {
                 return false;
@@ -115,7 +133,9 @@ impl Encoder for BddInterComp {
                     continue;
                 }
                 let fur_vars: Vec<(usize, usize)> =
-                    bdds[i].get_fur_vars(&range_table, partial_solution);
+                    self.get_fur_vars(&bdds[i], partial_solution, makespan);
+                // TODO: test the performance difference between adding explicit fur nodes, and only considering final nodes with range
+                // is of size one
                 for (job_num, fur_var) in fur_vars {
                     for j in i + 1..partial_solution.instance.num_processors {
                         if self.one_hot.position_vars[job_num][j].is_some() {
@@ -158,10 +178,10 @@ impl Encoder for BddInterComp {
     }
 }
 
-impl OneHot for BddInterComp {
+impl OneHot for PbInter {
     fn get_position_var(&self, job_num: usize, proc_num: usize) -> Option<usize> {
         return self.one_hot.position_vars[job_num][proc_num];
     }
 }
 
-impl OneHotEncoder for BddInterComp {}
+impl OneHotEncoder for PbInter {}

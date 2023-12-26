@@ -7,8 +7,9 @@ use crate::{
     },
 };
 
-use super::problem_encoding::one_hot_encoding::OneHot;
 use dyn_clone::DynClone;
+
+use super::sat_encoding::problem_encoding::one_hot_encoding::OneHot;
 
 pub trait OneHotEncoder: Encoder + OneHot + DynClone {}
 

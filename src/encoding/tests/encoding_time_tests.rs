@@ -9,13 +9,7 @@ mod tests {
             upper_bounds::{lpt, lptp, lptpp},
         },
         common::timeout::Timeout,
-        encoding::{
-            basic_encoder::BasicEncoder,
-            binmerge_native::BinmergeEncoder,
-            encoder::{Clause, Encoder},
-            pb_bdd_inter::PbInter,
-            pb_bdd_native::PbNativeEncoder,
-            pb_bdd_pysat::PbPysatEncoder, binmerge_simp::BinmergeSimpEncoder,
+        encoding::{encoder::{Encoder, Clause}, sat_encoding::{basic_encoder::BasicEncoder, pb_bdd_pysat::PbPysatEncoder, pb_bdd_native::PbNativeEncoder, pb_bdd_inter::PbInter, binmerge_native::BinmergeEncoder, binmerge_simp::BinmergeSimpEncoder}
         },
         input_output::{self},
         problem_instance::partial_solution::PartialSolution,

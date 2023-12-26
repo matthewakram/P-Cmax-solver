@@ -1,13 +1,10 @@
 use crate::{
     bdd::{self, bdd::BDD},
     common::timeout::Timeout,
-    problem_instance::problem_instance::ProblemInstance,
+    problem_instance::problem_instance::ProblemInstance, encoding::encoder::{Clauses, Encoder, OneHotEncoder},
 };
 
-use super::{
-    encoder::{Clauses, Encoder, OneHotEncoder},
-    problem_encoding::one_hot_encoding::{OneHot, OneHotProblemEncoding},
-};
+use super::problem_encoding::one_hot_encoding::{OneHot, OneHotProblemEncoding};
 
 #[derive(Clone)]
 pub struct PbNativeEncoder {

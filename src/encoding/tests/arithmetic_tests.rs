@@ -1,15 +1,10 @@
 #[cfg(test)]
 mod tests {
-    use bitvec::vec;
     use rand::{rngs::ThreadRng, seq::SliceRandom, Rng};
 
     use crate::{
         common::timeout::Timeout,
-        encoding::{
-            binary_arithmetic::{self, BinaryNumber},
-            cardinality_networks::{self, basic_merge, basic_sort, half_merge, half_sort},
-            encoder::{Clause, Clauses, VarNameGenerator},
-        },
+        encoding::{encoder::{Clause, Clauses, VarNameGenerator}, sat_encoding::{binary_arithmetic::{self, BinaryNumber}, cardinality_networks}},
         solvers::{sat_solver::kissat::Kissat, solver::SatSolver},
     };
 
@@ -347,7 +342,7 @@ mod tests {
                 let number1 = BinaryNumber::new(i, &mut var_name_generator);
                 let number2 = BinaryNumber::new(j, &mut var_name_generator);
 
-                for k in 0..20 {
+                for _ in 0..20 {
                     let number1_value: usize = rng.gen_range(0..i + 1);
                     let number2_value: usize = rng.gen_range(0..j + 1);
                     let mut clauses =
@@ -391,7 +386,7 @@ mod tests {
                 let number1 = BinaryNumber::new(i, &mut var_name_generator);
                 let number2 = BinaryNumber::new(j, &mut var_name_generator);
 
-                for k in 0..20 {
+                for _ in 0..20 {
                     let number1_value: usize = rng.gen_range(0..i + 1);
                     let number2_value: usize = rng.gen_range(0..j + 1);
                     let mut clauses =

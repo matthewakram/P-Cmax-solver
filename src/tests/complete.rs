@@ -15,16 +15,7 @@ mod tests {
             upper_bounds::{lpt, lptp, lptpp, mss},
         },
         common::timeout::Timeout,
-        encoding::{
-            basic_encoder::BasicEncoder,
-            precedence_encoder::Precedence,
-            bdd_inter_comp::BddInterComp,
-            binmerge_native::BinmergeEncoder,
-            encoder::{Clause, Encoder},
-            pb_bdd_inter::PbInter,
-            pb_bdd_inter_better::PbInterDyn,
-            pb_bdd_native::PbNativeEncoder,
-            pb_bdd_pysat::PbPysatEncoder, binmerge_inter::BinmergeInterEncoder, binmerge_simp::BinmergeSimpEncoder,
+        encoding::{encoder::Encoder, sat_encoding::{basic_encoder::BasicEncoder, pb_bdd_pysat::PbPysatEncoder, pb_bdd_native::PbNativeEncoder, precedence_encoder::Precedence, pb_bdd_inter::PbInter, pb_bdd_inter_better::PbInterDyn, bdd_inter_comp::BddInterComp, binmerge_native::BinmergeEncoder, binmerge_inter::BinmergeInterEncoder, binmerge_simp::BinmergeSimpEncoder}
         },
         input_output::{self},
         makespan_scheduling::linear_makespan::LinearMakespan,

@@ -1,6 +1,5 @@
-use bitvec::vec;
+use crate::encoding::encoder::{VarNameGenerator, Clauses, Clause};
 
-use super::encoder::{Clause, Clauses, VarNameGenerator};
 
 #[derive(Debug, Clone)]
 pub struct BinaryNumber {
@@ -13,7 +12,7 @@ pub struct BinaryNumber {
 }
 
 impl BinaryNumber {
-    pub fn new(max: usize, name_generator: &mut super::encoder::VarNameGenerator) -> BinaryNumber {
+    pub fn new(max: usize, name_generator: &mut VarNameGenerator) -> BinaryNumber {
         let bit_length = number_bitlength(max);
         let vars: Vec<usize> = (0..bit_length).map(|_| name_generator.next()).collect();
 

@@ -14,11 +14,7 @@ mod tests {
             upper_bounds::{lpt, lptp, lptpp, mss::MSS},
         },
         common::timeout::Timeout,
-        encoding::{
-            basic_encoder::BasicEncoder, precedence_encoder::Precedence,
-            binmerge_native::BinmergeEncoder, encoder::Encoder, pb_bdd_inter::PbInter,
-            pb_bdd_inter_better::PbInterDyn, pb_bdd_native::PbNativeEncoder,
-            pb_bdd_pysat::PbPysatEncoder, binmerge_inter::BinmergeInterEncoder, binmerge_simp::BinmergeSimpEncoder,
+        encoding::{encoder::Encoder, sat_encoding::{basic_encoder::BasicEncoder, pb_bdd_pysat::PbPysatEncoder, precedence_encoder::Precedence, pb_bdd_native::PbNativeEncoder, pb_bdd_inter::PbInter, pb_bdd_inter_better::PbInterDyn, binmerge_native::BinmergeEncoder, binmerge_inter::BinmergeInterEncoder, binmerge_simp::BinmergeSimpEncoder}
         },
         input_output::{self},
         problem_instance::partial_solution::PartialSolution,

@@ -1,15 +1,4 @@
-pub mod basic_encoder;
-pub mod bdd_inter_comp;
-pub mod binary_arithmetic;
-pub mod binmerge_inter;
-pub mod binmerge_native;
-pub mod cardinality_networks;
 pub mod encoder;
-pub mod pb_bdd_inter;
-pub mod pb_bdd_inter_better;
-pub mod pb_bdd_native;
-pub mod pb_bdd_pysat;
-pub mod precedence_encoder;
-pub mod problem_encoding;
 pub mod tests;
-pub mod binmerge_simp;
+pub mod ilp_encoding;
+pub mod sat_encoding;

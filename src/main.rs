@@ -1,7 +1,13 @@
 use std::{env, vec};
 
-use p_cmax_solver::encoding::binmerge_inter::BinmergeInterEncoder;
-use p_cmax_solver::encoding::binmerge_simp::BinmergeSimpEncoder;
+use p_cmax_solver::encoding::sat_encoding::basic_encoder::BasicEncoder;
+use p_cmax_solver::encoding::sat_encoding::bdd_inter_comp::BddInterComp;
+use p_cmax_solver::encoding::sat_encoding::binmerge_inter::BinmergeInterEncoder;
+use p_cmax_solver::encoding::sat_encoding::pb_bdd_inter::PbInter;
+use p_cmax_solver::encoding::sat_encoding::pb_bdd_inter_better::PbInterDyn;
+use p_cmax_solver::encoding::sat_encoding::pb_bdd_native::PbNativeEncoder;
+use p_cmax_solver::encoding::sat_encoding::pb_bdd_pysat::PbPysatEncoder;
+use p_cmax_solver::encoding::sat_encoding::precedence_encoder::Precedence;
 use p_cmax_solver::{bounds, input_output};
 
 use bounds::lower_bounds::*;
@@ -11,15 +17,7 @@ use p_cmax_solver::bounds::bound::Bound;
 use p_cmax_solver::bounds::upper_bounds::{lptp, lptpp, mss};
 use p_cmax_solver::common::common::IndexOf;
 use p_cmax_solver::common::timeout::Timeout;
-use p_cmax_solver::encoding::basic_encoder::BasicEncoder;
-use p_cmax_solver::encoding::precedence_encoder::Precedence;
-use p_cmax_solver::encoding::bdd_inter_comp::BddInterComp;
-use p_cmax_solver::encoding::binmerge_native::BinmergeEncoder;
 use p_cmax_solver::encoding::encoder::Encoder;
-use p_cmax_solver::encoding::pb_bdd_inter::PbInter;
-use p_cmax_solver::encoding::pb_bdd_inter_better::PbInterDyn;
-use p_cmax_solver::encoding::pb_bdd_native::PbNativeEncoder;
-use p_cmax_solver::encoding::pb_bdd_pysat::PbPysatEncoder;
 use p_cmax_solver::makespan_scheduling::linear_makespan::LinearMakespan;
 use p_cmax_solver::solvers::sat_solver::kissat::Kissat;
 use p_cmax_solver::solvers::sat_solver::{multi_sat_solver_manager, sat_solver_manager};

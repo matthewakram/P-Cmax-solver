@@ -12,7 +12,7 @@ mod tests {
 
     #[test]
     pub fn test_bdd_creation() {
-        let a = bdd::leq(
+        let _ = bdd::leq(
             &vec![0, 1, 2, 3, 4],
             &vec![1, 2, 3, 4, 5],
             &vec![49, 37, 21, 19, 7],

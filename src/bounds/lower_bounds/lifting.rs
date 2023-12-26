@@ -6,8 +6,7 @@ use crate::{
         upper_bounds::{lpt, lptp, lptpp, mss},
     },
     common::timeout::Timeout,
-    encoding::{
-        precedence_encoder::Precedence, encoder::Encoder, pb_bdd_inter_better::PbInterDyn,
+    encoding::{encoder::Encoder, sat_encoding::{precedence_encoder::Precedence, pb_bdd_inter_better::PbInterDyn}
     },
     makespan_scheduling::linear_makespan::LinearMakespan,
     problem_instance::{problem_instance::ProblemInstance, solution::Solution},

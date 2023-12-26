@@ -1,16 +1,13 @@
 use timeout_readwrite::TimeoutReader;
 
-use crate::{common::timeout::Timeout, problem_instance::problem_instance::ProblemInstance};
+use crate::{common::timeout::Timeout, problem_instance::problem_instance::ProblemInstance, encoding::encoder::{Clauses, Encoder, Clause, OneHotEncoder}};
 use std::{
     io::{BufWriter, Read, Write},
     process::{Command, Stdio},
     time::Duration,
 };
 
-use super::{
-    encoder::{Clause, Clauses, Encoder, OneHotEncoder},
-    problem_encoding::one_hot_encoding::{OneHot, OneHotProblemEncoding},
-};
+use super::problem_encoding::one_hot_encoding::{OneHot, OneHotProblemEncoding};
 
 #[derive(Clone)]
 pub struct PbPysatEncoder {

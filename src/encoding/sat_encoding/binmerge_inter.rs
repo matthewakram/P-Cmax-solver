@@ -1,12 +1,12 @@
 use crate::{
     common::timeout::Timeout,
-    encoding::binary_arithmetic::BinaryNumber,
-    problem_instance::{self, problem_instance::ProblemInstance},
+
+    problem_instance::problem_instance::ProblemInstance, encoding::{encoder::{Clauses, Encoder, Clause, OneHotEncoder}, sat_encoding::binary_arithmetic::BinaryNumber},
 };
 
 use super::{
     binary_arithmetic, cardinality_networks,
-    encoder::{Clause, Clauses, Encoder, OneHotEncoder},
+
     problem_encoding::one_hot_encoding::{OneHot, OneHotProblemEncoding},
 };
 

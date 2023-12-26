@@ -4,13 +4,10 @@ use crate::{
         precedence_relation_generator::{PrecedenceRelation, PrecedenceRelationGenerator},
         size_replacement::SizeReplacement,
         two_size_replacement::TwoSizeReplacement,
-    },
+    }, encoding::encoder::{OneHotEncoder, Clauses, Encoder, Clause},
 };
 
-use super::{
-    encoder::{Clause, Clauses, Encoder, OneHotEncoder},
-    problem_encoding::one_hot_encoding::OneHot,
-};
+use super::problem_encoding::one_hot_encoding::OneHot;
 
 #[derive(Clone)]
 pub struct Precedence {

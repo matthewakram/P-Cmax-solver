@@ -1,35 +1,24 @@
 use crate::{
     bdd::{self, bdd::BDD},
     common::timeout::Timeout,
-    problem_instance::{partial_solution::PartialSolution, problem_instance::ProblemInstance},
+    problem_instance::{partial_solution::PartialSolution, problem_instance::ProblemInstance}, encoding::encoder::{Clauses, Encoder, Clause, OneHotEncoder},
 };
 
-use super::{
-    encoder::{Clause, Clauses, Encoder, OneHotEncoder},
-    problem_encoding::one_hot_encoding::{OneHot, OneHotProblemEncoding},
-};
+use super::problem_encoding::one_hot_encoding::{OneHot, OneHotProblemEncoding};
 
 #[derive(Clone)]
-pub struct PbInter {
+pub struct PbInterDyn {
     one_hot: OneHotProblemEncoding,
     pub clauses: Clauses,
     opt_all: bool,
 }
 
-impl PbInter {
-    pub fn new() -> PbInter {
-        return PbInter {
+impl PbInterDyn {
+    pub fn new() -> PbInterDyn {
+        return PbInterDyn {
             one_hot: OneHotProblemEncoding::new(),
             clauses: Clauses::new(),
             opt_all: true,
-        };
-    }
-
-    pub fn _new_unopt() -> PbInter {
-        return PbInter {
-            one_hot: OneHotProblemEncoding::new(),
-            clauses: Clauses::new(),
-            opt_all: false,
         };
     }
 
@@ -40,24 +29,48 @@ impl PbInter {
         solution: &PartialSolution,
         makespan_to_check: usize,
     ) -> Vec<(usize, usize)> {
-        let mut out: Vec<(usize, usize)> = vec![];
+        //println!("{}", makespan_to_check);
+        //println!("{:?}", solution.instance.job_sizes);
+        let mut jobs_in_bdd = vec![];
         for i in &bdd1.nodes {
-            if i.job_num == usize::MAX {
-                continue;
-            }
-            let (lower, upper) = i.range;
-            let job_size: usize = solution.instance.job_sizes[i.job_num];
-            let fur_val = makespan_to_check - job_size;
-            if lower <= fur_val && fur_val <= upper {
-                //println!("job size {}, makespan {}, node_range {} {}", job_size, makespan_to_check, lower, upper);
-                out.push((i.job_num, i.aux_var));
+            if i.job_num != usize::MAX
+                && (jobs_in_bdd.len() == 0 || jobs_in_bdd[jobs_in_bdd.len() - 1] != i.job_num)
+            {
+                jobs_in_bdd.push(i.job_num);
             }
         }
+
+        let mut out: Vec<(usize, usize)> = vec![];
+
+        for i in 0..jobs_in_bdd.len() {
+            let job = jobs_in_bdd[i];
+            let next_job = if i != jobs_in_bdd.len() - 1 {
+                jobs_in_bdd[i + 1]
+            } else {
+                usize::MAX
+            };
+            let fur_val = makespan_to_check - solution.instance.job_sizes[job];
+            for node in &bdd1.nodes {
+                if node.job_num == usize::MAX {
+                    continue;
+                }
+                if node.job_num == next_job {
+                    break;
+                }
+                let (lower, upper) = node.range;
+
+                if lower <= fur_val && fur_val == upper {
+                    out.push((job, node.aux_var));
+                    //print!("({} {} {} {}) ", job, node.job_num, node.range.0, node.range.1);
+                }
+            }
+        }
+        //println!("");
         return out;
     }
 }
 
-impl Encoder for PbInter {
+impl Encoder for PbInterDyn {
     fn basic_encode(
         &mut self,
         partial_solution: &crate::problem_instance::partial_solution::PartialSolution,
@@ -94,7 +107,7 @@ impl Encoder for PbInter {
                     makespan,
                     false,
                     partial_solution.assigned_makespan[proc],
-                    &timeout,
+                    timeout,
                 );
                 if bdd.is_none() {
                     return false;
@@ -137,8 +150,6 @@ impl Encoder for PbInter {
                 }
                 let fur_vars: Vec<(usize, usize)> =
                     self.get_fur_vars(&bdds[i], partial_solution, makespan);
-                // TODO: test the performance difference between adding explicit fur nodes, and only considering final nodes with range
-                // is of size one
                 for (job_num, fur_var) in fur_vars {
                     for j in i + 1..partial_solution.instance.num_processors {
                         if self.one_hot.position_vars[job_num][j].is_some() {
@@ -181,10 +192,10 @@ impl Encoder for PbInter {
     }
 }
 
-impl OneHot for PbInter {
+impl OneHot for PbInterDyn {
     fn get_position_var(&self, job_num: usize, proc_num: usize) -> Option<usize> {
         return self.one_hot.position_vars[job_num][proc_num];
     }
 }
 
-impl OneHotEncoder for PbInter {}
+impl OneHotEncoder for PbInterDyn {}
