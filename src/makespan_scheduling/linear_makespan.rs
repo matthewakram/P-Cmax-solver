@@ -1,5 +1,6 @@
 use super::makespan_scheduler::MakespanScheduler;
 
+#[derive(Clone)]
 pub struct LinearMakespan {}
 
 impl MakespanScheduler for LinearMakespan {

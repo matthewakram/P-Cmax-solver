@@ -1,6 +1,6 @@
 use std::{fs::File, io::Write};
 
-use crate::{common::timeout::Timeout, encoding::encoder::Clauses};
+use crate::{common::timeout::Timeout, encoding::sat_encoder::Clauses};
 
 pub fn _print_to_dimacs(
     file_name: &str,

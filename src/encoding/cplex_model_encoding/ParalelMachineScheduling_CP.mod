@@ -1,11 +1,12 @@
 /*********************************************
  * OPL 12.6.1.0 Model
- * Author: Pýnar Yunusoðlu
+ * Author: Pï¿½nar Yunusoï¿½lu
  * Creation Date: 26 May 2019 at 20:00:47
  *********************************************/
   
 using CP;
 float LB=...;  //LB
+int UB=...; // Upper bound
 int nbJobs = ...;
 int nbMchns = ...;
 int nbResources = ...;
@@ -93,11 +94,12 @@ forall (r in Resources)
 
 //Constraint (13)
 Cmax>=LB; 
-
+//Constraint (14)
+Cmax<=UB;
 } 
 
 
-//Branching strategy 1: X – Mch – Z  
+//Branching strategy 1: X ï¿½ Mch ï¿½ Z  
 /*execute {   
 var f = cp.factory;
 var phase1 = f.searchPhase(X,f.selectSmallest(f.domainSize()),f.selectSmallest(f.valueSuccessRate()));
@@ -113,7 +115,7 @@ p.RestartFailLimit = 40000;
 
 /**************************************************************************************************************/  
 
-//Branching strategy 2: Z – X – Mch 
+//Branching strategy 2: Z ï¿½ X ï¿½ Mch 
 /*execute {   
 var f = cp.factory;
 var phase1 = f.searchPhase(Z,f.selectSmallest(f.domainSize()),f.selectSmallest(f.valueSuccessRate()));

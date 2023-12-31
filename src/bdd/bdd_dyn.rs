@@ -4,7 +4,7 @@ use bitvec::{prelude::*, vec::BitVec};
 
 use crate::{
     common::timeout::Timeout,
-    encoding::encoder::{Clause, Clauses, VarNameGenerator},
+    encoding::sat_encoder::{Clause, Clauses, VarNameGenerator},
     problem_instance::partial_solution::PartialSolution,
 };
 

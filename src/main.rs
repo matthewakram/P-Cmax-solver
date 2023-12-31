@@ -1,5 +1,7 @@
 use std::{env, vec};
 
+use p_cmax_solver::encoding::cplex_model_encoding::pinar_seyda::PinarSeyda;
+use p_cmax_solver::encoding::ilp_encoding::mehdi_nizar::MehdiNizarEncoder;
 use p_cmax_solver::encoding::sat_encoding::basic_encoder::BasicEncoder;
 use p_cmax_solver::encoding::sat_encoding::bdd_inter_comp::BddInterComp;
 use p_cmax_solver::encoding::sat_encoding::binmerge_inter::BinmergeInterEncoder;
@@ -8,6 +10,9 @@ use p_cmax_solver::encoding::sat_encoding::pb_bdd_inter_better::PbInterDyn;
 use p_cmax_solver::encoding::sat_encoding::pb_bdd_native::PbNativeEncoder;
 use p_cmax_solver::encoding::sat_encoding::pb_bdd_pysat::PbPysatEncoder;
 use p_cmax_solver::encoding::sat_encoding::precedence_encoder::Precedence;
+use p_cmax_solver::solvers::cp_solver::cplex_manager::CPELXSolver;
+use p_cmax_solver::solvers::ilp_solver::gurobi::Gurobi;
+use p_cmax_solver::solvers::solver_manager::SolverManager;
 use p_cmax_solver::{bounds, input_output};
 
 use bounds::lower_bounds::*;
@@ -17,7 +22,7 @@ use p_cmax_solver::bounds::bound::Bound;
 use p_cmax_solver::bounds::upper_bounds::{lptp, lptpp, mss};
 use p_cmax_solver::common::common::IndexOf;
 use p_cmax_solver::common::timeout::Timeout;
-use p_cmax_solver::encoding::encoder::Encoder;
+use p_cmax_solver::encoding::sat_encoder::Encoder;
 use p_cmax_solver::makespan_scheduling::linear_makespan::LinearMakespan;
 use p_cmax_solver::solvers::sat_solver::kissat::Kissat;
 use p_cmax_solver::solvers::sat_solver::{multi_sat_solver_manager, sat_solver_manager};
@@ -83,6 +88,29 @@ fn main() {
     if lower_bound == upper_bound.makespan {
         //TODO: this
         println!("solution found {}", upper_bound.makespan);
+        return;
+    }
+
+    if args.contains(&"-cplex".to_string()) {
+        let encoder = Box::new(PinarSeyda::new());
+        let mut solver = CPELXSolver::new(encoder);
+
+        let sol = solver
+            .solve(&instance, lower_bound, &upper_bound, &total_timeout, true)
+            .unwrap();
+        let final_solution = instance.finalize_solution(sol);
+        println!("solution found {}", final_solution.makespan);
+        return;
+    }
+    if args.contains(&"-ilp".to_string()) {
+        let encoder = Box::new(MehdiNizarEncoder::new());
+        let mut solver = Gurobi::new(encoder);
+
+        let sol = solver
+            .solve(&instance, lower_bound, &upper_bound, &total_timeout, true)
+            .unwrap();
+        let final_solution = instance.finalize_solution(sol);
+        println!("solution found {}", final_solution.makespan);
         return;
     }
 

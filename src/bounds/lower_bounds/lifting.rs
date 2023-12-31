@@ -6,11 +6,11 @@ use crate::{
         upper_bounds::{lpt, lptp, lptpp, mss},
     },
     common::timeout::Timeout,
-    encoding::{encoder::Encoder, sat_encoding::{precedence_encoder::Precedence, pb_bdd_inter_better::PbInterDyn}
+    encoding::{sat_encoder::Encoder, sat_encoding::{precedence_encoder::Precedence, pb_bdd_inter_better::PbInterDyn}
     },
     makespan_scheduling::linear_makespan::LinearMakespan,
     problem_instance::{problem_instance::ProblemInstance, solution::Solution},
-    solvers::sat_solver::{kissat::Kissat, sat_solver_manager},
+    solvers::{sat_solver::{kissat::Kissat, sat_solver_manager}, solver_manager::SolverManager},
 };
 
 use super::{fs, max_job_size, middle, pigeon_hole, sss_bound_tightening};

@@ -1,4 +1,4 @@
-use crate::encoding::encoder::{VarNameGenerator, Clauses, Clause};
+use crate::encoding::sat_encoder::{VarNameGenerator, Clauses, Clause};
 
 
 #[derive(Debug, Clone)]

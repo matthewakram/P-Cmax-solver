@@ -1,7 +1,7 @@
 use crate::{
     bdd::{self, bdd::BDD},
     common::timeout::Timeout,
-    problem_instance::{partial_solution::PartialSolution, problem_instance::ProblemInstance}, encoding::encoder::{Clauses, Encoder, Clause, OneHotEncoder},
+    problem_instance::{partial_solution::PartialSolution, problem_instance::ProblemInstance}, encoding::sat_encoder::{Clauses, Encoder, Clause, OneHotEncoder},
 };
 
 use super::problem_encoding::one_hot_encoding::{OneHot, OneHotProblemEncoding};

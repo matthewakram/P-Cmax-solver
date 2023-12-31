@@ -5,7 +5,7 @@ use std::{
 
 use dyn_clone::DynClone;
 
-use crate::{common::timeout::Timeout, encoding::encoder::Clauses};
+use crate::{common::timeout::Timeout, encoding::sat_encoder::Clauses};
 
 /// A SatSolver is a wrapper for SAT based solving, (whichever that may be). It is responsible for starting and communicating with the SAT solver.
 pub trait SatSolver: DynClone + Send {

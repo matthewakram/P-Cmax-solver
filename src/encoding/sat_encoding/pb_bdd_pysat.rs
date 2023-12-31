@@ -1,6 +1,6 @@
 use timeout_readwrite::TimeoutReader;
 
-use crate::{common::timeout::Timeout, problem_instance::problem_instance::ProblemInstance, encoding::encoder::{Clauses, Encoder, Clause, OneHotEncoder}};
+use crate::{common::timeout::Timeout, problem_instance::problem_instance::ProblemInstance, encoding::sat_encoder::{Clauses, Encoder, Clause, OneHotEncoder}};
 use std::{
     io::{BufWriter, Read, Write},
     process::{Command, Stdio},

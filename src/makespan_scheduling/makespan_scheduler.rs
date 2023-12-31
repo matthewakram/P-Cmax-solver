@@ -1,6 +1,8 @@
+use dyn_clone::DynClone;
+
 use crate::problem_instance::{problem_instance::ProblemInstance, solution::Solution};
 
-pub trait MakespanScheduler {
+pub trait MakespanScheduler: DynClone + Send {
     fn next_makespan(
         &mut self,
         instance: &ProblemInstance,
@@ -9,3 +11,5 @@ pub trait MakespanScheduler {
         upper: usize,
     ) -> usize;
 }
+
+dyn_clone::clone_trait_object!(MakespanScheduler);

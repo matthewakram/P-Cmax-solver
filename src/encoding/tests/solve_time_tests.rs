@@ -14,7 +14,7 @@ mod tests {
             upper_bounds::{lpt, lptp, lptpp, mss::MSS},
         },
         common::timeout::Timeout,
-        encoding::{encoder::Encoder, sat_encoding::{basic_encoder::BasicEncoder, pb_bdd_pysat::PbPysatEncoder, precedence_encoder::Precedence, pb_bdd_native::PbNativeEncoder, pb_bdd_inter::PbInter, pb_bdd_inter_better::PbInterDyn, binmerge_native::BinmergeEncoder, binmerge_inter::BinmergeInterEncoder, binmerge_simp::BinmergeSimpEncoder}
+        encoding::{sat_encoder::Encoder, sat_encoding::{basic_encoder::BasicEncoder, pb_bdd_pysat::PbPysatEncoder, precedence_encoder::Precedence, pb_bdd_native::PbNativeEncoder, pb_bdd_inter::PbInter, pb_bdd_inter_better::PbInterDyn, binmerge_native::BinmergeEncoder, binmerge_inter::BinmergeInterEncoder, binmerge_simp::BinmergeSimpEncoder}
         },
         input_output::{self},
         problem_instance::partial_solution::PartialSolution,
@@ -22,7 +22,7 @@ mod tests {
             fill_up_rule::FillUpRule, final_simp_rule::FinalizeRule, half_size_rule::HalfSizeRule,
             simplification_rule::SimpRule,
         },
-        solvers::{sat_solver::kissat::Kissat, solver::SatSolver},
+        solvers::sat_solver::{kissat::Kissat, sat_solver::SatSolver},
     };
     use std::{
         fs::{self, File},

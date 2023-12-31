@@ -1,15 +1,15 @@
 use std::{
-    collections::HashMap,
-    fs::{self, File},
-    io::{Read, Write},
+    fs::{File, self},
+    io::{Write, Read},
     path::Path,
-    process::{Command, Stdio},
+    process::{Command, Stdio}, time::Duration,
 };
 
 use rand::{rngs::ThreadRng, Rng};
+use timeout_readwrite::TimeoutReader;
 
 use crate::{
-    encoding::ilp_encoder::ILPEncoder,
+    encoding::cplex_model_encoder::CPLEXModelEncoder,
     problem_instance::partial_solution::PartialSolution,
     problem_simplification::{
         fill_up_rule::FillUpRule, final_simp_rule::FinalizeRule, half_size_rule::HalfSizeRule,
@@ -19,17 +19,17 @@ use crate::{
 };
 
 #[derive(Clone)]
-pub struct Gurobi {
-    encoder: Box<dyn ILPEncoder>,
+pub struct CPELXSolver {
+    encoder: Box<dyn CPLEXModelEncoder>,
 }
 
-impl Gurobi {
-    pub fn new(encoder: Box<dyn ILPEncoder>) -> Gurobi {
-        return Gurobi { encoder };
+impl CPELXSolver {
+    pub fn new(encoder: Box<dyn CPLEXModelEncoder>) -> CPELXSolver {
+        return CPELXSolver {encoder};
     }
 }
 
-impl SolverManager for Gurobi {
+impl SolverManager for CPELXSolver {
     fn solve(
         &mut self,
         instance: &crate::problem_instance::problem_instance::ProblemInstance,
@@ -59,68 +59,63 @@ impl SolverManager for Gurobi {
         let formula = self.encoder.get_encoding();
         let mut rng: ThreadRng = ThreadRng::default();
         let mut i: usize = rng.gen();
-        let mut file_name = format!("./ILP_formula{}.lp", i);
+        let mut file_name = format!("./CP_formula{}.data", i);
         while Path::new(&file_name).is_file() {
             i = rng.gen();
-            file_name = format!("./ILP_formula{}.lp", i);
+            file_name = format!("./CP_formula{}.data", i);
         }
+
         let mut file = File::create(Path::new(&file_name)).expect("unable to create model file");
         file.write(formula.as_bytes())
             .expect("could not write model to file");
 
+        let mut child: std::process::Child =
+            Command::new("/Applications/CPLEX_Studio2211/opl/bin/x86-64_osx/oplrun")
+                .arg("-deploy")
+                .arg("-v")
+                .arg(self.encoder.get_mod_file_path())
+                .arg(file_name.clone())
+                .stdout(Stdio::piped())
+                .stdin(Stdio::piped())
+                .spawn()
+                .unwrap();
+
+        let output = child.stdout.take();
         let time_remaining = timeout.remaining_time();
         if time_remaining <= 0.0
             || time_remaining.is_nan()
             || time_remaining.is_infinite()
             || timeout.time_finished()
         {
+            child.kill().unwrap();
+            child.wait().unwrap();
             let _ = fs::remove_file(&file_name);
             return None;
         }
 
-        let child  = Command::new("gurobi_cl")
-            .arg("Threads=1")
-            .arg(format!("ResultFile={}.sol", file_name))
-            .arg(format!("TimeLimit={}", time_remaining))
-            .arg(format!("{}", file_name))
-            .stdout(Stdio::piped())
-            .stdin(Stdio::piped())
-            .output()
-            .unwrap();
+        let mut reader =
+            TimeoutReader::new(output.unwrap(), Duration::from_secs_f64(time_remaining));
 
-        let out = String::from(std::str::from_utf8(&child.stdout).unwrap());
+        let mut out = String::new();
+        let res: Result<usize, std::io::Error> = reader.read_to_string(&mut out);
 
-        if out.contains("Time limit reached"){
-            let _ = fs::remove_file(&file_name).unwrap();
-            let _ = fs::remove_file(format!("{}.sol", file_name));    
+        let _ = fs::remove_file(&file_name);
+        child.kill().unwrap();
+        child.wait().unwrap();
+        if res.is_err() {
+            return None;
+        }
+        
+        if out.contains("OBJECTIVE: ") {
+            // DONE case and managed to improve it
+            return Some(self.encoder.decode(instance, out));
+        } else if out.contains("<<< no solution") {
+            // UNSAT CASE 
+            return Some(upper.clone());
+        } else {
+            // Timeout case 
             return None;
         }
 
-        let mut f = File::open(format!("{}.sol", file_name)).unwrap();
-        let mut data = vec![];
-        let r = f.read_to_end(&mut data);
-
-        let _ = fs::remove_file(&file_name).unwrap();
-        let _ = fs::remove_file(format!("{}.sol", file_name));
-        if r.is_ok() {
-            let num_bytes_read = r.unwrap();
-
-            if num_bytes_read < 2 {
-                return Some(upper.clone());
-            }
-        }
-
-        let solution = std::str::from_utf8(&data).unwrap();
-        let lines: Vec<&str> = solution.split("\n").collect();
-        let assignments = lines
-            .iter()
-            .filter(|x| !x.starts_with('#'))
-            .map(|x| x.split(" ").collect::<Vec<&str>>())
-            .filter(|x| x.len() > 1)
-            .map(|x| (x[0], x[1]))
-            .map(|(key, val)| (key.to_string(), val.parse::<usize>().unwrap()))
-            .collect::<HashMap<String, usize>>();
-
-        return Some(self.encoder.decode(instance, assignments));
     }
 }

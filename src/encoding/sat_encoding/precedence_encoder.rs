@@ -4,7 +4,7 @@ use crate::{
         precedence_relation_generator::{PrecedenceRelation, PrecedenceRelationGenerator},
         size_replacement::SizeReplacement,
         two_size_replacement::TwoSizeReplacement,
-    }, encoding::encoder::{OneHotEncoder, Clauses, Encoder, Clause},
+    }, encoding::sat_encoder::{OneHotEncoder, Clauses, Encoder, Clause},
 };
 
 use super::problem_encoding::one_hot_encoding::OneHot;

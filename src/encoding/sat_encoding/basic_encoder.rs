@@ -1,4 +1,4 @@
-use crate::{common::timeout::Timeout, problem_instance::problem_instance::ProblemInstance, encoding::encoder::{Clauses, Encoder, OneHotEncoder}};
+use crate::{common::timeout::Timeout, problem_instance::problem_instance::ProblemInstance, encoding::sat_encoder::{Clauses, Encoder, OneHotEncoder}};
 
 use super::{
     binary_arithmetic::{self, BinaryNumber},

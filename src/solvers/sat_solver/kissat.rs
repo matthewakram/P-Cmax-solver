@@ -1,8 +1,7 @@
 use crate::{
-    common::timeout::Timeout, encoding::encoder::Clauses, input_output, solvers::solver::SatResult,
+    common::timeout::Timeout, encoding::sat_encoder::Clauses, input_output,
 };
 
-use super::super::solver::SatSolver;
 use std::{
     collections::HashMap,
     io::{Read, Write},
@@ -11,6 +10,8 @@ use std::{
     time::{Duration, Instant},
 };
 use timeout_readwrite::TimeoutReader;
+
+use super::sat_solver::{SatSolver, SatResult};
 
 #[derive(Clone)]
 pub struct Kissat {

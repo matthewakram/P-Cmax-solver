@@ -1,5 +1,5 @@
 use crate::common::timeout::Timeout;
-use crate::encoding::encoder::{Clause, Clauses, VarNameGenerator};
+use crate::encoding::sat_encoder::{Clause, Clauses, VarNameGenerator};
 
 use crate::bitvec::prelude::*;
 use crate::bitvec::vec::BitVec;

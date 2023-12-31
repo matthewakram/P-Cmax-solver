@@ -3,7 +3,7 @@ use std::{collections::HashMap, time::Instant};
 use crate::{
     bounds::{bound::Bound, upper_bounds::mss::MSS},
     common::timeout::Timeout,
-    encoding::encoder::Encoder,
+    encoding::sat_encoder::Encoder,
     makespan_scheduling::makespan_scheduler::MakespanScheduler,
     problem_instance::{
         partial_solution::PartialSolution, problem_instance::ProblemInstance, solution::Solution,
@@ -11,10 +11,12 @@ use crate::{
     problem_simplification::{
         fill_up_rule::FillUpRule, final_simp_rule::FinalizeRule, half_size_rule::HalfSizeRule,
         simplification_rule::SimpRule,
-    },
-    solvers::solver::SatSolver,
+    }, solvers::solver_manager::SolverManager,
 };
 
+use super::sat_solver::SatSolver;
+
+#[derive(Clone)]
 pub struct SatSolverManager {
     pub sat_solver: Box<dyn SatSolver>,
     pub makespan_scheduler: Box<dyn MakespanScheduler>,
@@ -35,8 +37,10 @@ impl SatSolverManager {
             stats: HashMap::new(),
         };
     }
+}
 
-    pub fn solve(
+impl SolverManager for SatSolverManager {
+    fn solve(
         &mut self,
         instance: &ProblemInstance,
         lower: usize,

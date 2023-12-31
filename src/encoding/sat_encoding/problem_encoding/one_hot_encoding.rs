@@ -3,7 +3,7 @@ use std::collections::HashSet;
 use crate::{
     common,
     encoding::{
-        encoder::{Clauses, VarNameGenerator}, sat_encoding::binary_arithmetic,
+        sat_encoder::{Clauses, VarNameGenerator}, sat_encoding::binary_arithmetic,
     },
     problem_instance::{
         partial_solution::PartialSolution, problem_instance::ProblemInstance, solution::Solution,
