@@ -1,13 +1,12 @@
 #[cfg(test)]
 mod tests {
-    use std::{fs::File, io::Write};
 
-    use crate::{solvers::{branch_and_bound::branch_and_bound::BranchAndBound, solver_manager::SolverManager}, bounds::{upper_bounds::{lpt::{LPT, self}, lptp, lptpp}, bound::Bound, lower_bounds::{pigeon_hole, max_job_size, fs, sss_bound_tightening, middle}}};
+    use crate::{solvers::{branch_and_bound::branch_and_bound::BranchAndBound, solver_manager::SolverManager}, bounds::{upper_bounds::{lpt::{self}, lptp, lptpp}, bound::Bound, lower_bounds::{pigeon_hole, max_job_size, fs, sss_bound_tightening, middle}}};
 
 
     #[test]
     pub fn b_and_b_test(){
-        use crate::{problem_instance::{problem_instance::ProblemInstance, partial_solution::PartialSolution}, common::timeout::Timeout};
+        use crate::{problem_instance::problem_instance::ProblemInstance, common::timeout::Timeout};
 
         let sizes:Vec<usize> = vec![1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 14,12, 13, 4,3,2,4,6,54,43,12,32, 54,12, 12,43,6,7,3,3];
         let instance = ProblemInstance::new(5, sizes.len(), sizes);

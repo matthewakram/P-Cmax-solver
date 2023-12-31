@@ -1,7 +1,6 @@
-use std::{
-    collections::{HashMap, HashSet},
-    fmt::format,
-};
+use std::
+    collections::{HashMap, HashSet}
+;
 
 use crate::{common, encoding::ilp_encoder::ILPEncoder, problem_instance::solution::Solution};
 use bitvec::prelude::*;

@@ -1,13 +1,11 @@
 use std::collections::HashSet;
 
-use bitvec::vec;
-use fraction::generic::GenericInteger;
 
 use crate::{
     bdd::bdd_dyn::RangeTable,
     common::common::IndexOf,
     problem_instance::{
-        partial_solution::{self, PartialSolution},
+        partial_solution::PartialSolution,
         problem_instance::ProblemInstance,
         solution::Solution,
     },
@@ -230,7 +228,7 @@ impl SolverManager for BranchAndBound {
         lower: usize,
         upper: &crate::problem_instance::solution::Solution,
         timeout: &crate::common::timeout::Timeout,
-        verbose: bool,
+        _verbose: bool,
     ) -> Option<crate::problem_instance::solution::Solution> {
         let makespan_to_test = upper.makespan - 1;
         let partial_solution = PartialSolution::new(instance.clone());
@@ -296,21 +294,5 @@ impl PartialAssignment {
         self.makespan = self.makespan.max(self.makespans[proc]);
         let job_pos = self.unassigned.index_of(&job).unwrap();
         self.unassigned.remove(job_pos);
-    }
-
-    pub fn unassign(&mut self, job: usize, instance: &ProblemInstance) {
-        let proc = self.assignment[job];
-        self.assignment[job] = usize::MAX;
-        let old_proc_makespan = self.makespans[proc];
-        self.makespans[proc] -= instance.job_sizes[job];
-        if self.makespan == old_proc_makespan {
-            self.makespan = *self.makespans.iter().min().unwrap();
-        }
-        let mut pos = 0;
-        while pos < self.unassigned.len() && self.unassigned[pos] < job {
-            pos += 1;
-        }
-
-        self.unassigned.insert(pos, job);
     }
 }

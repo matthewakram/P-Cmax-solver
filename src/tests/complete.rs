@@ -6,7 +6,6 @@ mod tests {
 
     use crate::{
         bounds::{
-            self,
             bound::Bound,
             lower_bounds::{
                 lifting, max_job_size, middle, pigeon_hole,
@@ -33,7 +32,7 @@ mod tests {
             ilp_solver::gurobi::Gurobi,
             sat_solver::{
                 kissat::Kissat,
-                multi_sat_solver_manager::{self, MultiSatSolverManager},
+                multi_sat_solver_manager::MultiSatSolverManager,
                 sat_solver_manager,
             },
             solver_manager::SolverManager, branch_and_bound::branch_and_bound::BranchAndBound,
@@ -397,9 +396,9 @@ mod tests {
     #[test]
     #[ignore]
     pub fn complete_test_class_multi() {
-        let mut a: Box<dyn Encoder> =
+        let a: Box<dyn Encoder> =
             Box::new(Precedence::new(Box::new(BinmergeEncoder::new()), 1));
-        let mut b: Box<dyn Encoder> = Box::new(Precedence::new(Box::new(BddInterComp::new()), 1));
+        let b: Box<dyn Encoder> = Box::new(Precedence::new(Box::new(BddInterComp::new()), 1));
         let solver: Box<dyn SolverManager> = Box::new(MultiSatSolverManager {
             sat_solver: Box::new(Kissat::new()),
             unsat_solver: Box::new(Kissat::new()),
