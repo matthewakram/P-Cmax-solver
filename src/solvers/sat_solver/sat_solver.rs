@@ -17,7 +17,7 @@ pub trait SatSolver: DynClone + Send {
     /// 
     /// ```
     /// # use p_cmax_solver::solvers::sat_solver::kissat::Kissat;
-    /// # use crate::p_cmax_solver::solvers::solver::SatSolver;
+    /// # use crate::p_cmax_solver::solvers::sat_solver::sat_solver::SatSolver;
     /// let solver = Kissat::new();
     /// let pid = solver.get_pid();
     /// // Start Solving
