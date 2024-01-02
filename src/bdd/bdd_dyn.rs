@@ -22,7 +22,8 @@ pub struct DynNode {
 #[derive(Debug)]
 pub struct RangeTable {
     ranges: Vec<Vec<usize>>,
-    job_position: HashMap<usize, usize>,
+    // TODO: change this to no longer be a hashmap but a list
+    job_position: Vec<usize>,
     range_sizes: Vec<(usize, usize)>,
     makespan: usize,
 }
@@ -34,12 +35,11 @@ pub struct DynBDD {
 
 impl RangeTable {
     pub fn get_range(&self, job_num: usize, value: usize) -> Option<usize> {
-        let index = self.job_position.get(&job_num);
-        if index.is_none() {
+        if job_num >= self.job_position.len() || self.job_position[job_num] == usize::MAX {
             return None;
         }
+        let index = self.job_position[job_num];
 
-        let index = *index.unwrap();
         return Some(self.ranges[index][value]);
     }
 
@@ -79,10 +79,10 @@ impl RangeTable {
             }
         }
 
-        let mut job_position: HashMap<usize, usize> = HashMap::new();
+        let mut job_position: Vec<usize> = vec![usize::MAX; *jobs.iter().max().unwrap()+1];
 
         for i in 0..jobs.len() {
-            job_position.insert(jobs[i], i);
+            job_position[jobs[i]] = i;
         }
 
         assert_eq!(range_sizes.len(), range_num);

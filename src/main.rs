@@ -2,6 +2,7 @@ use std::{env, vec};
 
 use p_cmax_solver::encoding::cplex_model_encoding::pinar_seyda::PinarSeyda;
 use p_cmax_solver::encoding::ilp_encoding::mehdi_nizar::MehdiNizarEncoder;
+use p_cmax_solver::encoding::ilp_encoding::mehdi_nizar_original::MehdiNizarOriginalEncoder;
 use p_cmax_solver::encoding::sat_encoding::basic_encoder::BasicEncoder;
 use p_cmax_solver::encoding::sat_encoding::bdd_inter_comp::BddInterComp;
 use p_cmax_solver::encoding::sat_encoding::binmerge_inter::BinmergeInterEncoder;
@@ -10,6 +11,7 @@ use p_cmax_solver::encoding::sat_encoding::pb_bdd_inter_better::PbInterDyn;
 use p_cmax_solver::encoding::sat_encoding::pb_bdd_native::PbNativeEncoder;
 use p_cmax_solver::encoding::sat_encoding::pb_bdd_pysat::PbPysatEncoder;
 use p_cmax_solver::encoding::sat_encoding::precedence_encoder::Precedence;
+use p_cmax_solver::solvers::branch_and_bound::branch_and_bound::BranchAndBound;
 use p_cmax_solver::solvers::cp_solver::cplex_manager::CPELXSolver;
 use p_cmax_solver::solvers::ilp_solver::gurobi::Gurobi;
 use p_cmax_solver::solvers::solver_manager::SolverManager;
@@ -103,8 +105,17 @@ fn main() {
         return;
     }
     if args.contains(&"-ilp".to_string()) {
-        let encoder = Box::new(MehdiNizarEncoder::new());
+        let encoder = Box::new(MehdiNizarOriginalEncoder::new());
         let mut solver = Gurobi::new(encoder);
+
+        let sol = solver
+            .solve(&instance, lower_bound, &upper_bound, &total_timeout, true)
+            .unwrap();
+        let final_solution = instance.finalize_solution(sol);
+        println!("solution found {}", final_solution.makespan);
+        return;
+    } else if args.contains(&"-branch".to_string()) {
+        let mut solver = BranchAndBound::new();
 
         let sol = solver
             .solve(&instance, lower_bound, &upper_bound, &total_timeout, true)
@@ -174,6 +185,6 @@ fn main() {
     let sol = sat_solver
         .solve(&instance, lower_bound, &upper_bound, &total_timeout, true)
         .unwrap();
+    println!("solution found {}", sol);
     let final_solution = instance.finalize_solution(sol);
-    println!("solution found {}", final_solution.makespan);
 }

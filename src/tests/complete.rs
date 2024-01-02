@@ -16,14 +16,14 @@ mod tests {
         common::timeout::Timeout,
         encoding::{
             ilp_encoder::ILPEncoder,
-            ilp_encoding::mehdi_nizar::MehdiNizarEncoder,
+            ilp_encoding::{mehdi_nizar::MehdiNizarEncoder, mehdi_nizar_original::MehdiNizarOriginalEncoder},
             sat_encoder::Encoder,
             sat_encoding::{
                 basic_encoder::BasicEncoder, bdd_inter_comp::BddInterComp,
                 binmerge_inter::BinmergeInterEncoder, binmerge_native::BinmergeEncoder,
                 binmerge_simp::BinmergeSimpEncoder, pb_bdd_inter::PbInter,
                 pb_bdd_inter_better::PbInterDyn, pb_bdd_native::PbNativeEncoder,
-                pb_bdd_pysat::PbPysatEncoder, precedence_encoder::Precedence,
+                pb_bdd_pysat::PbPysatEncoder, precedence_encoder::Precedence, mehdi_nizar_sat::MehdiNizarSatEncoder,
             },
         },
         input_output::{self},
@@ -148,7 +148,6 @@ mod tests {
             })
             .map(|p: Result<fs::DirEntry, std::io::Error>| p.unwrap().path().display().to_string())
             .enumerate()
-            .filter(|(i, _)| *i < 1000)
             .map(|(_, x)| x)
             .collect();
 
@@ -216,7 +215,7 @@ mod tests {
 
         // -------------CHECKING IF SOLUTION HAS BEEN FOUND-----------
         // We maintain that the solution is within [lower_bound, upper_bound]. Note that this is inclusive.
-
+        
         assert!(lower_bound <= upper_bound.makespan);
         if lower_bound == upper_bound.makespan {
             return Some(format!(
@@ -261,7 +260,6 @@ mod tests {
             })
             .map(|p: Result<fs::DirEntry, std::io::Error>| p.unwrap().path().display().to_string())
             .enumerate()
-            .filter(|(i, _)| *i < 1000)
             .map(|(_, x)| x)
             .collect();
 
@@ -395,6 +393,17 @@ mod tests {
 
     #[test]
     #[ignore]
+    pub fn complete_test_class_mehdi_sat() {
+        let mut a: Box<dyn Encoder> = Box::new(MehdiNizarSatEncoder::new());
+        test_encoder(
+            &mut a,
+            "./bench/class_instances/",
+            "./bench/results/complete_class_instances_mehdi_nizar_sat.txt",
+        )
+    }
+
+    #[test]
+    #[ignore]
     pub fn complete_test_class_multi() {
         let a: Box<dyn Encoder> =
             Box::new(Precedence::new(Box::new(BinmergeEncoder::new()), 1));
@@ -422,6 +431,18 @@ mod tests {
             solver,
             "./bench/class_instances/",
             "./bench/results/complete_class_instances_mehdi_nizar.txt",
+        )
+    }
+
+    #[test]
+    #[ignore]
+    pub fn complete_test_class_original_ilp() {
+        let a: Box<dyn ILPEncoder> = Box::new(MehdiNizarOriginalEncoder::new());
+        let solver = Box::new(Gurobi::new(a));
+        test_solver(
+            solver,
+            "./bench/class_instances/",
+            "./bench/results/complete_class_instances_mehdi_nizar_original.txt",
         )
     }
 

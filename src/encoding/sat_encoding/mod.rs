@@ -11,3 +11,4 @@ pub mod binary_arithmetic;
 pub mod binmerge_inter;
 pub mod binmerge_native;
 pub mod cardinality_networks;
+pub mod mehdi_nizar_sat;
