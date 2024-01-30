@@ -18,7 +18,7 @@ pub trait ILPEncoder: DynClone + Send {
         makespan: usize,
         timeout: &Timeout,
     ) -> bool;
-    fn get_encoding(&self) -> String;
+    fn get_encoding(&mut self) -> String;
     fn decode(&self, instance: &ProblemInstance, solution: HashMap<String, usize>) -> Solution;
 }
 

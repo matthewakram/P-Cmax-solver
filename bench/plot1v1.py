@@ -203,6 +203,8 @@ keys = list(set([i for i in values[0]] + [i for i in values[1]]))
 
 max_first_stats = max([x[stats[0]] for x in statistics[0].values()] + [x[stats[0]] for x in statistics[1].values()])
 max_second_stat = max([x[stats[1]] for x in statistics[0].values()] + [x[stats[1]] for x in statistics[1].values()])
+#max_first_stats = 10
+#max_second_stat=10
 
 for i in keys:
     if i not in values[0] and i not in values[1]:
@@ -224,9 +226,9 @@ for i in keys:
         print(str(i) + " : X " + str(values[0][i]) + ", Y " + str(values[1][i]))
 
     if i in statistics[0]:
-        color = (rgb_to_hex(0, int(int(statistics[0][i][stats[0]])/ max_first_stats * 200 ), int(int(statistics[0][i][stats[1]])/ max_second_stat *200 )))
+        color = (rgb_to_hex(0, int(min(int(statistics[0][i][stats[0]]),max_first_stats)/ max_first_stats * 256 ), int(min(int(statistics[0][i][stats[1]]),max_second_stat)/ max_second_stat *256 )))
     else:
-        color = (rgb_to_hex(0, int(int(statistics[1][i][stats[0]]) / max_first_stats * 200), int(int(statistics[1][i][stats[1]]) / max_second_stat *200)))
+        color = (rgb_to_hex(0, int(min(int(statistics[1][i][stats[0]]),max_first_stats) / max_first_stats * 256), int(min(int(statistics[1][i][stats[1]]),max_second_stat) / max_second_stat *256)))
     plt.plot(X[-1], Y[-1], marker='.', alpha=1, markersize=msize, markeredgecolor=color, color=color)
     
 label_idx += 1

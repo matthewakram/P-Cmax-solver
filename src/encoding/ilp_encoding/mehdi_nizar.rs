@@ -126,8 +126,10 @@ impl ILPEncoder for MehdiNizarEncoder {
         return true;
     }
 
-    fn get_encoding(&self) -> String {
-        return self.encoding.clone();
+    fn get_encoding(&mut self) -> String {
+        let mut out = String::new();
+        std::mem::swap(&mut out, &mut self.encoding);
+        return out;
     }
 
     fn decode(

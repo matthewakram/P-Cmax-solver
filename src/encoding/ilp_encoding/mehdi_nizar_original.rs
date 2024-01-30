@@ -20,9 +20,9 @@ impl ILPEncoder for MehdiNizarOriginalEncoder {
     fn encode(
         &mut self,
         partial_solution: &crate::problem_instance::partial_solution::PartialSolution,
-        lower_bounds: usize,
+        _lower_bounds: usize,
         makespan: usize,
-        _timeout: &crate::common::timeout::Timeout,
+        timeout: &crate::common::timeout::Timeout,
     ) -> bool {
         let mut possible_makespans_at_decision = bitvec![0;makespan+1];
         possible_makespans_at_decision.set(0, true);
@@ -59,6 +59,9 @@ impl ILPEncoder for MehdiNizarOriginalEncoder {
                 }
                 formula += &format!("makespan - {} v_{}_{} >= 0\n", node_reached, i, job);
             }
+            if timeout.time_finished() || formula.len() > 10_000_000_000 {
+                return false;
+            }
         }
 
         // Constraint 3
@@ -79,6 +82,9 @@ impl ILPEncoder for MehdiNizarOriginalEncoder {
                         .push(format!("v_{}_{}", i, *job));
                 }
             }
+            if timeout.time_finished() || formula.len() > 10_000_000_000 {
+                return false;
+            }
         }
 
         for i in 1..makespan {
@@ -95,6 +101,9 @@ impl ILPEncoder for MehdiNizarOriginalEncoder {
             }
             let constraint = format!("-f_{} {} = 0\n", i, constraint);
             formula += &constraint;
+            if timeout.time_finished() || formula.len() > 10_000_000_000{
+                return false;
+            }
         }
 
         // constraint 5
@@ -107,6 +116,9 @@ impl ILPEncoder for MehdiNizarOriginalEncoder {
             }
             constraint += " = 1\n";
             formula += &constraint;
+            if timeout.time_finished() || formula.len() > 10_000_000_000{
+                return false;
+            }
         }
 
         formula += "Binaries\n";
@@ -128,8 +140,10 @@ impl ILPEncoder for MehdiNizarOriginalEncoder {
         return true;
     }
 
-    fn get_encoding(&self) -> String {
-        return self.encoding.clone();
+    fn get_encoding(&mut self) -> String {
+        let mut out = String::new();
+        std::mem::swap(&mut out, &mut self.encoding);
+        return out;
     }
 
     fn decode(

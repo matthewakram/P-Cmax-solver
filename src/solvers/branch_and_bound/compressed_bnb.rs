@@ -1,7 +1,9 @@
+use std::collections::HashMap;
+
 use bitvec::bitvec;
 
 use crate::{
-    bdd::bdd_dyn::RangeTable,
+    bdd::compressed_ret::CompressedRet,
     common::common::IndexOf,
     problem_instance::{
         partial_solution::PartialSolution, problem_instance::ProblemInstance, solution::Solution,
@@ -14,11 +16,15 @@ use crate::{
 };
 
 #[derive(Clone)]
-pub struct BranchAndBound {}
+pub struct CompressedBnB {
+    stats: HashMap<String, f64>
+}
 
-impl BranchAndBound {
-    pub fn new() -> BranchAndBound {
-        return BranchAndBound {};
+impl CompressedBnB {
+    pub fn new() -> CompressedBnB {
+        return CompressedBnB {
+            stats: HashMap::new()
+        };
     }
 }
 
@@ -41,13 +47,13 @@ fn min_procs(part_sol: &PartialAssignment) -> (usize, usize) {
     return (min_proc, second_min_proc);
 }
 
-impl BranchAndBound {
+impl CompressedBnB {
     fn solve_rec(
         &self,
         instance: &ProblemInstance,
         // we maintain the for part_sol.makespan < upper
         part_sol: &mut PartialAssignment,
-        ret: &mut RangeTable,
+        ret: &mut CompressedRet,
         lower: usize,
         best_makespan_found: usize,
         timeout: &crate::common::timeout::Timeout,
@@ -55,6 +61,7 @@ impl BranchAndBound {
         if timeout.time_finished() {
             return Result::Err(());
         }
+        part_sol.num_nodes_explored +=1;
         let lower: usize = lower.max(part_sol.makespan);
         if best_makespan_found <= lower {
             return Ok(None);
@@ -104,11 +111,19 @@ impl BranchAndBound {
             if better_option.makespan < best_makespan_found {
                 //println!("found solution with makesapan {}", better_option.makespan);
                 let next_makespan_to_check = better_option.makespan - 1;
-                *ret = RangeTable::new(
-                    &(0..instance.num_jobs).into_iter().collect(),
-                    &instance.job_sizes,
-                    next_makespan_to_check,
-                );
+                if next_makespan_to_check >= instance.job_sizes[0] {
+                    *ret = CompressedRet::new(
+                        &(0..instance.num_jobs).into_iter().collect(),
+                        &instance.job_sizes,
+                        next_makespan_to_check,
+                    );
+                } else {
+                    *ret = CompressedRet::new(
+                        &(0..0).into_iter().collect(),
+                        &(0..0).into_iter().collect(),
+                        0,
+                    );
+                }
 
                 return Ok(Some(better_option));
             } else {
@@ -132,17 +147,23 @@ impl BranchAndBound {
                             != instance.job_sizes[part_sol.unassigned[i + 1]])
                 {
                     let job = part_sol.unassigned[i];
-                    if ret.get_range(job, best_makespan_found - 1 - instance.job_sizes[job])
-                        == ret.get_range(job, proc_makespan)
-                    {
+                    if ret.are_same_range(
+                        job,
+                        best_makespan_found - 1 - instance.job_sizes[job],
+                        proc_makespan,
+                    ) {
                         fur_job = job;
                         fur_proc = proc;
                     }
                     break;
                 }
             }
+            if fur_job != usize::MAX {
+                break;
+            }
         }
 
+        //let fur_job = usize::MAX;
         if fur_job != usize::MAX {
             // in this case we use the FUR and recurse
 
@@ -195,7 +216,6 @@ impl BranchAndBound {
 
         let job_to_branch_on_size = instance.job_sizes[job_to_branch_on];
         let mut precedence = 0;
-        // TODO: Fix this
         if job_to_branch_on > 0 && instance.job_sizes[job_to_branch_on - 1] == job_to_branch_on_size
         {
             assert!(!part_sol.fur_assignments[job_to_branch_on - 1]);
@@ -220,7 +240,7 @@ impl BranchAndBound {
             .take(num_unassigned)
             .collect();
 
-        let mut last_range: usize = usize::MAX;
+        let mut last_proc_makespan: usize = usize::MAX;
 
         for proc in procs_to_branch_on {
             if best_makespan_found - part_sol.makespans[proc]
@@ -228,13 +248,18 @@ impl BranchAndBound {
             {
                 continue;
             }
-            let range = ret
-                .get_range(job_to_branch_on, part_sol.makespans[proc])
-                .unwrap();
-            if last_range == range {
+
+            if last_proc_makespan != usize::MAX
+                && ret.are_same_range(
+                   job_to_branch_on,
+                   last_proc_makespan,
+                   part_sol.makespans[proc],
+            )
+                //&& last_proc_makespan == part_sol.makespans[proc]
+            {
                 continue;
             }
-            last_range = range;
+            last_proc_makespan = part_sol.makespans[proc];
 
             part_sol.assign(job_to_branch_on, proc, instance, false);
             let sol = self.solve_rec(instance, part_sol, ret, lower, best_makespan_found, timeout);
@@ -252,9 +277,6 @@ impl BranchAndBound {
                 if best_makespan_found <= lower {
                     return Ok(best_sol);
                 }
-                last_range = ret
-                    .get_range(job_to_branch_on, part_sol.makespans[proc])
-                    .unwrap();
             }
         }
 
@@ -262,7 +284,10 @@ impl BranchAndBound {
     }
 }
 
-impl SolverManager for BranchAndBound {
+impl SolverManager for CompressedBnB {
+    fn get_stats(&self) -> HashMap<String, f64> {
+        return self.stats.clone();
+    }
     fn solve(
         &mut self,
         instance: &crate::problem_instance::problem_instance::ProblemInstance,
@@ -287,7 +312,7 @@ impl SolverManager for BranchAndBound {
         }
         let mut part_sol = PartialAssignment::new(instance);
 
-        let ret = &mut RangeTable::new(
+        let ret = &mut CompressedRet::new(
             &(0..instance.num_jobs).into_iter().collect(),
             &instance.job_sizes,
             makespan_to_test,
@@ -301,6 +326,7 @@ impl SolverManager for BranchAndBound {
         if sol.is_none() {
             return Some(upper.clone());
         } else {
+            self.stats.insert("num_nodes_explored".to_string(), part_sol.num_nodes_explored as f64);
             let sol = sol.unwrap();
             let sol = Solution {
                 makespan: sol.makespan,
@@ -320,6 +346,7 @@ struct PartialAssignment {
     pub fur_assignments: bitvec::prelude::BitVec,
     pub min_space_required: usize,
     pub time_point_assigned: Vec<usize>,
+    pub num_nodes_explored: usize,
 }
 impl PartialAssignment {
     pub fn new(instance: &ProblemInstance) -> PartialAssignment {
@@ -338,6 +365,7 @@ impl PartialAssignment {
             fur_assignments,
             min_space_required,
             time_point_assigned,
+            num_nodes_explored: 0,
         };
     }
 

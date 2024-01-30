@@ -7,6 +7,7 @@ bench/franca_frangioni/SOLUTIONS/
 bench/franca_frangioni/standardised/
 bench/class_instance_encodings/
 bench/results/*.txt
+bench/lawrenko/*.txt
 .idea/*
 .DS_Store
 .vscode

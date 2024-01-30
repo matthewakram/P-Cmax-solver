@@ -14,11 +14,11 @@ use crate::{
 };
 
 #[derive(Clone)]
-pub struct BranchAndBound {}
+pub struct BranchAndBoundBasic {}
 
-impl BranchAndBound {
-    pub fn new() -> BranchAndBound {
-        return BranchAndBound {};
+impl BranchAndBoundBasic {
+    pub fn new() -> BranchAndBoundBasic {
+        return BranchAndBoundBasic {};
     }
 }
 
@@ -41,7 +41,7 @@ fn min_procs(part_sol: &PartialAssignment) -> (usize, usize) {
     return (min_proc, second_min_proc);
 }
 
-impl BranchAndBound {
+impl BranchAndBoundBasic {
     fn solve_rec(
         &self,
         instance: &ProblemInstance,
@@ -103,85 +103,16 @@ impl BranchAndBound {
             };
             if better_option.makespan < best_makespan_found {
                 //println!("found solution with makesapan {}", better_option.makespan);
-                let next_makespan_to_check = better_option.makespan - 1;
+
+                // this was part of a silly test to see the performance difference of using ret
                 *ret = RangeTable::new(
-                    &(0..instance.num_jobs).into_iter().collect(),
-                    &instance.job_sizes,
-                    next_makespan_to_check,
+                    &(0..1).collect(),
+                    &(0..1).collect(),
+                    1,
                 );
 
                 return Ok(Some(better_option));
             } else {
-                return Ok(None);
-            }
-        }
-
-        let mut fur_job = usize::MAX;
-        let mut fur_proc = usize::MAX;
-        for proc in 0..instance.num_processors {
-            let proc_makespan = part_sol.makespans[proc];
-            if best_makespan_found - proc_makespan
-                < instance.job_sizes[*part_sol.unassigned.last().unwrap()]
-            {
-                continue;
-            }
-            for i in 0..part_sol.unassigned.len() {
-                if best_makespan_found - proc_makespan > instance.job_sizes[part_sol.unassigned[i]]
-                    && (i + 1 == part_sol.unassigned.len()
-                        || instance.job_sizes[part_sol.unassigned[i]]
-                            != instance.job_sizes[part_sol.unassigned[i + 1]])
-                {
-                    let job = part_sol.unassigned[i];
-                    if ret.get_range(job, best_makespan_found - 1 - instance.job_sizes[job])
-                        == ret.get_range(job, proc_makespan)
-                    {
-                        fur_job = job;
-                        fur_proc = proc;
-                    }
-                    break;
-                }
-            }
-        }
-
-        if fur_job != usize::MAX {
-            // in this case we use the FUR and recurse
-
-            part_sol.assign(fur_job, fur_proc, instance, true);
-            let sol = self.solve_rec(instance, part_sol, ret, lower, best_makespan_found, timeout);
-            if sol.is_err() {
-                return Err(());
-            }
-            part_sol.unassign(fur_job, instance, true);
-            let sol = sol.unwrap();
-            if sol.is_some() {
-                // if sol is found, then we know that we can improve upon best_makespan_found, but because we used the
-                // FUR, we dont know if we can improve this solution even further without the FUR
-                let sol = sol.unwrap();
-                assert!(sol.makespan < best_makespan_found);
-                let best_makespan_found: usize = sol.makespan;
-                // if the optiml solution has been reached, or we know that this assignment is not the reason that the makespan is so large,
-                // then we know we cannot achieve a better solution here
-                if best_makespan_found <= lower
-                    || part_sol.makespans[fur_proc] + instance.job_sizes[fur_job] < sol.makespan
-                {
-                    return Ok(Some(sol));
-                }
-
-                // now we have to revert the FUR decision, and recurse
-                let better_sol =
-                    self.solve_rec(instance, part_sol, ret, lower, best_makespan_found, timeout);
-                if better_sol.is_err() {
-                    return Err(());
-                }
-                let better_sol = better_sol.unwrap();
-                if better_sol.is_none() {
-                    //println!("happened");
-                    return Ok(Some(sol));
-                } else {
-                    return Ok(better_sol);
-                }
-            } else {
-                // here sol is None, so we know we cannot improve upon best_makespan_found
                 return Ok(None);
             }
         }
@@ -193,22 +124,29 @@ impl BranchAndBound {
         let mut best_sol: Option<PartialAssignment> = None;
         let mut best_makespan_found = best_makespan_found;
 
-        let job_to_branch_on_size = instance.job_sizes[job_to_branch_on];
-        let mut precedence = 0;
+        let _job_to_branch_on_size = instance.job_sizes[job_to_branch_on];
+        let  precedence = usize::MAX;
         // TODO: Fix this
-        if job_to_branch_on > 0 && instance.job_sizes[job_to_branch_on - 1] == job_to_branch_on_size
-        {
-            assert!(!part_sol.fur_assignments[job_to_branch_on - 1]);
-            precedence = part_sol.time_point_assigned[job_to_branch_on - 1];
-        }
-
+        //for i in (0..job_to_branch_on).rev() {
+        //    if instance.job_sizes[i] != job_to_branch_on_size {
+        //        break;
+        //    } else if !part_sol.fur_assignments[i] {
+        //        precedence = part_sol.assignment[i];
+        //        break;
+        //    }
+        //}
+        let precedence = if precedence == usize::MAX {
+            0
+        } else {
+            precedence
+        };
         let mut procs: Vec<(usize, usize)> = part_sol
             .makespans
             .iter()
             .enumerate()
             .filter(|(proc_num, makespan)| {
                 best_makespan_found - **makespan > instance.job_sizes[job_to_branch_on]
-                    && part_sol.makespans[*proc_num] >= precedence
+                    && proc_num >= &precedence
             })
             .map(|(x, a)| (x, *a))
             .collect();
@@ -228,9 +166,11 @@ impl BranchAndBound {
             {
                 continue;
             }
-            let range = ret
-                .get_range(job_to_branch_on, part_sol.makespans[proc])
-                .unwrap();
+            //let range = ret
+            //    .get_range(job_to_branch_on, part_sol.makespans[proc])
+            //    .unwrap();
+            // this was part of a silly test to see the performance difference of using ret
+            let range = part_sol.makespans[proc];
             if last_range == range {
                 continue;
             }
@@ -252,9 +192,6 @@ impl BranchAndBound {
                 if best_makespan_found <= lower {
                     return Ok(best_sol);
                 }
-                last_range = ret
-                    .get_range(job_to_branch_on, part_sol.makespans[proc])
-                    .unwrap();
             }
         }
 
@@ -262,7 +199,7 @@ impl BranchAndBound {
     }
 }
 
-impl SolverManager for BranchAndBound {
+impl SolverManager for BranchAndBoundBasic {
     fn solve(
         &mut self,
         instance: &crate::problem_instance::problem_instance::ProblemInstance,
@@ -319,7 +256,6 @@ struct PartialAssignment {
     pub makespan: usize,
     pub fur_assignments: bitvec::prelude::BitVec,
     pub min_space_required: usize,
-    pub time_point_assigned: Vec<usize>,
 }
 impl PartialAssignment {
     pub fn new(instance: &ProblemInstance) -> PartialAssignment {
@@ -329,7 +265,6 @@ impl PartialAssignment {
         let makespan = 0;
         let fur_assignments: bitvec::prelude::BitVec = bitvec![0;instance.num_jobs];
         let min_space_required: usize = instance.job_sizes.iter().sum();
-        let time_point_assigned: Vec<usize> = vec![0; instance.num_jobs];
         return PartialAssignment {
             assignment,
             makespans,
@@ -337,7 +272,6 @@ impl PartialAssignment {
             makespan,
             fur_assignments,
             min_space_required,
-            time_point_assigned,
         };
     }
 
@@ -350,7 +284,6 @@ impl PartialAssignment {
     ) {
         assert!(self.assignment[job] == usize::MAX);
         self.assignment[job] = proc;
-        self.time_point_assigned[job] = self.makespans[proc];
         self.makespans[proc] += instance.job_sizes[job];
         self.makespan = self.makespan.max(self.makespans[proc]);
         let job_pos = self.unassigned.index_of(&job).unwrap();
@@ -364,7 +297,6 @@ impl PartialAssignment {
     pub fn unassign(&mut self, job: usize, instance: &ProblemInstance, fur_assignment: bool) {
         assert!(self.assignment[job] != usize::MAX);
         let proc = self.assignment[job];
-        self.time_point_assigned[job] = 0;
         self.assignment[job] = usize::MAX;
         let old_makespan = self.makespans[proc];
         self.makespans[proc] -= instance.job_sizes[job];

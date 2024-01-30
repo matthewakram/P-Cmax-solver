@@ -16,26 +16,31 @@ mod tests {
         common::timeout::Timeout,
         encoding::{
             ilp_encoder::ILPEncoder,
-            ilp_encoding::{mehdi_nizar::MehdiNizarEncoder, mehdi_nizar_original::MehdiNizarOriginalEncoder},
+            ilp_encoding::{
+                mehdi_nizar::MehdiNizarEncoder, mehdi_nizar_original::MehdiNizarOriginalEncoder,
+            },
             sat_encoder::Encoder,
             sat_encoding::{
                 basic_encoder::BasicEncoder, bdd_inter_comp::BddInterComp,
                 binmerge_inter::BinmergeInterEncoder, binmerge_native::BinmergeEncoder,
-                binmerge_simp::BinmergeSimpEncoder, pb_bdd_inter::PbInter,
-                pb_bdd_inter_better::PbInterDyn, pb_bdd_native::PbNativeEncoder,
-                pb_bdd_pysat::PbPysatEncoder, precedence_encoder::Precedence, mehdi_nizar_sat::MehdiNizarSatEncoder,
+                binmerge_simp::BinmergeSimpEncoder, mehdi_nizar_sat::MehdiNizarSatEncoder,
+                pb_bdd_inter::PbInter, pb_bdd_inter_better::PbInterDyn,
+                pb_bdd_native::PbNativeEncoder, pb_bdd_pysat::PbPysatEncoder,
+                precedence_encoder::Precedence,
             },
         },
         input_output::{self},
         makespan_scheduling::linear_makespan::LinearMakespan,
         solvers::{
+            branch_and_bound::{
+                branch_and_bound::BranchAndBound, branch_and_bound_basic::BranchAndBoundBasic,
+                branch_and_bound_ret::BranchAndBoundRET, compressed_bnb::CompressedBnB, hj::HJ,
+            },
             ilp_solver::gurobi::Gurobi,
             sat_solver::{
-                kissat::Kissat,
-                multi_sat_solver_manager::MultiSatSolverManager,
-                sat_solver_manager,
+                kissat::Kissat, multi_sat_solver_manager::MultiSatSolverManager, sat_solver_manager,
             },
-            solver_manager::SolverManager, branch_and_bound::branch_and_bound::BranchAndBound,
+            solver_manager::SolverManager,
         },
     };
     use std::{
@@ -179,28 +184,28 @@ mod tests {
 
     fn test_file_solver(mut solver: Box<dyn SolverManager>, file_name: &String) -> Option<String> {
         let instance = input_output::from_file::read_from_file(file_name);
-        let total_timeout_f64: f64 = 100.0;
-        let precomputation_timeout = 20.0;
+        let total_timeout_f64: f64 = 300.0;
+        let precomputation_timeout = 10.0;
 
         // --------------CALCULATING BOUNDS--------------
-        let precomp_timeout = Timeout::new(precomputation_timeout);
 
         let bounds: Vec<Box<dyn Bound>> = vec![
             Box::new(pigeon_hole::PigeonHole {}),
             Box::new(max_job_size::MaxJobSize {}),
             Box::new(middle::MiddleJobs {}),
             Box::new(lpt::LPT {}),
-            Box::new(lptp::Lptp {}),
+            //Box::new(lptp::Lptp {}),
             //Box::new(martello_toth::MartelloToth {}),
-            Box::new(sss_bound_tightening::SSSBoundStrengthening {}),
-            Box::new(lptpp::Lptpp {}),
-            Box::new(lifting::Lifting::new_deterministic(1)),
-            Box::new(mss::MSS::new_deterministic(4)),
+            //Box::new(sss_bound_tightening::SSSBoundStrengthening {}),
+            //Box::new(lptpp::Lptpp {}),
+            //Box::new(lifting::Lifting::new_deterministic(1)),
+            //Box::new(mss::MSS::new_deterministic(4)),
         ];
 
         let (mut lower_bound, mut upper_bound) = (0, None);
 
         for i in 0..bounds.len() {
+            let precomp_timeout = Timeout::new(precomputation_timeout);
             let bound = &bounds[i];
             (lower_bound, upper_bound) =
                 bound.bound(&instance, lower_bound, upper_bound, &precomp_timeout);
@@ -215,34 +220,37 @@ mod tests {
 
         // -------------CHECKING IF SOLUTION HAS BEEN FOUND-----------
         // We maintain that the solution is within [lower_bound, upper_bound]. Note that this is inclusive.
-        
+
         assert!(lower_bound <= upper_bound.makespan);
         if lower_bound == upper_bound.makespan {
             return Some(format!(
-                "{} {} {} {} {} 0.0 0.0 0.0 0.0 0.0 0.0 0.0",
+                "{} {} {} {} {} {} 0.0 0.0 0.0 0.0 0.0 0.0 0.0",
                 file_name,
-                total_timeout_f64 - total_timeout.remaining_time(),
+                0,
                 lower_bound,
                 instance.num_jobs,
-                instance.num_processors
+                instance.num_processors,
+                (instance.num_jobs as f64) / (instance.num_processors as f64)
             ));
         }
-        println!("solving file {}", file_name);
-
         //--------------SOLVING---------------------------
 
         let sol = solver.solve(&instance, lower_bound, &upper_bound, &total_timeout, false);
         if sol.is_none() {
+            println!("could not solve file {}", file_name);
             return None;
         }
+        println!("solved file {}", file_name);
 
         return Some(format!(
-            "{} {} {} {} {} 0.0 0.0 0.0 0.0 0.0 0.0 0.0",
+            "{} {} {} {} {} {} {} 0.0 0.0 0.0 0.0 0.0 0.0",
             file_name,
             total_timeout_f64 - total_timeout.remaining_time(),
             sol.as_ref().unwrap().makespan,
             instance.num_jobs,
             instance.num_processors,
+            (instance.num_jobs as f64) / (instance.num_processors as f64),
+            solver.get_stats().get("num_nodes_explored").unwrap_or(&0.0),
         ));
     }
 
@@ -405,8 +413,7 @@ mod tests {
     #[test]
     #[ignore]
     pub fn complete_test_class_multi() {
-        let a: Box<dyn Encoder> =
-            Box::new(Precedence::new(Box::new(BinmergeEncoder::new()), 1));
+        let a: Box<dyn Encoder> = Box::new(Precedence::new(Box::new(BinmergeEncoder::new()), 1));
         let b: Box<dyn Encoder> = Box::new(Precedence::new(Box::new(BddInterComp::new()), 1));
         let solver: Box<dyn SolverManager> = Box::new(MultiSatSolverManager {
             sat_solver: Box::new(Kissat::new()),
@@ -457,7 +464,132 @@ mod tests {
         )
     }
 
+    #[test]
+    #[ignore]
+    pub fn complete_test_class_compressed_b_and_b() {
+        let solver = Box::new(CompressedBnB::new());
+        test_solver(
+            solver,
+            "./bench/class_instances/",
+            "./bench/results/complete_class_instances_compressed_branch_and_bound.txt",
+        )
+    }
 
+    #[test]
+    #[ignore]
+    pub fn complete_test_class_hj() {
+        let solver = Box::new(HJ::new());
+        test_solver(
+            solver,
+            "./bench/class_instances/",
+            "./bench/results/complete_class_instances_hj.txt",
+        )
+    }
+
+    #[test]
+    #[ignore]
+    pub fn paper_tests() {
+        complete_test_lawrenko_original_ilp();
+        println!("tested ilp ===========================================================");
+        complete_test_lawrenko_b_and_b();
+        println!("tested bnb complete ===========================================================");
+        complete_test_class_original_ilp();
+        println!("tested ilp ===========================================================");
+        complete_test_class_b_and_b();
+        println!("tested bnb complete ===========================================================");
+        complete_test_franca_mehdi_nizar();
+        println!("tested ilp ===========================================================");
+        complete_test_franca_b_and_b();
+        println!("tested bnb complete ===========================================================");
+    }
+    #[test]
+    #[ignore]
+    pub fn complete_test_class_ret_b_and_b() {
+        let solver = Box::new(BranchAndBoundRET::new());
+        test_solver(
+            solver,
+            "./bench/class_instances/",
+            "./bench/results/complete_class_instances_branch_and_bound_ret.txt",
+        )
+    }
+
+    #[test]
+    #[ignore]
+    pub fn complete_test_class_basic_b_and_b() {
+        let solver = Box::new(BranchAndBoundBasic::new());
+        test_solver(
+            solver,
+            "./bench/class_instances/",
+            "./bench/results/complete_class_instances_branch_and_bound_basic.txt",
+        )
+    }
+
+    #[test]
+    #[ignore]
+    pub fn complete_test_lawrenko_original_ilp() {
+        let a: Box<dyn ILPEncoder> = Box::new(MehdiNizarOriginalEncoder::new());
+        let solver = Box::new(Gurobi::new(a));
+        test_solver(
+            solver,
+            "./bench/lawrenko/",
+            "./bench/results/complete_lawrenko_mehdi_nizar_original.txt",
+        )
+    }
+
+    #[test]
+    #[ignore]
+    pub fn complete_test_lawrenko_b_and_b() {
+        let solver = Box::new(BranchAndBound::new());
+        test_solver(
+            solver,
+            "./bench/lawrenko/",
+            "./bench/results/complete_lawrenko_branch_and_bound.txt",
+        )
+    }
+
+    #[test]
+    #[ignore]
+    pub fn complete_test_lawrenko_ret_b_and_b() {
+        let solver = Box::new(BranchAndBoundRET::new());
+        test_solver(
+            solver,
+            "./bench/lawrenko/",
+            "./bench/results/complete_lawrenko_branch_and_bound_ret.txt",
+        )
+    }
+
+    #[test]
+    #[ignore]
+    pub fn complete_test_lawrenko_basic_b_and_b() {
+        let solver = Box::new(BranchAndBoundBasic::new());
+        test_solver(
+            solver,
+            "./bench/lawrenko/",
+            "./bench/results/complete_lawrenko_branch_and_bound_basic.txt",
+        )
+    }
+
+    #[test]
+    #[ignore]
+    pub fn complete_test_lawrenko_compressed_basic_b_and_b() {
+        let solver = Box::new(CompressedBnB::new());
+        test_solver(
+            solver,
+            "./bench/lawrenko/",
+            "./bench/results/complete_lawrenko_compressed_branch_and_bound_basic.txt",
+        )
+    }
+
+    #[test]
+    #[ignore]
+    pub fn complete_test_lawrenko_hj() {
+        let solver = Box::new(HJ::new());
+        test_solver(
+            solver,
+            "./bench/lawrenko/",
+            "./bench/results/complete_lawrenko_hj.txt",
+        )
+    }
 
     #[test]
     #[ignore]
@@ -519,4 +651,66 @@ mod tests {
             "./bench/results/complete_franca_frangioni_inter+.txt",
         )
     }
+
+    #[test]
+    #[ignore]
+    pub fn complete_test_franca_b_and_b() {
+        rayon::ThreadPoolBuilder::new()
+        .num_threads(10)
+        .build_global()
+        .unwrap();
+        let solver = Box::new(BranchAndBound::new());
+        test_solver(
+            solver,
+            "./bench/franca_frangioni/standardised/",
+            "./bench/results/complete_franca_frangioni_branch_and_bound.txt",
+        )
+    }
+
+    #[test]
+    #[ignore]
+    pub fn complete_test_franca_compressed_b_and_b() {
+        let solver = Box::new(CompressedBnB::new());
+        test_solver(
+            solver,
+            "./bench/franca_frangioni/standardised/",
+            "./bench/results/complete_franca_frangioni_compressed_branch_and_bound.txt",
+        )
+    }
+
+    #[test]
+    #[ignore]
+    pub fn complete_test_franca_hj() {
+        let solver = Box::new(HJ::new());
+        test_solver(
+            solver,
+            "./bench/franca_frangioni/standardised/",
+            "./bench/results/complete_franca_frangioni_hj.txt",
+        )
+    }
+
+    #[test]
+    #[ignore]
+    pub fn complete_test_franca_mehdi_nizar() {
+        rayon::ThreadPoolBuilder::new()
+            .num_threads(22)
+            .build_global()
+            .unwrap();
+        let solver = Box::new(Gurobi::new(Box::new(MehdiNizarOriginalEncoder::new())));
+        test_solver(
+            solver,
+            "./bench/franca_frangioni/standardised/",
+            "./bench/results/complete_franca_frangioni_mehdi_nizar.txt",
+        )
+    }
+
+    #[test]
+    #[ignore]
+    pub fn complete_test_hj() {
+        complete_test_franca_hj();
+        complete_test_class_hj();
+        complete_test_lawrenko_hj();
+    }
+
+
 }

@@ -1,7 +1,6 @@
 use std::{env, vec};
 
 use p_cmax_solver::encoding::cplex_model_encoding::pinar_seyda::PinarSeyda;
-use p_cmax_solver::encoding::ilp_encoding::mehdi_nizar::MehdiNizarEncoder;
 use p_cmax_solver::encoding::ilp_encoding::mehdi_nizar_original::MehdiNizarOriginalEncoder;
 use p_cmax_solver::encoding::sat_encoding::basic_encoder::BasicEncoder;
 use p_cmax_solver::encoding::sat_encoding::bdd_inter_comp::BddInterComp;
@@ -12,6 +11,8 @@ use p_cmax_solver::encoding::sat_encoding::pb_bdd_native::PbNativeEncoder;
 use p_cmax_solver::encoding::sat_encoding::pb_bdd_pysat::PbPysatEncoder;
 use p_cmax_solver::encoding::sat_encoding::precedence_encoder::Precedence;
 use p_cmax_solver::solvers::branch_and_bound::branch_and_bound::BranchAndBound;
+use p_cmax_solver::solvers::branch_and_bound::compressed_bnb::CompressedBnB;
+use p_cmax_solver::solvers::branch_and_bound::hj::HJ;
 use p_cmax_solver::solvers::cp_solver::cplex_manager::CPELXSolver;
 use p_cmax_solver::solvers::ilp_solver::gurobi::Gurobi;
 use p_cmax_solver::solvers::solver_manager::SolverManager;
@@ -21,7 +22,6 @@ use bounds::lower_bounds::*;
 use bounds::upper_bounds::lpt;
 
 use p_cmax_solver::bounds::bound::Bound;
-use p_cmax_solver::bounds::upper_bounds::{lptp, lptpp, mss};
 use p_cmax_solver::common::common::IndexOf;
 use p_cmax_solver::common::timeout::Timeout;
 use p_cmax_solver::encoding::sat_encoder::Encoder;
@@ -35,33 +35,33 @@ fn main() {
     let file_name = &args[1];
     let instance = input_output::from_file::read_from_file(file_name);
 
-    let timeout_given = args.index_of(&"-t".to_string());
-    let total_timeout = if timeout_given.is_none() {
+    let timeout_given: Option<usize> = args.index_of(&"-t".to_string());
+    let total_timeout_time = if timeout_given.is_none() {
         60.0
     } else {
         args[timeout_given.unwrap() + 1].parse::<f64>().unwrap()
     };
-    let precomputation_timeout = total_timeout / 5.0;
+    let precomputation_timeout = 10.0;
 
     // --------------CALCULATING BOUNDS--------------
-    let precomp_timeout = Timeout::new(precomputation_timeout);
-    let total_timeout = Timeout::new(total_timeout);
+
     let bounds: Vec<Box<dyn Bound>> = vec![
         Box::new(pigeon_hole::PigeonHole {}),
         Box::new(max_job_size::MaxJobSize {}),
         Box::new(middle::MiddleJobs {}),
-        Box::new(fs::FeketeSchepers {}),
+        //Box::new(fs::FeketeSchepers {}),
         Box::new(lpt::LPT {}),
-        Box::new(lptp::Lptp {}),
-        Box::new(sss_bound_tightening::SSSBoundStrengthening {}),
-        Box::new(lptpp::Lptpp {}),
-        Box::new(lifting::Lifting::new()),
-        Box::new(mss::MSS::new()),
+        //Box::new(lptp::Lptp {}),
+        //Box::new(sss_bound_tightening::SSSBoundStrengthening {}),
+        //Box::new(lptpp::Lptpp {}),
+        //Box::new(lifting::Lifting::new()),
+        //Box::new(mss::MSS::new()),
     ];
 
+    let total_timeout = Timeout::new(total_timeout_time);
     let (mut lower_bound, mut upper_bound) = (1, None);
-    //TODO; make this dynamic
     for i in 0..bounds.len() {
+        let precomp_timeout = Timeout::new(precomputation_timeout);
         let bound = &bounds[i];
         (lower_bound, upper_bound) =
             bound.bound(&instance, lower_bound, upper_bound, &precomp_timeout);
@@ -80,8 +80,9 @@ fn main() {
             break;
         }
     }
-    let mut upper_bound = upper_bound.unwrap();
-    upper_bound.makespan += 1;
+    let upper_bound = upper_bound.unwrap();
+    //upper_bound.makespan += 5;
+    println!("starting");
 
     // -------------CHECKING IF SOLUTION HAS BEEN FOUND-----------
     // We maintain that the solution is within [lower_bound, upper_bound]. Note that this is inclusive.
@@ -113,15 +114,27 @@ fn main() {
             .unwrap();
         let final_solution = instance.finalize_solution(sol);
         println!("solution found {}", final_solution.makespan);
+        println!("time {}", total_timeout_time - total_timeout.remaining_time());
         return;
     } else if args.contains(&"-branch".to_string()) {
-        let mut solver = BranchAndBound::new();
+        let mut solver = CompressedBnB::new();
 
         let sol = solver
             .solve(&instance, lower_bound, &upper_bound, &total_timeout, true)
             .unwrap();
         let final_solution = instance.finalize_solution(sol);
         println!("solution found {}", final_solution.makespan);
+        println!("time {}", total_timeout_time - total_timeout.remaining_time());
+        return;
+    }  else if args.contains(&"-hj".to_string()) {
+        let mut solver = HJ::new();
+
+        let sol = solver
+            .solve(&instance, lower_bound, &upper_bound, &total_timeout, true)
+            .unwrap();
+        let final_solution = instance.finalize_solution(sol);
+        println!("solution found {}", final_solution.makespan);
+        println!("time {}", total_timeout_time - total_timeout.remaining_time());
         return;
     }
 
@@ -186,5 +199,6 @@ fn main() {
         .solve(&instance, lower_bound, &upper_bound, &total_timeout, true)
         .unwrap();
     println!("solution found {}", sol);
-    let final_solution = instance.finalize_solution(sol);
+    println!("time {}", total_timeout_time - total_timeout.remaining_time());
+    let _final_solution = instance.finalize_solution(sol);
 }

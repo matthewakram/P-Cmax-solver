@@ -1,5 +1,3 @@
-use std::collections::HashMap;
-
 use bitvec::{prelude::*, vec::BitVec};
 
 use crate::{
@@ -22,7 +20,6 @@ pub struct DynNode {
 #[derive(Debug)]
 pub struct RangeTable {
     ranges: Vec<Vec<usize>>,
-    // TODO: change this to no longer be a hashmap but a list
     job_position: Vec<usize>,
     range_sizes: Vec<(usize, usize)>,
     makespan: usize,
@@ -44,6 +41,14 @@ impl RangeTable {
     }
 
     pub fn new(jobs: &Vec<usize>, job_sizes: &Vec<usize>, makespan: usize) -> RangeTable {
+        if job_sizes[0] > makespan {
+            return RangeTable{
+                ranges: vec![],
+                job_position: vec![],
+                range_sizes: vec![],
+                makespan,
+            }
+        }
         let mut ranges: Vec<Vec<usize>> = vec![vec![0; makespan + 1]; job_sizes.len() - 1];
         ranges.push(vec![0; makespan - job_sizes[job_sizes.len() - 1] + 1]);
         ranges[job_sizes.len() - 1].append(&mut vec![1; job_sizes[job_sizes.len() - 1]]);

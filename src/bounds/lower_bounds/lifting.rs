@@ -6,11 +6,8 @@ use crate::{
         upper_bounds::{lpt, lptp, lptpp, mss},
     },
     common::timeout::Timeout,
-    encoding::{sat_encoder::Encoder, sat_encoding::{precedence_encoder::Precedence, pb_bdd_inter_better::PbInterDyn}
-    },
-    makespan_scheduling::linear_makespan::LinearMakespan,
     problem_instance::{problem_instance::ProblemInstance, solution::Solution},
-    solvers::{sat_solver::{kissat::Kissat, sat_solver_manager}, solver_manager::SolverManager},
+    solvers::{solver_manager::SolverManager, branch_and_bound::branch_and_bound::BranchAndBound},
 };
 
 use super::{fs, max_job_size, middle, pigeon_hole, sss_bound_tightening};
@@ -150,12 +147,10 @@ impl Bound for Lifting {
             return (best_bound, upper_bound);
         }
 
-        let encoder: Box<dyn Encoder> = Box::new(Precedence::new(Box::new(PbInterDyn::new()), 2));
-        let mut sat_solver = sat_solver_manager::SatSolverManager::new(
-            Box::new(Kissat::new()),
-            Box::new(LinearMakespan {}),
-            encoder,
-        );
+        //TODO: undo this for thesis and fix code below
+        //return (best_bound, upper_bound);
+
+        let mut sat_solver = BranchAndBound::new();
 
         // we know we might still be able to improve the lower bound, and the unsolved instances are the key to that
         let mut num_instances_remaining = unsolved_instances.len() as f64;
@@ -185,12 +180,6 @@ impl Bound for Lifting {
             num_instances_remaining -= 1.0;
             if sol.is_some() {
                 best_bound = best_bound.max(sol.unwrap().makespan);
-            } else {
-                println!(
-                    "could not solve instance number {}/{}",
-                    i,
-                    unsolved_instances.len()
-                );
             }
         }
         return (best_bound, upper_bound);

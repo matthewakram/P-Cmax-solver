@@ -32,8 +32,8 @@ impl Encoder for MehdiNizarSatEncoder {
         &mut self,
         partial_solution: &crate::problem_instance::partial_solution::PartialSolution,
         makespan: usize,
-        timeout: &Timeout,
-        max_num_clauses: usize,
+        _timeout: &Timeout,
+        _max_num_clauses: usize,
     ) -> bool {
         let mut possible_makespans_at_decision = bitvec![0;makespan+1];
         possible_makespans_at_decision.set(0, true);
