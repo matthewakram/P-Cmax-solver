@@ -4,13 +4,10 @@ use p_cmax_solver::encoding::cplex_model_encoding::pinar_seyda::PinarSeyda;
 use p_cmax_solver::encoding::ilp_encoding::mehdi_nizar_original::MehdiNizarOriginalEncoder;
 use p_cmax_solver::encoding::sat_encoding::basic_encoder::BasicEncoder;
 use p_cmax_solver::encoding::sat_encoding::bdd_inter_comp::BddInterComp;
-use p_cmax_solver::encoding::sat_encoding::binmerge_inter::BinmergeInterEncoder;
-use p_cmax_solver::encoding::sat_encoding::pb_bdd_inter::PbInter;
-use p_cmax_solver::encoding::sat_encoding::pb_bdd_inter_better::PbInterDyn;
+use p_cmax_solver::encoding::sat_encoding::binmerge_native::BinmergeEncoder;
 use p_cmax_solver::encoding::sat_encoding::pb_bdd_native::PbNativeEncoder;
 use p_cmax_solver::encoding::sat_encoding::pb_bdd_pysat::PbPysatEncoder;
 use p_cmax_solver::encoding::sat_encoding::precedence_encoder::Precedence;
-use p_cmax_solver::solvers::branch_and_bound::branch_and_bound::BranchAndBound;
 use p_cmax_solver::solvers::branch_and_bound::compressed_bnb::CompressedBnB;
 use p_cmax_solver::solvers::branch_and_bound::hj::HJ;
 use p_cmax_solver::solvers::cp_solver::cplex_manager::CPELXSolver;
@@ -154,12 +151,6 @@ fn main() {
         encoder = Box::new(Precedence::new(Box::new(PbNativeEncoder::new()), 2));
     } else if args.contains(&"-bdd".to_string()) {
         encoder = Box::new(PbNativeEncoder::new());
-    } else if args.contains(&"-inter".to_string()) && args.contains(&"-prec".to_string()) {
-        encoder = Box::new(Precedence::new(Box::new(PbInter::new()), 2));
-    } else if args.contains(&"-inter".to_string()) {
-        encoder = Box::new(PbInter::new());
-    } else if args.contains(&"-inter+".to_string()) && args.contains(&"-prec".to_string()) {
-        encoder = Box::new(Precedence::new(Box::new(PbInterDyn::new()), 2));
     } else if args.contains(&"-basic".to_string()) && args.contains(&"-prec".to_string()) {
         encoder = Box::new(Precedence::new(Box::new(BasicEncoder::new()), 2));
     } else if args.contains(&"-basic".to_string()) {
@@ -167,7 +158,7 @@ fn main() {
     } else if args.contains(&"-intercomp".to_string()) && args.contains(&"-prec".to_string()) {
         encoder = Box::new(Precedence::new(Box::new(BddInterComp::new()), 1));
     } else if args.contains(&"-binmerge".to_string()) {
-        encoder = Box::new(BinmergeInterEncoder::new());
+        encoder = Box::new(BinmergeEncoder::new());
     } else {
         panic!("need to specify one of the given options")
     }

@@ -24,6 +24,7 @@ impl BinmergeSimpEncoder {
     }
 }
 
+/// This is binmerge, but the PBC is normalised to be the <= 2^k,
 impl Encoder for BinmergeSimpEncoder {
     // TODO add timeout to encode
     fn basic_encode(

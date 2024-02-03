@@ -40,6 +40,11 @@ impl SatSolverManager {
 }
 
 impl SolverManager for SatSolverManager {
+
+    fn get_stats(&self) -> HashMap<String, f64> {
+        return self.stats.clone();
+    }
+
     fn solve(
         &mut self,
         instance: &ProblemInstance,

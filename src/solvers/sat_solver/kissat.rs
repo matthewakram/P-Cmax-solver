@@ -1,19 +1,17 @@
-use crate::{
-    common::timeout::Timeout, encoding::sat_encoder::Clauses, input_output,
-};
+use crate::{common::timeout::Timeout, encoding::sat_encoder::Clauses, input_output};
 
 use std::{
     collections::HashMap,
     io::{Read, Write},
     process::{Command, Stdio},
     sync::{Arc, Mutex},
+    thread,
     time::{Duration, Instant},
 };
 use timeout_readwrite::TimeoutReader;
 
-use super::sat_solver::{SatSolver, SatResult};
+use super::sat_solver::{SatResult, SatSolver};
 
-#[derive(Clone)]
 pub struct Kissat {
     pid: Arc<Mutex<usize>>,
     stats: HashMap<String, f64>,
@@ -28,41 +26,51 @@ impl Kissat {
     }
 }
 
+impl Clone for Kissat {
+    fn clone(&self) -> Self {
+        Self { pid: Arc::new(Mutex::new(0)), stats: self.stats.clone() }
+    }
+}
+
 impl SatSolver for Kissat {
     fn solve(&mut self, clauses: Clauses, num_vars: usize, timeout: &Timeout) -> SatResult {
         if timeout.time_finished() {
             return SatResult::timeout();
         }
 
-        let string_gen_time_key: String = "string_gen_time".to_owned();
+        let encoding_time_key: String = "encoding_time".to_owned();
         let io_time_key = "formula_write_time".to_owned();
+        let formula_size_key = "mem_used".to_owned();
         let solve_time_key = "solve_time".to_owned();
         let solution_read_time_key = "solution_read_time".to_owned();
 
         let mut start_lock = self.pid.lock().unwrap();
         let mut child: std::process::Child = Command::new("./kissat")
             .arg("-q")
-                        .stdout(Stdio::piped())
+            .stdout(Stdio::piped())
             .stdin(Stdio::piped())
             .spawn()
             .unwrap();
         *start_lock = child.id() as usize;
+        assert_ne!(*start_lock, 0);
         drop(start_lock);
 
         let string_gen_time = Instant::now();
         let formula = input_output::to_dimacs::to_dimacs(clauses, num_vars, timeout);
         self.stats.insert(
-            string_gen_time_key.clone(),
+            encoding_time_key.clone(),
             string_gen_time.elapsed().as_secs_f64(),
         );
 
         let mut start_lock = self.pid.lock().unwrap();
         if *start_lock == 0 {
+            //println!("aaaaaaaaaaah");
             return SatResult::timeout();
         }
         let a = child.stdout.take();
 
         if formula.is_none() {
+            println!("aaaaaaaaaaaah");
             child.kill().unwrap();
             child.wait().unwrap();
             *start_lock = 0;
@@ -72,6 +80,11 @@ impl SatSolver for Kissat {
         let io_time = Instant::now();
         {
             let formula = formula.unwrap();
+            //thread::sleep(Duration::from_millis(10000));
+            if formula.is_empty() {
+                println!("AAAAAAAAAAAAAAAAAAAAAAH");
+            }
+            self.stats.insert(formula_size_key, formula.len() as f64);
             let mut stdin = child.stdin.take().unwrap();
             stdin.write_all(formula.as_bytes()).unwrap();
             stdin.flush().unwrap();
@@ -90,11 +103,13 @@ impl SatSolver for Kissat {
             *start_lock = 0;
             return SatResult::timeout();
         }
+
         let mut reader = TimeoutReader::new(a.unwrap(), Duration::from_secs_f64(time_remaining));
         drop(start_lock);
 
         let solve_time = Instant::now();
         let mut out = String::new();
+
         let res: Result<usize, std::io::Error> = reader.read_to_string(&mut out);
         let mut solver_lock = self.pid.lock().unwrap();
         *solver_lock = 0;

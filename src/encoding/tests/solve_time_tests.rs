@@ -14,7 +14,7 @@ mod tests {
             upper_bounds::{lpt, lptp, lptpp, mss::MSS},
         },
         common::timeout::Timeout,
-        encoding::{sat_encoder::Encoder, sat_encoding::{basic_encoder::BasicEncoder, pb_bdd_pysat::PbPysatEncoder, precedence_encoder::Precedence, pb_bdd_native::PbNativeEncoder, pb_bdd_inter::PbInter, pb_bdd_inter_better::PbInterDyn, binmerge_native::BinmergeEncoder, binmerge_inter::BinmergeInterEncoder, binmerge_simp::BinmergeSimpEncoder}
+        encoding::{sat_encoder::Encoder, sat_encoding::{basic_encoder::BasicEncoder, pb_bdd_pysat::PbPysatEncoder, precedence_encoder::Precedence, pb_bdd_native::PbNativeEncoder, binmerge_native::BinmergeEncoder, binmerge_simp::BinmergeSimpEncoder}
         },
         input_output::{self},
         problem_instance::partial_solution::PartialSolution,
@@ -238,72 +238,6 @@ mod tests {
 
     #[test]
     #[ignore]
-    pub fn test_solve_time_class_inter_with_precedence_unopt() {
-        let mut a: Box<dyn Encoder> = Box::new(Precedence::new(Box::new(PbInter::_new_unopt()), 2));
-        test_encoder(
-            &mut a,
-            "./bench/class_instances/",
-            "./bench/results/class_instances_inter_prec_unopt.txt",
-        )
-    }
-
-    #[test]
-    #[ignore]
-    pub fn test_solve_time_class_inter_with_precedence_opt() {
-        let mut a: Box<dyn Encoder> = Box::new(Precedence::new(Box::new(PbInter::new()), 2));
-        test_encoder(
-            &mut a,
-            "./bench/class_instances/",
-            "./bench/results/class_instances_inter_prec.txt",
-        )
-    }
-
-    #[test]
-    #[ignore]
-    pub fn test_solve_time_class_inter_precedence_1() {
-        let mut a: Box<dyn Encoder> = Box::new(Precedence::new(Box::new(PbInter::new()), 1));
-        test_encoder(
-            &mut a,
-            "./bench/class_instances/",
-            "./bench/results/class_instances_inter_prec_1.txt",
-        )
-    }
-
-    #[test]
-    #[ignore]
-    pub fn test_solve_time_class_interp_with_precedence_2() {
-        let mut a: Box<dyn Encoder> = Box::new(Precedence::new(Box::new(PbInterDyn::new()), 2));
-        test_encoder(
-            &mut a,
-            "./bench/class_instances/",
-            "./bench/results/class_instances_inter+_prec.txt",
-        )
-    }
-
-    #[test]
-    #[ignore]
-    pub fn test_solve_time_class_interp_with_precedence_1() {
-        let mut a: Box<dyn Encoder> = Box::new(Precedence::new(Box::new(PbInterDyn::new()), 1));
-        test_encoder(
-            &mut a,
-            "./bench/class_instances/",
-            "./bench/results/class_instances_inter+_prec_1.txt",
-        )
-    }
-
-    #[test]
-    #[ignore]
-    pub fn test_solve_time_class_intercomp_with_precedence() {
-        let mut a: Box<dyn Encoder> = Box::new(Precedence::new(Box::new(PbInterDyn::new()), 1));
-        test_encoder(
-            &mut a,
-            "./bench/class_instances/",
-            "./bench/results/class_instances_intercomp_prec.txt",
-        )
-    }
-
-    #[test]
-    #[ignore]
     pub fn test_solve_time_class_binmerge_native() {
         let mut a: Box<dyn Encoder> =
             Box::new(Precedence::new(Box::new(BinmergeEncoder::new()), 1));
@@ -311,18 +245,6 @@ mod tests {
             &mut a,
             "./bench/class_instances/",
             "./bench/results/class_instances_binmerge_prec_1.txt",
-        )
-    }
-
-    #[test]
-    #[ignore]
-    pub fn test_solve_time_class_binter() {
-        let mut a: Box<dyn Encoder> =
-            Box::new(Precedence::new(Box::new(BinmergeInterEncoder::new()), 1));
-        test_encoder(
-            &mut a,
-            "./bench/class_instances/",
-            "./bench/results/class_instances_binter_prec_1.txt",
         )
     }
 
@@ -402,61 +324,6 @@ mod tests {
             &mut a,
             "./bench/franca_frangioni/standardised/",
             "./bench/results/franca_frangioni_bdd_prec.txt",
-        )
-    }
-
-    #[test]
-    #[ignore]
-    pub fn test_solve_time_franca_inter_with_precedence_unopt() {
-        let mut a: Box<dyn Encoder> = Box::new(Precedence::new(Box::new(PbInter::_new_unopt()), 2));
-        test_encoder(
-            &mut a,
-            "./bench/franca_frangioni/standardised/",
-            "./bench/results/franca_frangioni_inter_prec_unopt.txt",
-        )
-    }
-
-    #[test]
-    #[ignore]
-    pub fn test_solve_time_franca_inter_with_precedence() {
-        let mut a: Box<dyn Encoder> = Box::new(Precedence::new(Box::new(PbInter::new()), 2));
-        test_encoder(
-            &mut a,
-            "./bench/franca_frangioni/standardised/",
-            "./bench/results/franca_frangioni_inter_prec.txt",
-        )
-    }
-
-    #[test]
-    #[ignore]
-    pub fn test_solve_time_franca_inter_precedence_1() {
-        let mut a: Box<dyn Encoder> = Box::new(Precedence::new(Box::new(PbInter::new()), 1));
-        test_encoder(
-            &mut a,
-            "./bench/franca_frangioni/standardised/",
-            "./bench/results/franca_frangioni_inter_prec_1.txt",
-        )
-    }
-
-    #[test]
-    #[ignore]
-    pub fn test_solve_time_franca_inter() {
-        let mut a: Box<dyn Encoder> = Box::new(PbInter::new());
-        test_encoder(
-            &mut a,
-            "./bench/franca_frangioni/standardised/",
-            "./bench/results/franca_frangioni_inter.txt",
-        )
-    }
-
-    #[test]
-    #[ignore]
-    pub fn test_solve_time_franca_interp_with_precedence() {
-        let mut a: Box<dyn Encoder> = Box::new(Precedence::new(Box::new(PbInterDyn::new()), 2));
-        test_encoder(
-            &mut a,
-            "./bench/franca_frangioni/standardised/",
-            "./bench/results/franca_frangioni_inter+_prec.txt",
         )
     }
 }

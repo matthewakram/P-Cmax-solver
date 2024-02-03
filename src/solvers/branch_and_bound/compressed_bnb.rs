@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, time::Instant};
 
 use bitvec::bitvec;
 
@@ -17,13 +17,33 @@ use crate::{
 
 #[derive(Clone)]
 pub struct CompressedBnB {
-    stats: HashMap<String, f64>
+    stats: HashMap<String, f64>,
+    fur_rule: bool,
+    inter_rule: bool,
 }
 
 impl CompressedBnB {
     pub fn new() -> CompressedBnB {
         return CompressedBnB {
-            stats: HashMap::new()
+            stats: HashMap::new(),
+            fur_rule: true,
+            inter_rule: true,
+        };
+    }
+
+    pub fn new_inter() -> CompressedBnB {
+        return CompressedBnB {
+            stats: HashMap::new(),
+            fur_rule: false,
+            inter_rule: true,
+        };
+    }
+
+    pub fn new_basic() -> CompressedBnB {
+        return CompressedBnB {
+            stats: HashMap::new(),
+            fur_rule: false,
+            inter_rule: false,
         };
     }
 }
@@ -49,7 +69,7 @@ fn min_procs(part_sol: &PartialAssignment) -> (usize, usize) {
 
 impl CompressedBnB {
     fn solve_rec(
-        &self,
+        &mut self,
         instance: &ProblemInstance,
         // we maintain the for part_sol.makespan < upper
         part_sol: &mut PartialAssignment,
@@ -61,7 +81,7 @@ impl CompressedBnB {
         if timeout.time_finished() {
             return Result::Err(());
         }
-        part_sol.num_nodes_explored +=1;
+        part_sol.num_nodes_explored += 1;
         let lower: usize = lower.max(part_sol.makespan);
         if best_makespan_found <= lower {
             return Ok(None);
@@ -111,12 +131,20 @@ impl CompressedBnB {
             if better_option.makespan < best_makespan_found {
                 //println!("found solution with makesapan {}", better_option.makespan);
                 let next_makespan_to_check = better_option.makespan - 1;
-                if next_makespan_to_check >= instance.job_sizes[0] {
+                //println!("{:?}", ret);
+                if (self.inter_rule || self.fur_rule)
+                    && next_makespan_to_check >= instance.job_sizes[0]
+                {
+                    let time = Instant::now();
                     *ret = CompressedRet::new(
                         &(0..instance.num_jobs).into_iter().collect(),
                         &instance.job_sizes,
                         next_makespan_to_check,
                     );
+                    let time_taken = time.elapsed().as_secs_f64();
+                    let total = self.stats.get("ret_construction_time").unwrap();
+                    self.stats
+                        .insert("ret_construction_time".to_owned(), total + time_taken);
                 } else {
                     *ret = CompressedRet::new(
                         &(0..0).into_iter().collect(),
@@ -133,33 +161,36 @@ impl CompressedBnB {
 
         let mut fur_job = usize::MAX;
         let mut fur_proc = usize::MAX;
-        for proc in 0..instance.num_processors {
-            let proc_makespan = part_sol.makespans[proc];
-            if best_makespan_found - proc_makespan
-                < instance.job_sizes[*part_sol.unassigned.last().unwrap()]
-            {
-                continue;
-            }
-            for i in 0..part_sol.unassigned.len() {
-                if best_makespan_found - proc_makespan > instance.job_sizes[part_sol.unassigned[i]]
-                    && (i + 1 == part_sol.unassigned.len()
-                        || instance.job_sizes[part_sol.unassigned[i]]
-                            != instance.job_sizes[part_sol.unassigned[i + 1]])
+        if self.fur_rule {
+            for proc in 0..instance.num_processors {
+                let proc_makespan = part_sol.makespans[proc];
+                if best_makespan_found - proc_makespan
+                    < instance.job_sizes[*part_sol.unassigned.last().unwrap()]
                 {
-                    let job = part_sol.unassigned[i];
-                    if ret.are_same_range(
-                        job,
-                        best_makespan_found - 1 - instance.job_sizes[job],
-                        proc_makespan,
-                    ) {
-                        fur_job = job;
-                        fur_proc = proc;
+                    continue;
+                }
+                for i in 0..part_sol.unassigned.len() {
+                    if best_makespan_found - proc_makespan
+                        > instance.job_sizes[part_sol.unassigned[i]]
+                        && (i + 1 == part_sol.unassigned.len()
+                            || instance.job_sizes[part_sol.unassigned[i]]
+                                != instance.job_sizes[part_sol.unassigned[i + 1]])
+                    {
+                        let job = part_sol.unassigned[i];
+                        if ret.are_same_range(
+                            job,
+                            best_makespan_found - 1 - instance.job_sizes[job],
+                            proc_makespan,
+                        ) {
+                            fur_job = job;
+                            fur_proc = proc;
+                        }
+                        break;
                     }
+                }
+                if fur_job != usize::MAX {
                     break;
                 }
-            }
-            if fur_job != usize::MAX {
-                break;
             }
         }
 
@@ -249,16 +280,22 @@ impl CompressedBnB {
                 continue;
             }
 
-            if last_proc_makespan != usize::MAX
-                && ret.are_same_range(
-                   job_to_branch_on,
-                   last_proc_makespan,
-                   part_sol.makespans[proc],
-            )
-                //&& last_proc_makespan == part_sol.makespans[proc]
-            {
-                continue;
+            if self.inter_rule {
+                if last_proc_makespan != usize::MAX
+                    && ret.are_same_range(
+                        job_to_branch_on,
+                        last_proc_makespan,
+                        part_sol.makespans[proc],
+                    )
+                {
+                    continue;
+                }
+            } else {
+                if last_proc_makespan == part_sol.makespans[proc] {
+                    continue;
+                }
             }
+
             last_proc_makespan = part_sol.makespans[proc];
 
             part_sol.assign(job_to_branch_on, proc, instance, false);
@@ -296,6 +333,9 @@ impl SolverManager for CompressedBnB {
         timeout: &crate::common::timeout::Timeout,
         _verbose: bool,
     ) -> Option<crate::problem_instance::solution::Solution> {
+        let mem_size_key = "mem_used".to_owned();
+        let ret_construction_time_key = "ret_construction_time".to_owned();
+
         let makespan_to_test = upper.makespan - 1;
         let partial_solution = PartialSolution::new(instance.clone());
 
@@ -306,27 +346,38 @@ impl SolverManager for CompressedBnB {
             hsr.simplify(&partial_solution, makespan_to_test).unwrap();
         let partial_solution: PartialSolution =
             fur.simplify(&partial_solution, makespan_to_test).unwrap();
-        let partial_solution = finalize.simplify(&partial_solution, makespan_to_test);
+        let partial_solution: Option<PartialSolution> = finalize.simplify(&partial_solution, makespan_to_test);
         if partial_solution.is_none() {
             return Some(upper.clone());
         }
         let mut part_sol = PartialAssignment::new(instance);
 
+        let time = Instant::now();
         let ret = &mut CompressedRet::new(
             &(0..instance.num_jobs).into_iter().collect(),
             &instance.job_sizes,
             makespan_to_test,
         );
 
+        self.stats
+            .insert(ret_construction_time_key, time.elapsed().as_secs_f64());
+
         let sol = self.solve_rec(instance, &mut part_sol, ret, lower, upper.makespan, timeout);
         if sol.is_err() {
             return None;
         }
         let sol = sol.unwrap();
+        self.stats.insert(
+            "num_nodes_explored".to_string(),
+            part_sol.num_nodes_explored as f64,
+        );
+        self.stats.insert(
+            mem_size_key,
+            ((makespan_to_test + instance.num_jobs * 4 + instance.num_processors) * 8) as f64,
+        );
         if sol.is_none() {
             return Some(upper.clone());
         } else {
-            self.stats.insert("num_nodes_explored".to_string(), part_sol.num_nodes_explored as f64);
             let sol = sol.unwrap();
             let sol = Solution {
                 makespan: sol.makespan,

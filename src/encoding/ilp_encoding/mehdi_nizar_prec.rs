@@ -1,24 +1,34 @@
-use std::
-    collections::{HashMap, HashSet}
-;
+use std::collections::{HashMap, HashSet};
 
-use crate::{common, encoding::ilp_encoder::ILPEncoder, problem_instance::solution::Solution};
+use crate::{
+    bdd::compressed_ret::CompressedRet, common, encoding::ilp_encoder::ILPEncoder,
+    problem_instance::solution::Solution,
+};
 use bitvec::prelude::*;
 
 #[derive(Clone)]
-pub struct MehdiNizarEncoder {
+pub struct MehdiNizarOrderEncoder {
     encoding: String,
+    fur: bool,
 }
 
-impl MehdiNizarEncoder {
-    pub fn new() -> MehdiNizarEncoder {
-        return MehdiNizarEncoder {
+impl MehdiNizarOrderEncoder {
+    pub fn new() -> MehdiNizarOrderEncoder {
+        return MehdiNizarOrderEncoder {
             encoding: String::new(),
+            fur: false,
+        };
+    }
+
+    pub fn new_fur() -> MehdiNizarOrderEncoder {
+        return MehdiNizarOrderEncoder {
+            encoding: String::new(),
+            fur: true,
         };
     }
 }
 
-impl ILPEncoder for MehdiNizarEncoder {
+impl ILPEncoder for MehdiNizarOrderEncoder {
     fn encode(
         &mut self,
         partial_solution: &crate::problem_instance::partial_solution::PartialSolution,
@@ -41,7 +51,6 @@ impl ILPEncoder for MehdiNizarEncoder {
                         possible_makespans_at_next_decision.set(i + job_size, true);
                         job_choices_at_node[i].push(job);
                     }
-
                 }
             }
             possible_makespans_at_decision = possible_makespans_at_next_decision;
@@ -110,6 +119,56 @@ impl ILPEncoder for MehdiNizarEncoder {
             }
             constraint += " = 1\n";
             formula += &constraint;
+        }
+
+        // fur constraint
+
+        if self.fur {
+            let ret = CompressedRet::new(
+                &(0..partial_solution.instance.num_jobs).collect(),
+                &partial_solution.instance.job_sizes,
+                makespan,
+            );
+            for job in 1..partial_solution.instance.num_jobs {
+                let fur_val = makespan - partial_solution.instance.job_sizes[job];
+                let mut i = fur_val;
+                if partial_solution.instance.job_sizes[job - 1]
+                    == partial_solution.instance.job_sizes[job]
+                {
+                    continue;
+                }
+
+                while i != 0 && ret.are_same_range(job, i, fur_val) {
+                    if !job_choices_at_node[i].contains(&job) {
+                        i -= 1;
+                        continue;
+                    }
+
+                    let mut constraint = String::new();
+
+                    assert!(in_edges[i].len() != 0);
+                    let mut added = false;
+                    for j in i + 1..fur_val + 1 {
+                        if job_choices_at_node[i].contains(&job) {
+                            if added == false {
+                                constraint += &format!(" v_{}_{}", j, job);
+                                added = true;
+                            } else {
+                                constraint += &format!(" + v_{}_{}", j, job);
+                            }
+                        }
+                    }
+
+                    if !added {
+                        i -= 1;
+                        continue;
+                    }
+
+                    formula += &format!("r_{} = 1 -> {} = 0\n", i, constraint);
+
+                    i -= 1;
+                }
+            }
         }
 
         formula += "Binaries\n";

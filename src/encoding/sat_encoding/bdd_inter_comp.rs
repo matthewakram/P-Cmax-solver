@@ -21,6 +21,14 @@ impl BddInterComp {
             opt_all: true,
         };
     }
+
+    pub fn new_inter_only() -> BddInterComp {
+        return BddInterComp {
+            one_hot: OneHotProblemEncoding::new(),
+            clauses: Clauses::new(),
+            opt_all: false,
+        };
+    }
 }
 
 impl Encoder for BddInterComp {

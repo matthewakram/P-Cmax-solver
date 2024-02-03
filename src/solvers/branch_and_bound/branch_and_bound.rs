@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use bitvec::bitvec;
 
 use crate::{
@@ -14,11 +16,35 @@ use crate::{
 };
 
 #[derive(Clone)]
-pub struct BranchAndBound {}
+pub struct BranchAndBound {
+    stats: HashMap<String, f64>,
+    fur_rule: bool,
+    inter_rule: bool,
+}
 
 impl BranchAndBound {
     pub fn new() -> BranchAndBound {
-        return BranchAndBound {};
+        return BranchAndBound {
+            stats: HashMap::new(),
+            fur_rule: true,
+            inter_rule: true,
+        };
+    }
+
+    pub fn new_basic() -> BranchAndBound {
+        return BranchAndBound {
+            stats: HashMap::new(),
+            fur_rule: false,
+            inter_rule: false,
+        };
+    }
+
+    pub fn new_inter() -> BranchAndBound {
+        return BranchAndBound {
+            stats: HashMap::new(),
+            fur_rule: false,
+            inter_rule: true,
+        };
     }
 }
 
@@ -104,11 +130,13 @@ impl BranchAndBound {
             if better_option.makespan < best_makespan_found {
                 //println!("found solution with makesapan {}", better_option.makespan);
                 let next_makespan_to_check = better_option.makespan - 1;
-                *ret = RangeTable::new(
-                    &(0..instance.num_jobs).into_iter().collect(),
-                    &instance.job_sizes,
-                    next_makespan_to_check,
-                );
+                if self.fur_rule || self.inter_rule {
+                    *ret = RangeTable::new(
+                        &(0..instance.num_jobs).into_iter().collect(),
+                        &instance.job_sizes,
+                        next_makespan_to_check,
+                    );
+                }
 
                 return Ok(Some(better_option));
             } else {
@@ -118,27 +146,30 @@ impl BranchAndBound {
 
         let mut fur_job = usize::MAX;
         let mut fur_proc = usize::MAX;
-        for proc in 0..instance.num_processors {
-            let proc_makespan = part_sol.makespans[proc];
-            if best_makespan_found - proc_makespan
-                < instance.job_sizes[*part_sol.unassigned.last().unwrap()]
-            {
-                continue;
-            }
-            for i in 0..part_sol.unassigned.len() {
-                if best_makespan_found - proc_makespan > instance.job_sizes[part_sol.unassigned[i]]
-                    && (i + 1 == part_sol.unassigned.len()
-                        || instance.job_sizes[part_sol.unassigned[i]]
-                            != instance.job_sizes[part_sol.unassigned[i + 1]])
+        if self.fur_rule {
+            for proc in 0..instance.num_processors {
+                let proc_makespan = part_sol.makespans[proc];
+                if best_makespan_found - proc_makespan
+                    < instance.job_sizes[*part_sol.unassigned.last().unwrap()]
                 {
-                    let job = part_sol.unassigned[i];
-                    if ret.get_range(job, best_makespan_found - 1 - instance.job_sizes[job])
-                        == ret.get_range(job, proc_makespan)
+                    continue;
+                }
+                for i in 0..part_sol.unassigned.len() {
+                    if best_makespan_found - proc_makespan
+                        > instance.job_sizes[part_sol.unassigned[i]]
+                        && (i + 1 == part_sol.unassigned.len()
+                            || instance.job_sizes[part_sol.unassigned[i]]
+                                != instance.job_sizes[part_sol.unassigned[i + 1]])
                     {
-                        fur_job = job;
-                        fur_proc = proc;
+                        let job = part_sol.unassigned[i];
+                        if ret.get_range(job, best_makespan_found - 1 - instance.job_sizes[job])
+                            == ret.get_range(job, proc_makespan)
+                        {
+                            fur_job = job;
+                            fur_proc = proc;
+                        }
+                        break;
                     }
-                    break;
                 }
             }
         }
@@ -228,9 +259,12 @@ impl BranchAndBound {
             {
                 continue;
             }
-            let range = ret
-                .get_range(job_to_branch_on, part_sol.makespans[proc])
-                .unwrap();
+            let range = if self.inter_rule {
+                ret.get_range(job_to_branch_on, part_sol.makespans[proc])
+                    .unwrap()
+            } else {
+                part_sol.makespans[proc]
+            };
             if last_range == range {
                 continue;
             }
@@ -252,9 +286,12 @@ impl BranchAndBound {
                 if best_makespan_found <= lower {
                     return Ok(best_sol);
                 }
-                last_range = ret
-                    .get_range(job_to_branch_on, part_sol.makespans[proc])
-                    .unwrap();
+                last_range = if self.inter_rule {
+                    ret.get_range(job_to_branch_on, part_sol.makespans[proc])
+                        .unwrap()
+                } else {
+                    part_sol.makespans[proc]
+                };
             }
         }
 
@@ -263,6 +300,11 @@ impl BranchAndBound {
 }
 
 impl SolverManager for BranchAndBound {
+
+    fn get_stats(&self) -> HashMap<String, f64> {
+        return self.stats.clone();
+    }
+
     fn solve(
         &mut self,
         instance: &crate::problem_instance::problem_instance::ProblemInstance,
@@ -271,7 +313,12 @@ impl SolverManager for BranchAndBound {
         timeout: &crate::common::timeout::Timeout,
         _verbose: bool,
     ) -> Option<crate::problem_instance::solution::Solution> {
+        let mem_size_key = "mem_used".to_owned();
         let makespan_to_test = upper.makespan - 1;
+        self.stats.insert(
+            mem_size_key,
+            ((makespan_to_test*instance.num_jobs + instance.num_jobs * 4 + instance.num_processors) * 8) as f64,
+        );
         let partial_solution = PartialSolution::new(instance.clone());
 
         let mut hsr = HalfSizeRule {};

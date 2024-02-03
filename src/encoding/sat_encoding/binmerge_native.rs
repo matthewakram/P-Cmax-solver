@@ -26,6 +26,7 @@ impl BinmergeEncoder {
     }
 }
 
+/// This is binmerge, but the PBC is not normalised
 impl Encoder for BinmergeEncoder {
     // TODO add timeout to encode
     fn basic_encode(

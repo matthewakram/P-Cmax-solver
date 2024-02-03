@@ -9,7 +9,7 @@ mod tests {
             upper_bounds::{lpt, lptp, lptpp},
         },
         common::timeout::Timeout,
-        encoding::{sat_encoder::{Encoder, Clause}, sat_encoding::{basic_encoder::BasicEncoder, pb_bdd_pysat::PbPysatEncoder, pb_bdd_native::PbNativeEncoder, pb_bdd_inter::PbInter, binmerge_native::BinmergeEncoder, binmerge_simp::BinmergeSimpEncoder}
+        encoding::{sat_encoder::{Encoder, Clause}, sat_encoding::{basic_encoder::BasicEncoder, pb_bdd_pysat::PbPysatEncoder, pb_bdd_native::PbNativeEncoder, binmerge_native::BinmergeEncoder, binmerge_simp::BinmergeSimpEncoder}
         },
         input_output::{self},
         problem_instance::partial_solution::PartialSolution,
@@ -165,17 +165,6 @@ mod tests {
 
     #[test]
     #[ignore]
-    pub fn test_class_encoding_inter() {
-        let mut a: Box<dyn Encoder> = Box::new(PbInter::new());
-        test_encoder(
-            &mut a,
-            "./bench/class_instances/",
-            "./bench/results/encoding_class_instances_inter.txt",
-        )
-    }
-
-    #[test]
-    #[ignore]
     pub fn test_class_encoding_binmerge() {
         let mut a: Box<dyn Encoder> = Box::new(BinmergeEncoder::new());
         test_encoder(
@@ -229,19 +218,6 @@ mod tests {
             //"./bench/class_instances/"
             "./bench/franca_frangioni_standardised/",
             "./bench/results/encoding_franca_frangioni_bdd.txt",
-        )
-    }
-
-    #[test]
-    #[ignore]
-    pub fn test_franca_encoding_inter() {
-        let mut a: Box<dyn Encoder> = Box::new(PbInter::new());
-        test_encoder(
-            &mut a,
-            //"./bench/class_instances/",
-            //"./bench/class_instances/"
-            "./bench/franca_frangioni_standardised/",
-            "./bench/results/encoding_franca_frangioni_inter.txt",
         )
     }
 
