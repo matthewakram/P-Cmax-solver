@@ -6,6 +6,7 @@ use super::super::super::problem_instance::problem_instance::ProblemInstance;
 
 /// implements the lpt heuristic for upper and lower bounds
 
+#[derive(Clone)]
 pub struct LPT {}
 
 fn index_of_min(list: &Vec<usize>) -> usize {

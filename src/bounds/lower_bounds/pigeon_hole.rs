@@ -1,5 +1,6 @@
 use crate::{bounds::bound::Bound, common::timeout::Timeout};
 
+#[derive(Clone)]
 pub struct PigeonHole {}
 
 impl Bound for PigeonHole {

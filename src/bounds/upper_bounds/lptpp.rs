@@ -4,6 +4,7 @@ use crate::{
     problem_instance::{problem_instance::ProblemInstance, solution::Solution},
 };
 
+#[derive(Clone)]
 pub struct Lptpp {}
 
 fn subset_sum(elements: &Vec<usize>, goal: usize) -> Vec<usize> {

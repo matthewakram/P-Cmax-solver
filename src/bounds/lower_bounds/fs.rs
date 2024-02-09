@@ -5,6 +5,7 @@ use crate::{
 };
 use fraction::Fraction;
 
+#[derive(Clone)]
 pub struct FeketeSchepers {}
 
 fn lp(k: usize, problem: &ProblemInstance, makespan: usize) -> bool {

@@ -1,7 +1,7 @@
 use std::collections::{HashMap, HashSet};
 
 use crate::{
-    bdd::compressed_ret::CompressedRet, common, encoding::ilp_encoder::ILPEncoder,
+     common, encoding::ilp_encoder::ILPEncoder,
     problem_instance::solution::Solution,
 };
 use bitvec::prelude::*;
@@ -9,21 +9,21 @@ use bitvec::prelude::*;
 #[derive(Clone)]
 pub struct MehdiNizarOrderEncoder {
     encoding: String,
-    fur: bool,
+    prec: bool,
 }
 
 impl MehdiNizarOrderEncoder {
     pub fn new() -> MehdiNizarOrderEncoder {
         return MehdiNizarOrderEncoder {
             encoding: String::new(),
-            fur: false,
+            prec: false,
         };
     }
 
     pub fn new_fur() -> MehdiNizarOrderEncoder {
         return MehdiNizarOrderEncoder {
             encoding: String::new(),
-            fur: true,
+            prec: true,
         };
     }
 }
@@ -70,6 +70,13 @@ impl ILPEncoder for MehdiNizarOrderEncoder {
                     panic!("AAAAAAAAAAAAAAAAAAAAAAHHAHAHAHAHAHHAHAHAHAHAH");
                 }
                 formula += &format!("makespan - {} v_{}_{} >= 0\n", node_reached, i, job);
+                if self.prec {
+                    // we only need to define the a (assigned at) values for jobs where there is at least one other job of the same size
+                    if (*job != 0 && partial_solution.instance.job_sizes[job -1] == partial_solution.instance.job_sizes[*job]) ||
+                        (*job != partial_solution.instance.num_jobs-1 && partial_solution.instance.job_sizes[job +1] == partial_solution.instance.job_sizes[*job]){
+                            formula += &format!("v_{}_{} = 1 -> a_{} = {}\n", i, job, job, i);
+                        }
+                }
             }
         }
 
@@ -123,50 +130,10 @@ impl ILPEncoder for MehdiNizarOrderEncoder {
 
         // fur constraint
 
-        if self.fur {
-            let ret = CompressedRet::new(
-                &(0..partial_solution.instance.num_jobs).collect(),
-                &partial_solution.instance.job_sizes,
-                makespan,
-            );
-            for job in 1..partial_solution.instance.num_jobs {
-                let fur_val = makespan - partial_solution.instance.job_sizes[job];
-                let mut i = fur_val;
-                if partial_solution.instance.job_sizes[job - 1]
-                    == partial_solution.instance.job_sizes[job]
-                {
-                    continue;
-                }
-
-                while i != 0 && ret.are_same_range(job, i, fur_val) {
-                    if !job_choices_at_node[i].contains(&job) {
-                        i -= 1;
-                        continue;
-                    }
-
-                    let mut constraint = String::new();
-
-                    assert!(in_edges[i].len() != 0);
-                    let mut added = false;
-                    for j in i + 1..fur_val + 1 {
-                        if job_choices_at_node[i].contains(&job) {
-                            if added == false {
-                                constraint += &format!(" v_{}_{}", j, job);
-                                added = true;
-                            } else {
-                                constraint += &format!(" + v_{}_{}", j, job);
-                            }
-                        }
-                    }
-
-                    if !added {
-                        i -= 1;
-                        continue;
-                    }
-
-                    formula += &format!("r_{} = 1 -> {} = 0\n", i, constraint);
-
-                    i -= 1;
+        if self.prec {
+            for job in 0..partial_solution.instance.num_jobs-1{
+                if partial_solution.instance.job_sizes[job] == partial_solution.instance.job_sizes[job+1] {
+                    formula += &format!("a_{} - a_{} <= 0\n", job, job+1);
                 }
             }
         }
@@ -179,8 +146,15 @@ impl ILPEncoder for MehdiNizarOrderEncoder {
             }
         }
 
-        formula += "\nGenerals\nmakespan\nEnd\n";
+        formula += "\nGenerals\nmakespan";
 
+        if self.prec {
+            for i in 0..partial_solution.instance.num_jobs {
+                formula += &format!(" a_{}", i);
+            }
+        }
+
+        formula+= "\nEnd\n";
         self.encoding = formula;
         return true;
     }

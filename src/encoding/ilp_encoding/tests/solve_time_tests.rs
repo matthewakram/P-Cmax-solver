@@ -13,18 +13,21 @@ mod tests {
             lower_bounds::{max_job_size, middle, pigeon_hole},
         },
         common::timeout::Timeout,
-        encoding::{sat_encoder::Encoder, sat_encoding::{basic_encoder::BasicEncoder, bdd_inter_comp::BddInterComp, binmerge_simp::BinmergeSimpEncoder, precedence_encoder::Precedence}
+        encoding::{
+            ilp_encoder::ILPEncoder, ilp_encoding::mehdi_nizar_prec::MehdiNizarOrderEncoder
         },
-        input_output::{self},
+        input_output,
         problem_instance::partial_solution::PartialSolution,
         problem_simplification::{
             fill_up_rule::FillUpRule, final_simp_rule::FinalizeRule, half_size_rule::HalfSizeRule,
             simplification_rule::SimpRule,
         },
-        solvers::sat_solver::{kissat::Kissat, sat_solver::SatSolver},
+        solvers::ilp_solver::gurobi_decider::GurobiDecider,
     };
     use std::{
-        fs::{self, File}, io::Write, sync::{Arc, Mutex}
+        fs::{self, File},
+        io::Write,
+        sync::{Arc, Mutex},
     };
 
     fn bound_file(file_name: &String) -> Vec<(String, PartialSolution, usize)> {
@@ -50,7 +53,7 @@ mod tests {
 
         let mut out: Vec<(String, PartialSolution, usize)> = vec![];
 
-        for makespan_to_test in lower_bound..lower_bound+2 {
+        for makespan_to_test in lower_bound..lower_bound + 2 {
             let mut hsr = HalfSizeRule {};
             let mut fur: FillUpRule = FillUpRule {};
             let mut finalize: FinalizeRule = FinalizeRule {};
@@ -78,7 +81,7 @@ mod tests {
     fn solve_instance(
         pi: &PartialSolution,
         makespan_to_test: usize,
-        encoder: &mut Box<dyn Encoder>,
+        encoder: &mut Box<dyn ILPEncoder>,
         file_name: &String,
         progress: Arc<Mutex<usize>>,
         num_total_instances: usize,
@@ -96,29 +99,33 @@ mod tests {
             *p += 1;
             println!("solving {}/{}", *p, num_total_instances);
         }
-        let succ = encoder.basic_encode(&pi, makespan_to_test, &Timeout::new(100.0), 500_000_000);
+        let succ = encoder.encode(
+            &pi,
+            makespan_to_test - 1,
+            makespan_to_test,
+            &Timeout::new(100.0),
+        );
         if !succ {
             return None;
         }
-        
+
         let solving_time: f64 = 200.0;
-        let timer = &Timeout::new(solving_time);
-        let res = encoder.output();
-        let num_vars = encoder.get_num_vars();
+        let res = encoder.get_encoding();
         let len = res.len();
-        
-        let mut solver = Kissat::new();
-        
-        let sol = solver.solve(res, num_vars, &timer);
-        
-        let solving_time = solving_time - timer.remaining_time();
-        if sol.is_timeout() {
+
+        let mut solver = GurobiDecider::new();
+
+        let timeout = Timeout::new(solving_time);
+        let sol = solver.solve(res, &timeout);
+
+        if timeout.time_finished() {
             return None;
         }
+        let solving_time = solving_time - timeout.remaining_time();
 
-        let is_sat = if sol.is_sat() { 1 } else { 0 };
-        if sol.is_sat() {
-            let solution = encoder.decode(&pi.instance, &sol.unwrap().as_ref().unwrap());
+        let is_sat = if sol.is_some() { 1 } else { 0 };
+        if sol.is_some() {
+            let solution = encoder.decode(&pi.instance, sol.unwrap());
             assert!(solution.makespan <= makespan_to_test);
         }
         return Some(format!(
@@ -133,9 +140,9 @@ mod tests {
         ));
     }
 
-    fn test_encoder(encoder: &Box<dyn Encoder>, in_dirname: &str, out_dirname: &str) {
+    fn test_encoder(encoder: &Box<dyn ILPEncoder>, in_dirname: &str, out_dirname: &str) {
         if fs::metadata(out_dirname).is_ok() {
-            return ;
+            return;
         }
         let paths = fs::read_dir(in_dirname).unwrap();
         let files: Vec<String> = paths
@@ -158,7 +165,7 @@ mod tests {
             .collect();
         println!("testing {} instances", instances.len());
 
-        let instances_with_encoder: Vec<(String, PartialSolution, usize, Box<dyn Encoder>)> =
+        let instances_with_encoder: Vec<(String, PartialSolution, usize, Box<dyn ILPEncoder>)> =
             instances
                 .into_iter()
                 .map(|(x, y, z)| (x, y, z, encoder.clone()))
@@ -169,7 +176,14 @@ mod tests {
         let result: Vec<String> = instances_with_encoder
             .into_par_iter()
             .map(|(file_name, pi, makespan_to_test, mut encoder)| {
-                solve_instance(&pi, makespan_to_test, &mut encoder, &file_name, progress.clone(), num_instances)
+                solve_instance(
+                    &pi,
+                    makespan_to_test,
+                    &mut encoder,
+                    &file_name,
+                    progress.clone(),
+                    num_instances,
+                )
             })
             .filter(|x| x.is_some())
             .map(|x| x.unwrap())
@@ -187,81 +201,31 @@ mod tests {
 
     #[test]
     #[ignore]
-    pub fn test_solve_time_class_basic() {
-        let mut encoder: Box<dyn Encoder> = Box::new(BasicEncoder::new());
+    pub fn test_solve_time_ilp() {
+        let mut encoder: Box<dyn ILPEncoder> = Box::new(MehdiNizarOrderEncoder::new());
         test_encoder(
             &mut encoder,
             "./bench/lawrenko/",
-            "./bench/results/lawrenko_basic.txt",
+            "./bench/results/solve_time_lawrenko_mehdi_nizar_decision.txt",
         )
     }
 
-
-
     #[test]
     #[ignore]
-    pub fn test_solve_time_class_binsimp() {
-        let mut a: Box<dyn Encoder> =
-            Box::new(Precedence::new(Box::new(BinmergeSimpEncoder::new()), 1));
+    pub fn test_solve_time_ilp_fur() {
+        let mut encoder: Box<dyn ILPEncoder> = Box::new(MehdiNizarOrderEncoder::new_fur());
         test_encoder(
-            &mut a,
+            &mut encoder,
             "./bench/lawrenko/",
-            "./bench/results/solve_time_lawrenko_binsimp_prec_1.txt",
+            "./bench/results/solve_time_lawrenko_mehdi_nizar_fur_decision.txt",
         )
     }
 
+    
     #[test]
     #[ignore]
-    pub fn test_solve_time_class_intercomp() {
-        let mut a: Box<dyn Encoder> = Box::new(Precedence::new(Box::new(BddInterComp::new()), 1));
-        test_encoder(
-            &mut a,
-            "./bench/lawrenko/",
-            "./bench/results/solve_time_lawrenko_intercompe.txt",
-        )
+    pub fn ilp_thesis_solve_time_tests() {
+        test_solve_time_ilp_fur();
+        test_solve_time_ilp();
     }
-
-    #[test]
-    #[ignore]
-    pub fn test_solve_time_class_inter_only() {
-        let mut a: Box<dyn Encoder> = Box::new(Precedence::new(Box::new(BddInterComp::new_inter_only()), 1));
-        test_encoder(
-            &mut a,
-            "./bench/lawrenko/",
-            "./bench/results/solve_time_lawrenko_inter_only.txt",
-        )
-    }
-
-    #[test]
-    #[ignore]
-    pub fn test_solve_time_class_bdd_prec() {
-        let mut a: Box<dyn Encoder> = Box::new(Precedence::new(Box::new(BddInterComp::new_basic()), 1));
-        test_encoder(
-            &mut a,
-            "./bench/lawrenko/",
-            "./bench/results/solve_time_lawrenko_bdd_prec.txt",
-        )
-    }
-
-    #[test]
-    #[ignore]
-    pub fn test_solve_time_class_bdd_base() {
-        let mut a: Box<dyn Encoder> = Box::new(BddInterComp::new_basic());
-        test_encoder(
-            &mut a,
-            "./bench/lawrenko/",
-            "./bench/results/solve_time_lawrenko_bdd_base.txt",
-        )
-    }
-
-    #[test]
-    #[ignore]
-    pub fn thesis_solve_time_tests() {
-        test_solve_time_class_binsimp();
-        test_solve_time_class_intercomp();
-        test_solve_time_class_bdd_prec();
-        test_solve_time_class_bdd_base();
-        test_solve_time_class_inter_only();
-    }
-
 }

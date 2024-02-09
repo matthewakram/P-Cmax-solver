@@ -6,6 +6,7 @@ use crate::{
     problem_instance::{problem_instance::ProblemInstance, solution::Solution},
 };
 
+#[derive(Clone)]
 pub struct MSS {
     seed: u64,
 }

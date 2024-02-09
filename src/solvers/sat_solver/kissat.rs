@@ -5,7 +5,6 @@ use std::{
     io::{Read, Write},
     process::{Command, Stdio},
     sync::{Arc, Mutex},
-    thread,
     time::{Duration, Instant},
 };
 use timeout_readwrite::TimeoutReader;

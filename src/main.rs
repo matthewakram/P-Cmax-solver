@@ -124,13 +124,13 @@ fn main() {
         println!("time {}", total_timeout_time - total_timeout.remaining_time());
         return;
     }  else if args.contains(&"-hj".to_string()) {
-        let mut solver = HJ::new();
+        let mut solver = HJ::new_base();
 
         let sol = solver
             .solve(&instance, lower_bound, &upper_bound, &total_timeout, true)
             .unwrap();
         let final_solution = instance.finalize_solution(sol);
-        println!("solution found {}", final_solution.makespan);
+        println!("solution found {}", final_solution);
         println!("time {}", total_timeout_time - total_timeout.remaining_time());
         return;
     }

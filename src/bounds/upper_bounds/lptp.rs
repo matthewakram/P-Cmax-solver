@@ -4,6 +4,7 @@ use crate::{
     problem_instance::{problem_instance::ProblemInstance, solution::Solution},
 };
 
+#[derive(Clone)]
 pub struct Lptp {}
 
 fn is_feasable(instance: &ProblemInstance, max_makespan: usize) -> Option<Solution> {

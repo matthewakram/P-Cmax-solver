@@ -7,24 +7,23 @@ use crate::{
     },
     common::timeout::Timeout,
     problem_instance::{problem_instance::ProblemInstance, solution::Solution},
-    solvers::{solver_manager::SolverManager, branch_and_bound::compressed_bnb::CompressedBnB},
 };
 
 use super::{fs, max_job_size, middle, pigeon_hole, sss_bound_tightening};
 
 #[derive(Clone)]
-pub struct Lifting {
+pub struct LiftingWeak {
     seed: u64,
 }
 
-impl Lifting {
+impl LiftingWeak {
     #[cfg(test)]
-    pub fn new_deterministic(seed: u64) -> Lifting {
-        return Lifting { seed };
+    pub fn new_deterministic(seed: u64) -> LiftingWeak {
+        return LiftingWeak { seed };
     }
 
-    pub fn new() -> Lifting {
-        return Lifting {
+    pub fn new() -> LiftingWeak {
+        return LiftingWeak {
             seed: rand::thread_rng().gen(),
         };
     }
@@ -34,7 +33,7 @@ impl Lifting {
         instance: &ProblemInstance,
         lower_bound: usize,
         remaining_time: &Timeout,
-    ) -> (usize, Option<Solution>) {
+    ) -> (usize, Solution) {
         let bounds: Vec<Box<dyn Bound>> = vec![
             Box::new(pigeon_hole::PigeonHole {}),
             Box::new(max_job_size::MaxJobSize {}),
@@ -73,7 +72,7 @@ impl Lifting {
             println!("{:?}", instance);
         }
 
-        return (new_lower_bound, new_upper_bound);
+        return (new_lower_bound, new_upper_bound.unwrap());
     }
 }
 
@@ -106,7 +105,7 @@ fn get_instances(instance: &ProblemInstance) -> Vec<ProblemInstance> {
     return instances_to_bound;
 }
 
-impl Bound for Lifting {
+impl Bound for LiftingWeak {
     fn bound(
         &self,
         problem: &ProblemInstance,
@@ -135,15 +134,11 @@ impl Bound for Lifting {
 
             best_bound = best_bound.max(lower);
 
-            if upper.is_none() {
-                continue;
-            }
-            let upper = upper.unwrap();
+            assert!(lower <= upper.makespan);
 
             if lower == upper.makespan || upper.makespan <= lower_bound {
                 //solved_exactly += 1;
             } else {
-                
                 unsolved_instances.push(instance.clone());
                 bounds_unsolved_instances.push((lower, upper));
             }
@@ -152,41 +147,6 @@ impl Bound for Lifting {
             return (best_bound, upper_bound);
         }
 
-        //TODO: undo this for thesis and fix code below
-        //return (best_bound, upper_bound);
-
-        let mut sat_solver = CompressedBnB::new();
-
-        // we know we might still be able to improve the lower bound, and the unsolved instances are the key to that
-        let mut num_instances_remaining = unsolved_instances.len() as f64;
-        for i in 0..unsolved_instances.len() {
-            if timeout.time_finished() {
-                break;
-            }
-
-            let instance = &unsolved_instances[i];
-            let (_lower, upper) = bounds_unsolved_instances[i].clone();
-            let upper = if upper_bound.is_none()
-                || upper.makespan <= upper_bound.as_ref().unwrap().makespan
-            {
-                &upper
-            } else {
-                upper_bound.as_ref().unwrap()
-            };
-            let sol = sat_solver.solve(
-                &instance,
-                _lower,
-                upper,
-                &Timeout::new(
-                    (10.0 as f64).min(timeout.remaining_time() / num_instances_remaining),
-                ),
-                false,
-            );
-            num_instances_remaining -= 1.0;
-            if sol.is_some() {
-                best_bound = best_bound.max(sol.unwrap().makespan);
-            }
-        }
         return (best_bound, upper_bound);
     }
 }

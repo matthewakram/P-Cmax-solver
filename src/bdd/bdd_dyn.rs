@@ -41,7 +41,7 @@ impl RangeTable {
     }
 
     pub fn new(jobs: &Vec<usize>, job_sizes: &Vec<usize>, makespan: usize) -> RangeTable {
-        if job_sizes[0] > makespan {
+        if job_sizes.len() == 0 || job_sizes[0] > makespan  {
             return RangeTable{
                 ranges: vec![],
                 job_position: vec![],

@@ -195,6 +195,9 @@ timeouts_y = 0
 label_idx = 0
 
 def rgb_to_hex(r, g, b):
+    #print(r)
+    #print(g)
+    #print(b)
     return '#{:02x}{:02x}{:02x}'.format(r, g, b)
 
 X = []
@@ -219,16 +222,17 @@ for i in keys:
         X += [values[0][i]]
         Y += [out]
         timeouts_y += 1
-        print(str(i) + " : X " + str(values[0][i]) + ", Y timeout")
+        #print(str(i) + " : X " + str(values[0][i]) + ", Y timeout")
     else:
         X += [values[0][i]]
         Y += [values[1][i]]
-        print(str(i) + " : X " + str(values[0][i]) + ", Y " + str(values[1][i]))
+        #print(str(i) + " : X " + str(values[0][i]) + ", Y " + str(values[1][i]))
 
     if i in statistics[0]:
-        color = (rgb_to_hex(0, int(min(int(statistics[0][i][stats[0]]),max_first_stats)/ max_first_stats * 256 ), int(min(int(statistics[0][i][stats[1]]),max_second_stat)/ max_second_stat *256 )))
+        color = (rgb_to_hex(0, int(min(int(statistics[0][i][stats[0]]),max_first_stats)/ max_first_stats * 255 ), int(min(int(statistics[0][i][stats[1]]),max_second_stat)/ max_second_stat *255 )))
+        #print(color)
     else:
-        color = (rgb_to_hex(0, int(min(int(statistics[1][i][stats[0]]),max_first_stats) / max_first_stats * 256), int(min(int(statistics[1][i][stats[1]]),max_second_stat) / max_second_stat *256)))
+        color = (rgb_to_hex(0, int(min(int(statistics[1][i][stats[0]]),max_first_stats) / max_first_stats * 255), int(min(int(statistics[1][i][stats[1]]),max_second_stat) / max_second_stat *255)))
     plt.plot(X[-1], Y[-1], marker='.', alpha=1, markersize=msize, markeredgecolor=color, color=color)
     
 label_idx += 1
@@ -279,24 +283,3 @@ def flip_legend_labels(labels, plots, ncols):
             r += 1
     
     return (newlabels, newplots)
-
-if outfile_legend:
-    
-    plots = []
-    domains = []
-    for domain in domain_to_style_map:
-        style = domain_to_style_map[domain]
-        domains += [domain]
-        plots += [matplotlib.lines.Line2D([], [], c=style[0], marker=style[1], lw=0, fillstyle='none', label=domain)]
-    figlegend = plt.figure()
-    ncols = 4
-    (newlabels, newplots) = flip_legend_labels(domains, plots, ncols)
-    print(newlabels)
-    labelspacing = 0.2
-    #if labelspacing is not None:
-    #    figlegend.legend(newplots, newlabels, 'center', ncol=ncols, edgecolor='#000000', labelspacing=labelspacing)
-    #else:
-    #    figlegend.legend(newplots, newlabels, 'center', ncol=ncols, edgecolor='#000000')
-    #figlegend.set_edgecolor('b')
-    #figlegend.tight_layout()
-    #figlegend.savefig(outfile_legend, bbox_inches='tight')

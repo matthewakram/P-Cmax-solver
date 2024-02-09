@@ -4,6 +4,7 @@ use bitvec::vec::BitVec;
 use crate::bounds::bound::Bound;
 use crate::common::timeout::Timeout;
 
+#[derive(Clone)]
 pub struct SSSBoundStrengthening {}
 
 impl Bound for SSSBoundStrengthening {

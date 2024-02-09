@@ -1,5 +1,6 @@
 use crate::{bounds::bound::Bound, common::timeout::Timeout, problem_instance::solution::Solution};
 
+#[derive(Clone)]
 pub struct MaxJobSize {}
 
 impl Bound for MaxJobSize {

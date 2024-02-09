@@ -14,7 +14,6 @@ use crate::{
 #[derive(Clone)]
 pub struct HJ {
     fur_rule: bool,
-    inter_rule: bool,
 }
 
 fn subset_sum(
@@ -69,21 +68,12 @@ impl HJ {
     pub fn new() -> HJ {
         return HJ {
             fur_rule: true,
-            inter_rule: true,
         };
     }
 
     pub fn new_base() -> HJ {
         return HJ {
             fur_rule: false,
-            inter_rule: false,
-        };
-    }
-
-    pub fn new_inter() -> HJ {
-        return HJ {
-            fur_rule: false,
-            inter_rule: true,
         };
     }
 
@@ -120,7 +110,7 @@ impl HJ {
         if part_sol.unassigned.len() == 0 {
             assert!(part_sol.makespan < best_makespan_found);
             let next_makespan_to_check = part_sol.makespan;
-            if (self.fur_rule || self.inter_rule) && next_makespan_to_check >= instance.job_sizes[0]
+            if (self.fur_rule) && next_makespan_to_check >= instance.job_sizes[0]
             {
                 *ret = CompressedRet::new(
                     &(0..instance.num_jobs).into_iter().collect(),
@@ -182,7 +172,7 @@ impl HJ {
                     }
                     //println!("sol makespan after rest assign {}", solution.makespan);
                     let next_makespan_to_check = solution.makespan;
-                    if (self.fur_rule || self.inter_rule)
+                    if (self.fur_rule)
                         && next_makespan_to_check >= instance.job_sizes[0]
                     {
                         *ret = CompressedRet::new(
@@ -299,31 +289,6 @@ impl HJ {
             prev_job_size = instance.job_sizes[job];
 
             if part_sol.rejection_makespan[job][processor_to_assign_to] != usize::MAX {
-                continue;
-            }
-
-            let mut repeated_range: bool = false;
-            for prev_proc in 0..processor_to_assign_to {
-                let rejection_makespan = part_sol.rejection_makespan[job][prev_proc];
-                if self.inter_rule {
-                    if rejection_makespan != usize::MAX
-                        && ret.are_same_range(
-                            job,
-                            rejection_makespan,
-                            part_sol.makespans[processor_to_assign_to],
-                        )
-                    {
-                        repeated_range = true;
-                        break;
-                    }
-                } else {
-                    if rejection_makespan == part_sol.makespans[processor_to_assign_to] {
-                        repeated_range = true;
-                        break;
-                    }
-                }
-            }
-            if repeated_range {
                 continue;
             }
 

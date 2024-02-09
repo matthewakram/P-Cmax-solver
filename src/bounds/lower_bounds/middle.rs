@@ -1,5 +1,6 @@
 use crate::{bounds::bound::Bound, common::timeout::Timeout, problem_instance::solution::Solution};
 
+#[derive(Clone)]
 pub struct MiddleJobs {}
 
 impl Bound for MiddleJobs {

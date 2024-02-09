@@ -19,8 +19,8 @@ mod tests {
             },
             sat_encoder::Encoder,
             sat_encoding::{
-                basic_encoder::BasicEncoder, bdd_inter_comp::BddInterComp, binmerge_native::BinmergeEncoder,
-                binmerge_simp::BinmergeSimpEncoder,
+                basic_encoder::BasicEncoder, bdd_inter_comp::BddInterComp,
+                binmerge_native::BinmergeEncoder, binmerge_simp::BinmergeSimpEncoder,
                 pb_bdd_native::PbNativeEncoder, pb_bdd_pysat::PbPysatEncoder,
                 precedence_encoder::Precedence,
             },
@@ -32,20 +32,28 @@ mod tests {
                 branch_and_bound::BranchAndBound, compressed_bnb::CompressedBnB, hj::HJ,
             },
             ilp_solver::gurobi::Gurobi,
-            sat_solver::{
-                kissat::Kissat, sat_solver_manager,
-            },
+            sat_solver::{kissat::Kissat, sat_solver_manager},
             solver_manager::SolverManager,
         },
     };
     use std::{
         fs::{self, File},
-        io::Write,
+        io::Write, sync::{Arc, Mutex},
     };
 
-    fn test_file_solver(mut solver: Box<dyn SolverManager>, file_name: &String) -> Option<String> {
+    fn test_file_solver(
+        mut solver: Box<dyn SolverManager>,
+        file_name: &String,
+        progress: Arc<Mutex<usize>>,
+        num_total_instances: usize,
+    ) -> Option<String> {
+        {
+            let mut p = progress.lock().unwrap();
+            *p += 1;
+            println!("solving {}/{}", *p, num_total_instances);
+        }
         let instance = input_output::from_file::read_from_file(file_name);
-        let total_timeout_f64: f64 = 100.0;
+        let total_timeout_f64: f64 = 200.0;
         let precomputation_timeout = 10.0;
 
         // --------------CALCULATING BOUNDS--------------
@@ -82,8 +90,6 @@ mod tests {
         // -------------CHECKING IF SOLUTION HAS BEEN FOUND-----------
         // We maintain that the solution is within [lower_bound, upper_bound]. Note that this is inclusive.
 
-        
-
         assert!(lower_bound <= upper_bound.makespan);
         if lower_bound == upper_bound.makespan {
             return Some(format!(
@@ -111,10 +117,10 @@ mod tests {
 
         let sol = solver.solve(&instance, lower_bound, &upper_bound, &total_timeout, false);
         if sol.is_none() {
-            println!("could not solve file {}", file_name);
+          //  println!("could not solve file {}", file_name);
             return None;
         }
-        println!("solved file {}", file_name);
+        //println!("solved file {}", file_name);
 
         let stats = solver.get_stats();
         return Some(format!(
@@ -163,13 +169,16 @@ mod tests {
             .iter()
             .map(|x| (x.clone(), solver.clone()))
             .collect::<Vec<_>>();
+
+        let progress: Arc<Mutex<usize>> = Arc::new(Mutex::new(0));
+        let num_instances = files.len();
         let result = files
             .into_par_iter()
             //.into_iter()
             .enumerate()
             .map(|(_file_num, (path, encoder))| {
                 //    println!("solving file num {}", file_num);
-                test_file_solver(encoder, &path)
+                test_file_solver(encoder, &path, progress.clone(), num_instances)
             })
             .filter(|x| x.is_some())
             .map(|x| x.unwrap())
@@ -380,7 +389,8 @@ mod tests {
     #[test]
     #[ignore]
     pub fn complete_test_class_bdd_inter_only() {
-        let a: Box<dyn Encoder> = Box::new(Precedence::new(Box::new(BddInterComp::new_inter_only()), 1));
+        let a: Box<dyn Encoder> =
+            Box::new(Precedence::new(Box::new(BddInterComp::new_inter_only()), 1));
         let solver = Box::new(sat_solver_manager::SatSolverManager::new(
             Box::new(Kissat::new()),
             Box::new(LinearMakespan {}),
@@ -396,7 +406,8 @@ mod tests {
     #[test]
     #[ignore]
     pub fn complete_test_lawrenko_bdd_inter_only() {
-        let a: Box<dyn Encoder> = Box::new(Precedence::new(Box::new(BddInterComp::new_inter_only()), 1));
+        let a: Box<dyn Encoder> =
+            Box::new(Precedence::new(Box::new(BddInterComp::new_inter_only()), 1));
         let solver = Box::new(sat_solver_manager::SatSolverManager::new(
             Box::new(Kissat::new()),
             Box::new(LinearMakespan {}),
@@ -412,7 +423,8 @@ mod tests {
     #[test]
     #[ignore]
     pub fn complete_test_franca_bdd_inter_only() {
-        let a: Box<dyn Encoder> = Box::new(Precedence::new(Box::new(BddInterComp::new_inter_only()), 1));
+        let a: Box<dyn Encoder> =
+            Box::new(Precedence::new(Box::new(BddInterComp::new_inter_only()), 1));
         let solver = Box::new(sat_solver_manager::SatSolverManager::new(
             Box::new(Kissat::new()),
             Box::new(LinearMakespan {}),
@@ -428,7 +440,8 @@ mod tests {
     #[test]
     #[ignore]
     pub fn complete_test_class_bdd_intercomp() {
-        let a: Box<dyn Encoder> = Box::new(Precedence::new(Box::new(BddInterComp::new_inter_only()), 1));
+        let a: Box<dyn Encoder> =
+            Box::new(Precedence::new(Box::new(BddInterComp::new_inter_only()), 1));
         let solver = Box::new(sat_solver_manager::SatSolverManager::new(
             Box::new(Kissat::new()),
             Box::new(LinearMakespan {}),
@@ -444,7 +457,8 @@ mod tests {
     #[test]
     #[ignore]
     pub fn complete_test_lawrenko_bdd_intercomp() {
-        let a: Box<dyn Encoder> = Box::new(Precedence::new(Box::new(BddInterComp::new_inter_only()), 1));
+        let a: Box<dyn Encoder> =
+            Box::new(Precedence::new(Box::new(BddInterComp::new_inter_only()), 1));
         let solver = Box::new(sat_solver_manager::SatSolverManager::new(
             Box::new(Kissat::new()),
             Box::new(LinearMakespan {}),
@@ -460,7 +474,8 @@ mod tests {
     #[test]
     #[ignore]
     pub fn complete_test_franca_bdd_intercomp() {
-        let a: Box<dyn Encoder> = Box::new(Precedence::new(Box::new(BddInterComp::new_inter_only()), 1));
+        let a: Box<dyn Encoder> =
+            Box::new(Precedence::new(Box::new(BddInterComp::new_inter_only()), 1));
         let solver = Box::new(sat_solver_manager::SatSolverManager::new(
             Box::new(Kissat::new()),
             Box::new(LinearMakespan {}),
@@ -492,7 +507,7 @@ mod tests {
     #[test]
     #[ignore]
     pub fn complete_test_lawrenko_binmerge() {
-        let a: Box<dyn Encoder> =Box::new(BinmergeEncoder::new());
+        let a: Box<dyn Encoder> = Box::new(BinmergeEncoder::new());
         let solver = Box::new(sat_solver_manager::SatSolverManager::new(
             Box::new(Kissat::new()),
             Box::new(LinearMakespan {}),
@@ -524,8 +539,7 @@ mod tests {
     #[test]
     #[ignore]
     pub fn complete_test_class_binsimp() {
-        let a: Box<dyn Encoder> =
-            Box::new(BinmergeSimpEncoder::new());
+        let a: Box<dyn Encoder> = Box::new(BinmergeSimpEncoder::new());
         let solver = Box::new(sat_solver_manager::SatSolverManager::new(
             Box::new(Kissat::new()),
             Box::new(LinearMakespan {}),
@@ -541,8 +555,7 @@ mod tests {
     #[test]
     #[ignore]
     pub fn complete_test_lawrenko_binsimp() {
-        let a: Box<dyn Encoder> =
-           Box::new(BinmergeSimpEncoder::new());
+        let a: Box<dyn Encoder> = Box::new(BinmergeSimpEncoder::new());
         let solver = Box::new(sat_solver_manager::SatSolverManager::new(
             Box::new(Kissat::new()),
             Box::new(LinearMakespan {}),
@@ -558,8 +571,7 @@ mod tests {
     #[test]
     #[ignore]
     pub fn complete_test_franca_binsimp() {
-        let a: Box<dyn Encoder> =
-            Box::new(BinmergeSimpEncoder::new());
+        let a: Box<dyn Encoder> = Box::new(BinmergeSimpEncoder::new());
         let solver = Box::new(sat_solver_manager::SatSolverManager::new(
             Box::new(Kissat::new()),
             Box::new(LinearMakespan {}),
@@ -599,10 +611,6 @@ mod tests {
     #[test]
     #[ignore]
     pub fn complete_test_franca_fur_ilp() {
-        rayon::ThreadPoolBuilder::new()
-            .num_threads(22)
-            .build_global()
-            .unwrap();
         let solver = Box::new(Gurobi::new(Box::new(MehdiNizarOrderEncoder::new())));
         test_solver(
             solver,
@@ -610,7 +618,6 @@ mod tests {
             "./bench/results/complete_franca_frangioni_mehdi_nizar_fur.txt",
         )
     }
-
 
     #[test]
     #[ignore]
@@ -639,10 +646,6 @@ mod tests {
     #[test]
     #[ignore]
     pub fn complete_test_franca_original_ilp() {
-        rayon::ThreadPoolBuilder::new()
-            .num_threads(22)
-            .build_global()
-            .unwrap();
         let solver = Box::new(Gurobi::new(Box::new(MehdiNizarOriginalEncoder::new())));
         test_solver(
             solver,
@@ -676,10 +679,6 @@ mod tests {
     #[test]
     #[ignore]
     pub fn complete_test_franca_b_and_b() {
-        rayon::ThreadPoolBuilder::new()
-            .num_threads(10)
-            .build_global()
-            .unwrap();
         let solver = Box::new(BranchAndBound::new());
         test_solver(
             solver,
@@ -787,7 +786,6 @@ mod tests {
         )
     }
 
-
     #[test]
     #[ignore]
     pub fn complete_test_class_hj() {
@@ -798,7 +796,6 @@ mod tests {
             "./bench/results/complete_class_instances_hj.txt",
         )
     }
-
 
     #[test]
     #[ignore]
@@ -833,7 +830,6 @@ mod tests {
         )
     }
 
-
     #[test]
     #[ignore]
     pub fn complete_test_lawrenko_hj_base() {
@@ -858,110 +854,125 @@ mod tests {
 
     #[test]
     #[ignore]
-    pub fn complete_test_class_hj_inter() {
-        let solver = Box::new(HJ::new_inter());
-        test_solver(
-            solver,
-            "./bench/class_instances/",
-            "./bench/results/complete_class_instances_hj_inter.txt",
-        )
-    }
-
-
-    #[test]
-    #[ignore]
-    pub fn complete_test_lawrenko_hj_inter() {
-        let solver = Box::new(HJ::new_inter());
-        test_solver(
-            solver,
-            "./bench/lawrenko/",
-            "./bench/results/complete_lawrenko_hj_inter.txt",
-        )
-    }
-
-    #[test]
-    #[ignore]
-    pub fn complete_test_franca_hj_inter() {
-        let solver = Box::new(HJ::new_inter());
-        test_solver(
-            solver,
-            "./bench/franca_frangioni/standardised/",
-            "./bench/results/complete_franca_frangioni_hj_inter.txt",
-        )
-    }
-    
-    
-    #[test]
-    #[ignore]
     pub fn thesis_tests() {
-//        complete_test_class_original_ilp();
-//        complete_test_lawrenko_original_ilp();
-        //complete_test_franca_original_ilp();
-    
+        // complete_test_class_original_ilp();
+        // complete_test_lawrenko_original_ilp();
+
         //complete_test_class_fur_ilp();
         //complete_test_lawrenko_fur_ilp();
+
+        complete_test_class_b_and_b();
+        complete_test_lawrenko_b_and_b();
+
+        complete_test_class_compressed_b_and_b();
+        complete_test_lawrenko_compressed_b_and_b();
+        complete_test_franca_compressed_b_and_b();
+
+        complete_test_class_compressed_b_and_b_inter();
+        complete_test_lawrenko_compressed_b_and_b_inter();
+        complete_test_franca_compressed_b_and_b_inter();
+
+        complete_test_class_compressed_b_and_b_base();
+        complete_test_lawrenko_compressed_b_and_b_base();
+        complete_test_franca_compressed_b_and_b_base();
+
+        complete_test_class_hj();
+        complete_test_lawrenko_hj();
+        complete_test_franca_hj();
+
+        complete_test_class_hj_base();
+        complete_test_lawrenko_hj_base();
+        complete_test_franca_hj_base();
+
+        // complete_test_class_basic();
+        // complete_test_lawrenko_basic();
+        // complete_test_franca_basic();
+
+        // complete_test_class_binmerge();
+        // complete_test_lawrenko_binmerge();
+        // complete_test_franca_binmerge();
+
+        // complete_test_class_bdd_native();
+        // complete_test_lawrenko_bdd_native();
+
+        // complete_test_class_bdd_prec();
+        // complete_test_lawrenko_bdd_prec();
+
+        // complete_test_lawrenko_bdd_inter_only();
+
+        rayon::ThreadPoolBuilder::new()
+            .num_threads(10)
+            .build_global()
+            .unwrap();
+
+        complete_test_franca_b_and_b();
+        //complete_test_class_bdd_inter_only();
+        //complete_test_franca_bdd_native();
+        //complete_test_franca_bdd_prec();
+        //complete_test_franca_bdd_inter_only();
+        //complete_test_franca_original_ilp();
         //complete_test_franca_fur_ilp();
+    }
 
-       complete_test_class_b_and_b();
-       complete_test_lawrenko_b_and_b();
-       complete_test_franca_b_and_b();
+    #[test]
+    #[ignore]
+    pub fn complete_end_to_end_thesis_tests() {
+        // complete_test_class_original_ilp();
+        // complete_test_lawrenko_original_ilp();
 
-       complete_test_class_compressed_b_and_b();
-       complete_test_lawrenko_compressed_b_and_b();
-       complete_test_franca_compressed_b_and_b();
+        //complete_test_class_fur_ilp();
+        //complete_test_lawrenko_fur_ilp();
 
-       complete_test_class_compressed_b_and_b_inter();
-       complete_test_lawrenko_compressed_b_and_b_inter();
-       complete_test_franca_compressed_b_and_b_inter();
+        complete_test_class_b_and_b();
+        complete_test_lawrenko_b_and_b();
 
-       complete_test_class_compressed_b_and_b_base();
-       complete_test_lawrenko_compressed_b_and_b_base();
-       complete_test_franca_compressed_b_and_b_base();
+        complete_test_class_compressed_b_and_b();
+        complete_test_lawrenko_compressed_b_and_b();
+        complete_test_franca_compressed_b_and_b();
 
-       complete_test_class_hj();
-       complete_test_lawrenko_hj();
-       complete_test_franca_hj();
+        complete_test_class_compressed_b_and_b_inter();
+        complete_test_lawrenko_compressed_b_and_b_inter();
+        complete_test_franca_compressed_b_and_b_inter();
 
-       complete_test_class_hj_base();
-       complete_test_lawrenko_hj_base();
-       complete_test_franca_hj_base();
+        complete_test_class_compressed_b_and_b_base();
+        complete_test_lawrenko_compressed_b_and_b_base();
+        complete_test_franca_compressed_b_and_b_base();
 
-       complete_test_class_hj_inter();
-       complete_test_lawrenko_hj_inter();
-       complete_test_franca_hj_inter();
+        complete_test_class_hj();
+        complete_test_lawrenko_hj();
+        complete_test_franca_hj();
 
-       complete_test_class_basic();
-       complete_test_lawrenko_basic();
-       complete_test_franca_basic();
+        complete_test_class_hj_base();
+        complete_test_lawrenko_hj_base();
+        complete_test_franca_hj_base();
 
-//       complete_test_class_pysat();
-//       complete_test_franca_pysat();
-//       complete_test_lawrenko_pysat();
+        // complete_test_class_basic();
+        // complete_test_lawrenko_basic();
+        // complete_test_franca_basic();
 
-       complete_test_class_binmerge();
-       complete_test_lawrenko_binmerge();
-       complete_test_franca_binmerge();
-       
-       complete_test_class_binsimp();
-       complete_test_lawrenko_binsimp();
-       complete_test_franca_binsimp();
+        // complete_test_class_binmerge();
+        // complete_test_lawrenko_binmerge();
+        // complete_test_franca_binmerge();
 
-       complete_test_class_bdd_native();
-       complete_test_lawrenko_bdd_native();
-       complete_test_franca_bdd_native();
+        // complete_test_class_bdd_native();
+        // complete_test_lawrenko_bdd_native();
 
-       complete_test_class_bdd_prec();
-       complete_test_lawrenko_bdd_prec();
-       complete_test_franca_bdd_prec();
+        // complete_test_class_bdd_prec();
+        // complete_test_lawrenko_bdd_prec();
 
-       complete_test_class_bdd_inter_only();
-       complete_test_lawrenko_bdd_inter_only();
-       complete_test_franca_bdd_inter_only();
+        // complete_test_lawrenko_bdd_inter_only();
 
-        complete_test_class_bdd_intercomp();
-        complete_test_lawrenko_bdd_intercomp();
-        complete_test_franca_bdd_intercomp();
+        rayon::ThreadPoolBuilder::new()
+            .num_threads(10)
+            .build_global()
+            .unwrap();
 
-
+        complete_test_franca_b_and_b();
+        //complete_test_class_bdd_inter_only();
+        //complete_test_franca_bdd_native();
+        //complete_test_franca_bdd_prec();
+        //complete_test_franca_bdd_inter_only();
+        //complete_test_franca_original_ilp();
+        //complete_test_franca_fur_ilp();
     }
 }

@@ -1,7 +1,8 @@
 use crate::{
     bdd::bdd_dyn::{self, DynBDD},
     common::timeout::Timeout,
-    problem_instance::problem_instance::ProblemInstance, encoding::sat_encoder::{Clauses, Encoder, OneHotEncoder, Clause},
+    encoding::sat_encoder::{Clause, Clauses, Encoder, OneHotEncoder},
+    problem_instance::problem_instance::ProblemInstance,
 };
 
 use super::problem_encoding::one_hot_encoding::{OneHot, OneHotProblemEncoding};
@@ -10,7 +11,8 @@ use super::problem_encoding::one_hot_encoding::{OneHot, OneHotProblemEncoding};
 pub struct BddInterComp {
     one_hot: OneHotProblemEncoding,
     pub clauses: Clauses,
-    opt_all: bool,
+    fur_rule: bool,
+    inter_rule: bool,
 }
 
 impl BddInterComp {
@@ -18,7 +20,8 @@ impl BddInterComp {
         return BddInterComp {
             one_hot: OneHotProblemEncoding::new(),
             clauses: Clauses::new(),
-            opt_all: true,
+            fur_rule: true,
+            inter_rule: true,
         };
     }
 
@@ -26,7 +29,17 @@ impl BddInterComp {
         return BddInterComp {
             one_hot: OneHotProblemEncoding::new(),
             clauses: Clauses::new(),
-            opt_all: false,
+            fur_rule: false,
+            inter_rule: true,
+        };
+    }
+
+    pub fn new_basic() -> BddInterComp {
+        return BddInterComp {
+            one_hot: OneHotProblemEncoding::new(),
+            clauses: Clauses::new(),
+            fur_rule: false,
+            inter_rule: false,
         };
     }
 }
@@ -101,19 +114,21 @@ impl Encoder for BddInterComp {
             }
         }
 
-        for i in 0..partial_solution.instance.num_processors {
-            for j in i + 1..partial_solution.instance.num_processors {
-                if bdds[j].nodes.is_empty() || bdds[i].nodes.is_empty() {
-                    continue;
+        if self.inter_rule {
+            for i in 0..partial_solution.instance.num_processors {
+                for j in i + 1..partial_solution.instance.num_processors {
+                    if bdds[j].nodes.is_empty() || bdds[i].nodes.is_empty() {
+                        continue;
+                    }
+                    clauses.add_many_clauses(&mut bdds[i].encode_bdd_bijective_relation(&bdds[j]));
                 }
-                clauses.add_many_clauses(&mut bdds[i].encode_bdd_bijective_relation(&bdds[j]));
-            }
-            if timeout.time_finished() || clauses.get_num_clauses() > max_num_clauses {
-                return false;
+                if timeout.time_finished() || clauses.get_num_clauses() > max_num_clauses {
+                    return false;
+                }
             }
         }
 
-        if self.opt_all {
+        if self.fur_rule {
             // this encodes the fill up rule
             for i in 0..partial_solution.instance.num_processors - 1 {
                 if bdds[i].nodes.is_empty() {
