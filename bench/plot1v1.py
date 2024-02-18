@@ -9,7 +9,7 @@ colors = ['#377eb8', '#ff7f00', '#e41a1c', '#f781bf', '#a65628', '#4daf4a', '#98
 lim = 60
 
 
-msize = 6
+msize = 4
 pltxsize = 5
 pltysize = 5
 xmin = None
@@ -135,6 +135,7 @@ if sansfont:
     #\renewcommand\familydefault{\sfdefault} 
 else:
     rc('font', family='serif')
+    matplotlib.rcParams['font.size'] = 14
     if timesfont:
         rc('font', serif=['Times'])
 
@@ -229,11 +230,17 @@ for i in keys:
         #print(str(i) + " : X " + str(values[0][i]) + ", Y " + str(values[1][i]))
 
     if i in statistics[0]:
-        color = (rgb_to_hex(0, int(min(int(statistics[0][i][stats[0]]),max_first_stats)/ max_first_stats * 255 ), int(min(int(statistics[0][i][stats[1]]),max_second_stat)/ max_second_stat *255 )))
+        color = (rgb_to_hex( 255 - int(min(int(statistics[0][i][stats[0]]),max_first_stats)/ max_first_stats * 255 ), 0 , 0))
         #print(color)
     else:
-        color = (rgb_to_hex(0, int(min(int(statistics[1][i][stats[0]]),max_first_stats) / max_first_stats * 255), int(min(int(statistics[1][i][stats[1]]),max_second_stat) / max_second_stat *255)))
-    plt.plot(X[-1], Y[-1], marker='.', alpha=1, markersize=msize, markeredgecolor=color, color=color)
+        color = (rgb_to_hex( 255 - int(min(int(statistics[1][i][stats[0]]),max_first_stats) / max_first_stats * 255), 0, 0))
+    marker = '.'
+    if color == '#000000':
+        marker = '+'
+        color = '#0000ff'
+    else :
+        marker = "x"
+    plt.plot(X[-1], Y[-1], marker=marker, alpha=1, markersize=4, markeredgecolor=color, color=color)
     
 label_idx += 1
 

@@ -1,4 +1,15 @@
+from matplotlib.pyplot import *
 import matplotlib.pyplot as plt
+import matplotlib
+
+matplotlib.rcParams['figure.figsize'] = [2.8,2.8]
+matplotlib.rcParams['font.family'] = 'serif'
+matplotlib.rcParams['font.size'] = 8
+plt.rcParams['text.usetex'] = True
+subplots_adjust(bottom=0.14)
+subplots_adjust(left=0.19)
+subplots_adjust(right=0.98)
+subplots_adjust(top=0.97)
 
 files = [
     ["./complete_class_instances_compressed_branch_and_bound.txt", "./complete_franca_frangioni_compressed_branch_and_bound.txt", "./complete_lawrenko_compressed_branch_and_bound.txt"],
@@ -6,7 +17,7 @@ files = [
     ["./complete_class_instances_compressed_branch_and_bound_basic.txt", "./complete_franca_frangioni_compressed_branch_and_bound_basic.txt", "./complete_lawrenko_compressed_branch_and_bound_basic.txt"],
 ]
 
-names = ["DMFUR", "DMINTER", "DMBASE"]
+names = [r'\textbf{DMFUR}', r'\textbf{DMINTER}', r'\textbf{DMBASE}']
 
 
 bounds = []

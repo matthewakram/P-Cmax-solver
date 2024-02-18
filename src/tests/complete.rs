@@ -7,8 +7,8 @@ mod tests {
     use crate::{
         bounds::{
             bound::Bound,
-            lower_bounds::{max_job_size, middle, pigeon_hole},
-            upper_bounds::lpt,
+            lower_bounds::{lifting, max_job_size, middle, pigeon_hole, sss_bound_tightening},
+            upper_bounds::{lpt, lptp, lptpp, mss},
         },
         common::timeout::Timeout,
         encoding::{
@@ -25,14 +25,14 @@ mod tests {
                 precedence_encoder::Precedence,
             },
         },
-        input_output::{self},
+        input_output,
         makespan_scheduling::linear_makespan::LinearMakespan,
         solvers::{
             branch_and_bound::{
                 branch_and_bound::BranchAndBound, compressed_bnb::CompressedBnB, hj::HJ,
             },
             ilp_solver::gurobi::Gurobi,
-            sat_solver::{kissat::Kissat, sat_solver_manager},
+            sat_solver::{kissat::Kissat, multi_sat_solver_manager::MultiSatSolverManager, sat_solver_manager},
             solver_manager::SolverManager,
         },
     };
@@ -53,7 +53,7 @@ mod tests {
             println!("solving {}/{}", *p, num_total_instances);
         }
         let instance = input_output::from_file::read_from_file(file_name);
-        let total_timeout_f64: f64 = 200.0;
+        let total_timeout_f64: f64 = 900.0;
         let precomputation_timeout = 10.0;
 
         // --------------CALCULATING BOUNDS--------------
@@ -63,12 +63,11 @@ mod tests {
             Box::new(max_job_size::MaxJobSize {}),
             Box::new(middle::MiddleJobs {}),
             Box::new(lpt::LPT {}),
-            //Box::new(lptp::Lptp {}),
-            //Box::new(martello_toth::MartelloToth {}),
-            //Box::new(sss_bound_tightening::SSSBoundStrengthening {}),
-            //Box::new(lptpp::Lptpp {}),
-            //Box::new(lifting::Lifting::new_deterministic(1)),
-            //Box::new(mss::MSS::new_deterministic(4)),
+            Box::new(lptp::Lptp {}),
+            Box::new(sss_bound_tightening::SSSBoundStrengthening {}),
+            Box::new(lptpp::Lptpp {}),
+            Box::new(lifting::Lifting::new_deterministic(1)),
+            Box::new(mss::MSS::new_deterministic(4)),
         ];
 
         let (mut lower_bound, mut upper_bound) = (0, None);
@@ -592,7 +591,7 @@ mod tests {
         test_solver(
             solver,
             "./bench/class_instances/",
-            "./bench/results/complete_class_instances_mehdi_nizar_fur.txt",
+            "./bench/results/complete_class_instances_mehdi_nizar_prec.txt",
         )
     }
 
@@ -604,7 +603,7 @@ mod tests {
         test_solver(
             solver,
             "./bench/lawrenko/",
-            "./bench/results/complete_lawrenko_mehdi_nizar_fur.txt",
+            "./bench/results/complete_lawrenko_mehdi_nizar_prec.txt",
         )
     }
 
@@ -615,7 +614,7 @@ mod tests {
         test_solver(
             solver,
             "./bench/franca_frangioni/standardised/",
-            "./bench/results/complete_franca_frangioni_mehdi_nizar_fur.txt",
+            "./bench/results/complete_franca_frangioni_mehdi_nizar_prec.txt",
         )
     }
 
@@ -821,6 +820,39 @@ mod tests {
 
     #[test]
     #[ignore]
+    pub fn complete_test_class_hj_inter() {
+        let solver = Box::new(HJ::new_inter());
+        test_solver(
+            solver,
+            "./bench/class_instances/",
+            "./bench/results/complete_class_instances_hj_inter.txt",
+        )
+    }
+
+    #[test]
+    #[ignore]
+    pub fn complete_test_lawrenko_hj_inter() {
+        let solver = Box::new(HJ::new_inter());
+        test_solver(
+            solver,
+            "./bench/lawrenko/",
+            "./bench/results/complete_lawrenko_hj_inter.txt",
+        )
+    }
+
+    #[test]
+    #[ignore]
+    pub fn complete_test_franca_hj_inter() {
+        let solver = Box::new(HJ::new_inter());
+        test_solver(
+            solver,
+            "./bench/franca_frangioni/standardised/",
+            "./bench/results/complete_franca_frangioni_hj_inter.txt",
+        )
+    }
+
+    #[test]
+    #[ignore]
     pub fn complete_test_class_hj_base() {
         let solver = Box::new(HJ::new_base());
         test_solver(
@@ -854,6 +886,70 @@ mod tests {
 
     #[test]
     #[ignore]
+    pub fn complete_test_class_double() {
+        rayon::ThreadPoolBuilder::new()
+            .num_threads(40)
+            .build_global()
+            .unwrap();
+        let sat_encoder = Box::new(Precedence::new(Box::new(BddInterComp::new()), 1));
+        let unsat_encoder = Box::new(BinmergeSimpEncoder::new());
+        let solver = Box::new(MultiSatSolverManager { sat_solver: Box::new(Kissat::new()), unsat_solver: Box::new(Kissat::new()), makespan_scheduler: Box::new(LinearMakespan {}) , sat_encoder, unsat_encoder });
+        test_solver(
+            solver,
+            "./bench/class_instances/",
+            "./bench/results/complete_class_instances_multi.txt",
+        )
+    }
+
+    #[test]
+    #[ignore]
+    pub fn complete_test_lawrenko_double() {
+        rayon::ThreadPoolBuilder::new()
+        .num_threads(40)
+        .build_global()
+        .unwrap();
+        let sat_encoder = Box::new(Precedence::new(Box::new(BddInterComp::new()), 1));
+        let unsat_encoder = Box::new(BinmergeSimpEncoder::new());
+        let solver = Box::new(MultiSatSolverManager { sat_solver: Box::new(Kissat::new()), unsat_solver: Box::new(Kissat::new()), makespan_scheduler: Box::new(LinearMakespan {}) , sat_encoder, unsat_encoder });
+        test_solver(
+            solver,
+            "./bench/lawrenko/",
+            "./bench/results/complete_lawrenko_multi.txt",
+        )
+    }
+
+    #[test]
+    #[ignore]
+    pub fn complete_test_franca_double() {
+        rayon::ThreadPoolBuilder::new()
+        .num_threads(40)
+        .build_global()
+        .unwrap();
+        let sat_encoder = Box::new(Precedence::new(Box::new(BddInterComp::new()), 1));
+        let unsat_encoder = Box::new(BinmergeSimpEncoder::new());
+        let solver = Box::new(MultiSatSolverManager { sat_solver: Box::new(Kissat::new()), unsat_solver: Box::new(Kissat::new()), makespan_scheduler: Box::new(LinearMakespan {}) , sat_encoder, unsat_encoder });
+        test_solver(
+            solver,
+            "./bench/franca_frangioni/standardised/",
+            "./bench/results/complete_franca_frangioni_multi.txt",
+        )
+    }
+
+    #[test]
+    #[ignore]
+    pub fn complete_test_lawrenko_thesis_full() {
+        let solver = Box::new(CompressedBnB::new());
+        test_solver(
+            solver,
+            "./bench/lawrenko_thesis/",
+            "./bench/results/complete_lawrenko_thesis_bnb.txt",
+        )
+    }
+
+    
+
+    #[test]
+    #[ignore]
     pub fn thesis_tests() {
         // complete_test_class_original_ilp();
         // complete_test_lawrenko_original_ilp();
@@ -861,28 +957,32 @@ mod tests {
         //complete_test_class_fur_ilp();
         //complete_test_lawrenko_fur_ilp();
 
-        complete_test_class_b_and_b();
-        complete_test_lawrenko_b_and_b();
+        // complete_test_class_b_and_b();
+        // complete_test_lawrenko_b_and_b();
 
-        complete_test_class_compressed_b_and_b();
-        complete_test_lawrenko_compressed_b_and_b();
-        complete_test_franca_compressed_b_and_b();
+        // complete_test_class_compressed_b_and_b();
+        // complete_test_lawrenko_compressed_b_and_b();
+        // complete_test_franca_compressed_b_and_b();
 
-        complete_test_class_compressed_b_and_b_inter();
-        complete_test_lawrenko_compressed_b_and_b_inter();
-        complete_test_franca_compressed_b_and_b_inter();
+        // complete_test_class_compressed_b_and_b_inter();
+        // complete_test_lawrenko_compressed_b_and_b_inter();
+        // complete_test_franca_compressed_b_and_b_inter();
 
-        complete_test_class_compressed_b_and_b_base();
-        complete_test_lawrenko_compressed_b_and_b_base();
-        complete_test_franca_compressed_b_and_b_base();
+        // complete_test_class_compressed_b_and_b_base();
+        // complete_test_lawrenko_compressed_b_and_b_base();
+        // complete_test_franca_compressed_b_and_b_base();
+
+        // complete_test_class_hj_inter();
+        // complete_test_franca_hj_inter();
+        // complete_test_lawrenko_hj_inter();
 
         complete_test_class_hj();
         complete_test_lawrenko_hj();
         complete_test_franca_hj();
 
-        complete_test_class_hj_base();
-        complete_test_lawrenko_hj_base();
-        complete_test_franca_hj_base();
+        // complete_test_class_hj_base();
+        // complete_test_lawrenko_hj_base();
+        // complete_test_franca_hj_base();
 
         // complete_test_class_basic();
         // complete_test_lawrenko_basic();
@@ -900,12 +1000,12 @@ mod tests {
 
         // complete_test_lawrenko_bdd_inter_only();
 
-        rayon::ThreadPoolBuilder::new()
-            .num_threads(10)
-            .build_global()
-            .unwrap();
+        // rayon::ThreadPoolBuilder::new()
+        //     .num_threads(10)
+        //     .build_global()
+        //     .unwrap();
 
-        complete_test_franca_b_and_b();
+        // complete_test_franca_b_and_b();
         //complete_test_class_bdd_inter_only();
         //complete_test_franca_bdd_native();
         //complete_test_franca_bdd_prec();
@@ -914,65 +1014,4 @@ mod tests {
         //complete_test_franca_fur_ilp();
     }
 
-    #[test]
-    #[ignore]
-    pub fn complete_end_to_end_thesis_tests() {
-        // complete_test_class_original_ilp();
-        // complete_test_lawrenko_original_ilp();
-
-        //complete_test_class_fur_ilp();
-        //complete_test_lawrenko_fur_ilp();
-
-        complete_test_class_b_and_b();
-        complete_test_lawrenko_b_and_b();
-
-        complete_test_class_compressed_b_and_b();
-        complete_test_lawrenko_compressed_b_and_b();
-        complete_test_franca_compressed_b_and_b();
-
-        complete_test_class_compressed_b_and_b_inter();
-        complete_test_lawrenko_compressed_b_and_b_inter();
-        complete_test_franca_compressed_b_and_b_inter();
-
-        complete_test_class_compressed_b_and_b_base();
-        complete_test_lawrenko_compressed_b_and_b_base();
-        complete_test_franca_compressed_b_and_b_base();
-
-        complete_test_class_hj();
-        complete_test_lawrenko_hj();
-        complete_test_franca_hj();
-
-        complete_test_class_hj_base();
-        complete_test_lawrenko_hj_base();
-        complete_test_franca_hj_base();
-
-        // complete_test_class_basic();
-        // complete_test_lawrenko_basic();
-        // complete_test_franca_basic();
-
-        // complete_test_class_binmerge();
-        // complete_test_lawrenko_binmerge();
-        // complete_test_franca_binmerge();
-
-        // complete_test_class_bdd_native();
-        // complete_test_lawrenko_bdd_native();
-
-        // complete_test_class_bdd_prec();
-        // complete_test_lawrenko_bdd_prec();
-
-        // complete_test_lawrenko_bdd_inter_only();
-
-        rayon::ThreadPoolBuilder::new()
-            .num_threads(10)
-            .build_global()
-            .unwrap();
-
-        complete_test_franca_b_and_b();
-        //complete_test_class_bdd_inter_only();
-        //complete_test_franca_bdd_native();
-        //complete_test_franca_bdd_prec();
-        //complete_test_franca_bdd_inter_only();
-        //complete_test_franca_original_ilp();
-        //complete_test_franca_fur_ilp();
-    }
 }

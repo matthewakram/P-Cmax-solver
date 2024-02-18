@@ -5,11 +5,11 @@ mod tests {
     use crate::{
         bounds::{
             bound::Bound,
-            lower_bounds::{lifting::Lifting, lifting_weak::LiftingWeak, max_job_size::{self, MaxJobSize}, middle::{self, MiddleJobs}, pigeon_hole, sss_bound_tightening},
-            upper_bounds::{lpt::{self, LPT}, lptp::Lptp, lptpp::Lptpp, mss::MSS},
+            lower_bounds::{lifting::{self, Lifting}, lifting_weak::LiftingWeak, max_job_size::{self, MaxJobSize}, middle::{self, MiddleJobs}, pigeon_hole, sss_bound_tightening},
+            upper_bounds::{lpt::{self, LPT}, lptp::{self, Lptp}, lptpp::{self, Lptpp}, mss::MSS},
         },
         common::timeout::Timeout,
-        input_output::{self},
+        input_output,
     };
     use std::{
         fs::{self, File},
@@ -27,6 +27,10 @@ mod tests {
             Box::new(max_job_size::MaxJobSize {}),
             Box::new(middle::MiddleJobs {}),
             Box::new(lpt::LPT {}),
+            Box::new(lptp::Lptp {}),
+            Box::new(sss_bound_tightening::SSSBoundStrengthening {}),
+            Box::new(lptpp::Lptpp {}),
+            Box::new(lifting::Lifting::new_deterministic(1)),
         ];
     
         

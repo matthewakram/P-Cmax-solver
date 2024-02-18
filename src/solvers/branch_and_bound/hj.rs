@@ -14,6 +14,7 @@ use crate::{
 #[derive(Clone)]
 pub struct HJ {
     fur_rule: bool,
+    inter_rule: bool,
 }
 
 fn subset_sum(
@@ -68,12 +69,21 @@ impl HJ {
     pub fn new() -> HJ {
         return HJ {
             fur_rule: true,
+            inter_rule: true,
         };
     }
 
     pub fn new_base() -> HJ {
         return HJ {
             fur_rule: false,
+            inter_rule: true,
+        };
+    }
+
+    pub fn new_inter() -> HJ {
+        return HJ {
+            fur_rule: false,
+            inter_rule: false,
         };
     }
 
@@ -110,7 +120,7 @@ impl HJ {
         if part_sol.unassigned.len() == 0 {
             assert!(part_sol.makespan < best_makespan_found);
             let next_makespan_to_check = part_sol.makespan;
-            if (self.fur_rule) && next_makespan_to_check >= instance.job_sizes[0]
+            if (self.fur_rule || self.inter_rule) && next_makespan_to_check >= instance.job_sizes[0]
             {
                 *ret = CompressedRet::new(
                     &(0..instance.num_jobs).into_iter().collect(),
@@ -142,7 +152,6 @@ impl HJ {
             );
         }
 
-        // TODO:
         // if there are only two processors remaining then we can use SSS
         if best_makespan_found < 10000 && processor_to_assign_to == instance.num_processors - 2 {
             let current_makespan = part_sol.makespan;
@@ -172,9 +181,7 @@ impl HJ {
                     }
                     //println!("sol makespan after rest assign {}", solution.makespan);
                     let next_makespan_to_check = solution.makespan;
-                    if (self.fur_rule)
-                        && next_makespan_to_check >= instance.job_sizes[0]
-                    {
+                    if (self.fur_rule) && next_makespan_to_check >= instance.job_sizes[0] {
                         *ret = CompressedRet::new(
                             &(0..instance.num_jobs).into_iter().collect(),
                             &instance.job_sizes,
@@ -211,7 +218,6 @@ impl HJ {
         {
             if part_sol.rejection_makespan[fur_job][processor_to_assign_to] != usize::MAX {
                 // we have already decided to not put this job on this processor. Due to the FUR rule, blah blah blah
-                // TODO: not sure about this but probably
                 return Ok(None);
             }
             part_sol.assign(fur_job, processor_to_assign_to, instance);
@@ -289,6 +295,31 @@ impl HJ {
             prev_job_size = instance.job_sizes[job];
 
             if part_sol.rejection_makespan[job][processor_to_assign_to] != usize::MAX {
+                continue;
+            }
+
+            let mut reject = false;
+            for prev_proc in 0..processor_to_assign_to {
+                if part_sol.rejection_makespan[job][prev_proc]
+                    == part_sol.makespans[processor_to_assign_to]
+                {
+                    reject = true;
+                    continue;
+                }
+                if self.inter_rule {
+                    if part_sol.rejection_makespan[job][prev_proc] != usize::MAX
+                        && ret.are_same_range(
+                            job,
+                            part_sol.rejection_makespan[job][prev_proc],
+                            part_sol.makespans[processor_to_assign_to],
+                        )
+                    {
+                        reject = true;
+                        continue;
+                    }
+                }
+            }
+            if reject {
                 continue;
             }
 

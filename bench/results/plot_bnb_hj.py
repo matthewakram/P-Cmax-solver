@@ -1,11 +1,24 @@
+from matplotlib.pyplot import *
 import matplotlib.pyplot as plt
+import matplotlib
+
+
+matplotlib.rcParams['figure.figsize'] = [2.8,2.8]
+matplotlib.rcParams['font.family'] = 'serif'
+matplotlib.rcParams['font.size'] = 8
+plt.rcParams['text.usetex'] = True
+subplots_adjust(bottom=0.14)
+subplots_adjust(left=0.19)
+subplots_adjust(right=0.98)
+subplots_adjust(top=0.97)
 
 files = [
-    ["./complete_class_instances_hj_base.txt", "./complete_franca_frangioni_hj_base.txt", "./complete_lawrenko_hj_base.txt"],
     ["./complete_class_instances_hj.txt", "./complete_franca_frangioni_hj.txt", "./complete_lawrenko_hj.txt"],
+    ["./complete_class_instances_hj_inter.txt", "./complete_franca_frangioni_hj_inter.txt", "./complete_lawrenko_hj_inter.txt"],
+    ["./complete_class_instances_hj_base.txt", "./complete_franca_frangioni_hj_base.txt", "./complete_lawrenko_hj_base.txt"],
 ]
 
-names = ["HJBASE", "HJFUR"]
+names = [ r'\textbf{HJFUR}', r'\textbf{HJINTER}' , r'\textbf{HJBASE}']
 
 
 bounds = []
@@ -41,6 +54,6 @@ plt.legend(loc="lower right")
 plt.xlabel("Time (s)")
 plt.ylabel("Cumulative Solved Instances")
 ax = plt.gca()
-ax.set_ylim([4000, 4500])  
+ax.set_ylim([4000, 4550])  
 plt.savefig('./plots/HJ.pdf')
 plt.show()
