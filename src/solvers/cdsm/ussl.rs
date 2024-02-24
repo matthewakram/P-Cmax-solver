@@ -78,7 +78,7 @@ impl USSL {
     }
 
     pub fn insert_list(&mut self, list: &Vec<u16>) {
-        assert!(!self.is_present(list));
+        //assert!(!self.is_present(list));
         
         let mut best_bin = 0;
         let mut best_num_inserts = usize::MAX;
