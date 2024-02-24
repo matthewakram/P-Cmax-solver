@@ -30,14 +30,21 @@ impl CDSM {
     }
 }
 
-fn gen_state_list(part_sol: &PartialAssignment, ret: &RET) -> Vec<u16> {
+fn gen_state_list(part_sol: &PartialAssignment, ret: &RET, instance: &ProblemInstance) -> Vec<u16> {
     let largest_unassigned = part_sol.unassigned[0];
     //TODO: revert if not correct
-    let mut list: Vec<u16> = part_sol
-        .makespan_sans_fur
-        .iter()
-        .map(|x| ret.get_range(largest_unassigned, *x))
-        .collect();
+    let mut list: Vec<u16> = Vec::with_capacity(instance.num_processors+1);
+    for i in 0..instance.num_processors {
+        list.push(part_sol.makespan_sans_fur[i] as u16);
+    }
+    for fur_job in 0..largest_unassigned {
+        if part_sol.fur_assignments[fur_job] {
+            list[part_sol.assignment[fur_job]] += instance.job_sizes[fur_job] as u16;
+        }
+    }
+    for i in 0..instance.num_processors {
+        list[i] = ret.get_range(largest_unassigned, list[i] as usize);
+    }
     list.sort();
     list.push(largest_unassigned as u16);
     // println!("{:?}", list);
@@ -138,7 +145,7 @@ impl CDSM {
             }
         }
 
-        let origninal_state = gen_state_list(part_sol, ret);
+        let origninal_state = gen_state_list(part_sol, ret, &instance);
         if saved_states.is_present(&origninal_state) {
             return Ok(None);
         }
@@ -307,7 +314,7 @@ impl CDSM {
                 best_sol = Some(sol);
                 if best_makespan_found <= lower {
                     if part_sol.makespan < best_makespan_found {
-                        saved_states.insert_list(&gen_state_list(part_sol, ret));
+                        saved_states.insert_list(&gen_state_list(part_sol, ret, &instance));
                     }
                     return Ok(best_sol);
                 }
