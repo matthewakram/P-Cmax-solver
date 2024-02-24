@@ -100,7 +100,10 @@ for arg in files:
     for line in open(arg, 'r').readlines():
         words = line.rstrip().split(" ")
         id = words[0]
+
+        #===========================================================================
         val = float(words[1])
+        #===========================================================================
 
         values_of_file[id] = val
         statistics_of_file[id] = [float(x) for x in words[2:]]

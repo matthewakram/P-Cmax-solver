@@ -1,5 +1,6 @@
 use std::{env, vec};
 
+use p_cmax_solver::bounds::upper_bounds::{lptp, lptpp, mss};
 use p_cmax_solver::encoding::cplex_model_encoding::pinar_seyda::PinarSeyda;
 use p_cmax_solver::encoding::ilp_encoding::mehdi_nizar_original::MehdiNizarOriginalEncoder;
 use p_cmax_solver::encoding::sat_encoding::basic_encoder::BasicEncoder;
@@ -8,8 +9,10 @@ use p_cmax_solver::encoding::sat_encoding::binmerge_native::BinmergeEncoder;
 use p_cmax_solver::encoding::sat_encoding::pb_bdd_native::PbNativeEncoder;
 use p_cmax_solver::encoding::sat_encoding::pb_bdd_pysat::PbPysatEncoder;
 use p_cmax_solver::encoding::sat_encoding::precedence_encoder::Precedence;
+use p_cmax_solver::solvers::branch_and_bound::branch_and_bound_logging::BranchAndBoundLogging;
 use p_cmax_solver::solvers::branch_and_bound::compressed_bnb::CompressedBnB;
 use p_cmax_solver::solvers::branch_and_bound::hj::HJ;
+use p_cmax_solver::solvers::cdsm::cdsm::CDSM;
 use p_cmax_solver::solvers::cp_solver::cplex_manager::CPELXSolver;
 use p_cmax_solver::solvers::ilp_solver::gurobi::Gurobi;
 use p_cmax_solver::solvers::solver_manager::SolverManager;
@@ -48,11 +51,11 @@ fn main() {
         Box::new(middle::MiddleJobs {}),
         //Box::new(fs::FeketeSchepers {}),
         Box::new(lpt::LPT {}),
-        //Box::new(lptp::Lptp {}),
-        //Box::new(sss_bound_tightening::SSSBoundStrengthening {}),
-        //Box::new(lptpp::Lptpp {}),
-        //Box::new(lifting::Lifting::new()),
-        //Box::new(mss::MSS::new()),
+        // Box::new(lptp::Lptp {}),
+        // Box::new(sss_bound_tightening::SSSBoundStrengthening {}),
+        // Box::new(lptpp::Lptpp {}),
+        // Box::new(lifting::Lifting::new_deterministic(4)),
+        // Box::new(mss::MSS::new_deterministic(1)),
     ];
 
     let total_timeout = Timeout::new(total_timeout_time);
@@ -78,7 +81,6 @@ fn main() {
         }
     }
     let upper_bound = upper_bound.unwrap();
-    //upper_bound.makespan += 5;
     println!("starting");
 
     // -------------CHECKING IF SOLUTION HAS BEEN FOUND-----------
@@ -114,7 +116,7 @@ fn main() {
         println!("time {}", total_timeout_time - total_timeout.remaining_time());
         return;
     } else if args.contains(&"-branch".to_string()) {
-        let mut solver = CompressedBnB::new();
+        let mut solver = BranchAndBoundLogging::new();
 
         let sol = solver
             .solve(&instance, lower_bound, &upper_bound, &total_timeout, true)
@@ -124,7 +126,17 @@ fn main() {
         println!("time {}", total_timeout_time - total_timeout.remaining_time());
         return;
     }  else if args.contains(&"-hj".to_string()) {
-        let mut solver = HJ::new_base();
+        let mut solver = HJ::new();
+
+        let sol = solver
+            .solve(&instance, lower_bound, &upper_bound, &total_timeout, true)
+            .unwrap();
+        let final_solution = instance.finalize_solution(sol);
+        println!("solution found {}", final_solution);
+        println!("time {}", total_timeout_time - total_timeout.remaining_time());
+        return;
+    }else if args.contains(&"-cdsm".to_string()) {
+        let mut solver = CDSM::new();
 
         let sol = solver
             .solve(&instance, lower_bound, &upper_bound, &total_timeout, true)

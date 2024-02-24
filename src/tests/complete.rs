@@ -30,10 +30,7 @@ mod tests {
         solvers::{
             branch_and_bound::{
                 branch_and_bound::BranchAndBound, compressed_bnb::CompressedBnB, hj::HJ,
-            },
-            ilp_solver::gurobi::Gurobi,
-            sat_solver::{kissat::Kissat, multi_sat_solver_manager::MultiSatSolverManager, sat_solver_manager},
-            solver_manager::SolverManager,
+            }, cdsm::cdsm::CDSM, ilp_solver::gurobi::Gurobi, sat_solver::{kissat::Kissat, multi_sat_solver_manager::MultiSatSolverManager, sat_solver_manager}, solver_manager::SolverManager
         },
     };
     use std::{
@@ -53,7 +50,7 @@ mod tests {
             println!("solving {}/{}", *p, num_total_instances);
         }
         let instance = input_output::from_file::read_from_file(file_name);
-        let total_timeout_f64: f64 = 900.0;
+        let total_timeout_f64: f64 = 50.0;
         let precomputation_timeout = 10.0;
 
         // --------------CALCULATING BOUNDS--------------
@@ -63,11 +60,11 @@ mod tests {
             Box::new(max_job_size::MaxJobSize {}),
             Box::new(middle::MiddleJobs {}),
             Box::new(lpt::LPT {}),
-            Box::new(lptp::Lptp {}),
-            Box::new(sss_bound_tightening::SSSBoundStrengthening {}),
-            Box::new(lptpp::Lptpp {}),
-            Box::new(lifting::Lifting::new_deterministic(1)),
-            Box::new(mss::MSS::new_deterministic(4)),
+            // Box::new(lptp::Lptp {}),
+            // Box::new(sss_bound_tightening::SSSBoundStrengthening {}),
+            // Box::new(lptpp::Lptpp {}),
+            // Box::new(lifting::Lifting::new_deterministic(1)),
+            // Box::new(mss::MSS::new_deterministic(4)),
         ];
 
         let (mut lower_bound, mut upper_bound) = (0, None);
@@ -947,6 +944,27 @@ mod tests {
     }
 
     
+    #[test]
+    #[ignore]
+    pub fn complete_test_class_cdsm() {
+        let solver = Box::new(CDSM::new());
+        test_solver(
+            solver,
+            "./bench/class_instances/",
+            "./bench/results/complete_class_instances_cdsm.txt",
+        )
+    }
+
+    #[test]
+    #[ignore]
+    pub fn complete_test_lawrenko_cdsm() {
+        let solver = Box::new(CDSM::new());
+        test_solver(
+            solver,
+            "./bench/lawrenko/",
+            "./bench/results/complete_lawrenko_cdsm.txt",
+        )
+    }
 
     #[test]
     #[ignore]

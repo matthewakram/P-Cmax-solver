@@ -18,7 +18,7 @@ pub struct Lifting {
 }
 
 impl Lifting {
-    #[cfg(test)]
+
     pub fn new_deterministic(seed: u64) -> Lifting {
         return Lifting { seed };
     }
@@ -83,7 +83,7 @@ fn lambda(n: usize, m: usize, k: usize) -> usize {
 }
 
 fn get_required_l_s(n: usize, m: usize, k: usize) -> Vec<usize> {
-    return (1..n + 1)
+    return (k..n + 1)
         .into_iter()
         .filter(|l| (l - k) % m == 0)
         .collect();
