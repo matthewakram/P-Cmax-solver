@@ -1,10 +1,8 @@
 #[cfg(test)]
 mod tests {
-    use std::time::Instant;
 
-    use rand::{distributions::Uniform, Rng};
 
-    use crate::solvers::cdsm::{list_set::MultiListSet, ret::RET};
+    use crate::solvers::cdsm::ret::RET;
 
     #[test]
     pub fn ret_smoke_test(){

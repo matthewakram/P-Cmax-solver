@@ -1,9 +1,8 @@
-use std::{collections::HashMap, fs::File, io::Write};
+use std::collections::HashMap;
 
-use bitvec::bitvec;
+use bitvec::{bitvec, vec};
 
 use crate::{
-    bdd::bdd_dyn::RangeTable,
     common::common::IndexOf,
     problem_instance::{
         partial_solution::PartialSolution, problem_instance::ProblemInstance, solution::Solution,
@@ -15,38 +14,23 @@ use crate::{
     solvers::solver_manager::SolverManager,
 };
 
+use super::{ret::RET, weighted_list_cache::WLC};
+
 #[derive(Clone)]
-pub struct BranchAndBoundLogging {
+pub struct CDSMP {
     stats: HashMap<String, f64>,
-    fur_rule: bool,
-    inter_rule: bool,
+    last_state_at_level: Vec<Vec<u16>>,
 }
 
-impl BranchAndBoundLogging {
-    pub fn new() -> BranchAndBoundLogging {
-        return BranchAndBoundLogging {
+impl CDSMP {
+    pub fn new() -> CDSMP {
+        return CDSMP {
             stats: HashMap::new(),
-            fur_rule: true,
-            inter_rule: true,
-        };
-    }
-
-    pub fn new_basic() -> BranchAndBoundLogging {
-        return BranchAndBoundLogging {
-            stats: HashMap::new(),
-            fur_rule: false,
-            inter_rule: false,
-        };
-    }
-
-    pub fn new_inter() -> BranchAndBoundLogging {
-        return BranchAndBoundLogging {
-            stats: HashMap::new(),
-            fur_rule: false,
-            inter_rule: true,
+            last_state_at_level: vec![],
         };
     }
 }
+
 
 fn min_procs(part_sol: &PartialAssignment) -> (usize, usize) {
     let mut min = usize::MAX;
@@ -67,27 +51,54 @@ fn min_procs(part_sol: &PartialAssignment) -> (usize, usize) {
     return (min_proc, second_min_proc);
 }
 
-impl BranchAndBoundLogging {
+impl CDSMP {
+
+    fn gen_state_list(&mut self,part_sol: &PartialAssignment, ret: &RET, instance: &ProblemInstance) -> &Vec<u16> {
+        let largest_unassigned = part_sol.unassigned[0];
+        for i in 0..instance.num_processors {
+            self.last_state_at_level[largest_unassigned][i] = part_sol.makespan_sans_fur[i] as u16;
+        }
+        for fur_job in 0..largest_unassigned {
+            if part_sol.fur_assignments[fur_job] {
+                self.last_state_at_level[largest_unassigned][part_sol.assignment[fur_job]] += instance.job_sizes[fur_job] as u16;
+            }
+        }
+        for i in 0..instance.num_processors {
+            self.last_state_at_level[largest_unassigned][i] = ret.get_range(largest_unassigned, self.last_state_at_level[largest_unassigned][i] as usize);
+        }
+        self.last_state_at_level[largest_unassigned][instance.num_processors] = u16::MAX;
+        self.last_state_at_level[largest_unassigned].sort();
+        self.last_state_at_level[largest_unassigned][instance.num_processors] = largest_unassigned as u16;
+        // println!("{:?}", list);
+        return &self.last_state_at_level[largest_unassigned];
+    }
+
+    fn get_state_list(&self,part_sol: &PartialAssignment) -> &Vec<u16> {
+        let largest_unassigned = part_sol.unassigned[0];
+        return &self.last_state_at_level[largest_unassigned];
+    }
+
     fn solve_rec(
-        &self,
+        &mut self,
         instance: &ProblemInstance,
-        // we maintain the for part_sol.makespan < upper
+        // we maintain the for part_sol.makespan < best_makespan_found
         part_sol: &mut PartialAssignment,
-        ret: &mut RangeTable,
+        ret: &mut RET,
+        saved_states: &mut WLC,
         lower: usize,
         best_makespan_found: usize,
         timeout: &crate::common::timeout::Timeout,
-        log : &mut Vec<u16>,
-    ) -> Result<Option<PartialAssignment>, ()> {
+    ) -> Result<(Option<PartialAssignment>, usize), ()> {
         if timeout.time_finished() {
             return Result::Err(());
         }
+        part_sol.num_nodes_explored += 1;
         let lower: usize = lower.max(part_sol.makespan);
         if best_makespan_found <= lower {
-            return Ok(None);
+            return Ok((None, 0));
         }
         assert!(part_sol.makespan < best_makespan_found);
-        // TODO: incorporate this part into lower
+
         let remaining_space: usize = part_sol
             .makespans
             .iter()
@@ -96,7 +107,7 @@ impl BranchAndBoundLogging {
             .sum();
 
         if part_sol.min_space_required > remaining_space {
-            return Ok(None);
+            return Ok((None, 0));
         }
         // ======================================
 
@@ -131,55 +142,41 @@ impl BranchAndBoundLogging {
             if better_option.makespan < best_makespan_found {
                 //println!("found solution with makesapan {}", better_option.makespan);
                 let next_makespan_to_check = better_option.makespan - 1;
-                if self.fur_rule || self.inter_rule {
-                    *ret = RangeTable::new(
-                        &(0..instance.num_jobs).into_iter().collect(),
-                        &instance.job_sizes,
-                        next_makespan_to_check,
-                    );
+                if next_makespan_to_check != instance.job_sizes[0] {
+                    ret.decrease_makespan_to(next_makespan_to_check);
                 }
-
-                return Ok(Some(better_option));
+                saved_states.clear_all();
+                return Ok((Some(better_option),0));
             } else {
-                return Ok(None);
+                return Ok((None, 0));
             }
         }
 
-        let level = part_sol.unassigned[0];
-        let mut ranges : Vec<usize>= part_sol.makespans.iter().map(|x| ret.get_range(level, *x).unwrap()).collect();
-        ranges.sort();
-        ranges.push(best_makespan_found-1);
-        ranges.push(level);
-        for i in 0..ranges.len() {
-            log.push(ranges[i] as u16);
+        let original_state = self.gen_state_list(part_sol, ret, &instance);
+        if saved_states.is_present(original_state) {
+            return Ok((None, 0));
         }
 
-        let mut fur_job = usize::MAX;
+        let mut fur_job: usize = usize::MAX;
         let mut fur_proc = usize::MAX;
-        if self.fur_rule {
-            for proc in 0..instance.num_processors {
-                let proc_makespan = part_sol.makespans[proc];
-                if best_makespan_found - proc_makespan
-                    < instance.job_sizes[*part_sol.unassigned.last().unwrap()]
+        for proc in 0..instance.num_processors {
+            let proc_makespan = part_sol.makespans[proc];
+            if best_makespan_found - proc_makespan
+                < instance.job_sizes[*part_sol.unassigned.last().unwrap()]
+            {
+                continue;
+            }
+            for i in 0..part_sol.unassigned.len() {
+                if best_makespan_found - proc_makespan > instance.job_sizes[part_sol.unassigned[i]]
                 {
-                    continue;
-                }
-                for i in 0..part_sol.unassigned.len() {
-                    if best_makespan_found - proc_makespan
-                        > instance.job_sizes[part_sol.unassigned[i]]
-                        && (i + 1 == part_sol.unassigned.len()
-                            || instance.job_sizes[part_sol.unassigned[i]]
-                                != instance.job_sizes[part_sol.unassigned[i + 1]])
+                    let job: usize = part_sol.unassigned[i];
+                    if ret.get_range(job, best_makespan_found - 1 - instance.job_sizes[job])
+                        == ret.get_range(job, proc_makespan)
                     {
-                        let job = part_sol.unassigned[i];
-                        if ret.get_range(job, best_makespan_found - 1 - instance.job_sizes[job])
-                            == ret.get_range(job, proc_makespan)
-                        {
-                            fur_job = job;
-                            fur_proc = proc;
-                        }
-                        break;
+                        fur_job = job;
+                        fur_proc = proc;
                     }
+                    break;
                 }
             }
         }
@@ -188,42 +185,60 @@ impl BranchAndBoundLogging {
             // in this case we use the FUR and recurse
 
             part_sol.assign(fur_job, fur_proc, instance, true);
-            let sol = self.solve_rec(instance, part_sol, ret, lower, best_makespan_found, timeout, log);
+            let sol = self.solve_rec(
+                instance,
+                part_sol,
+                ret,
+                saved_states,
+                lower,
+                best_makespan_found,
+                timeout,
+            );
             if sol.is_err() {
                 return Err(());
             }
             part_sol.unassign(fur_job, instance, true);
-            let sol = sol.unwrap();
+            let (sol, num_branches) = sol.unwrap();
             if sol.is_some() {
                 // if sol is found, then we know that we can improve upon best_makespan_found, but because we used the
                 // FUR, we dont know if we can improve this solution even further without the FUR
                 let sol = sol.unwrap();
                 assert!(sol.makespan < best_makespan_found);
                 let best_makespan_found: usize = sol.makespan;
+
                 // if the optiml solution has been reached, or we know that this assignment is not the reason that the makespan is so large,
                 // then we know we cannot achieve a better solution here
                 if best_makespan_found <= lower
                     || part_sol.makespans[fur_proc] + instance.job_sizes[fur_job] < sol.makespan
                 {
-                    return Ok(Some(sol));
+                    return Ok((Some(sol), num_branches + 1));
                 }
 
                 // now we have to revert the FUR decision, and recurse
-                let better_sol =
-                    self.solve_rec(instance, part_sol, ret, lower, best_makespan_found, timeout, log);
+                let better_sol = self.solve_rec(
+                    instance,
+                    part_sol,
+                    ret,
+                    saved_states,
+                    lower,
+                    best_makespan_found,
+                    timeout,
+                );
                 if better_sol.is_err() {
                     return Err(());
                 }
-                let better_sol = better_sol.unwrap();
+                let (better_sol, num_sub_branches) = better_sol.unwrap();
+
                 if better_sol.is_none() {
                     //println!("happened");
-                    return Ok(Some(sol));
+                    return Ok((Some(sol), num_branches + num_sub_branches+1));
                 } else {
-                    return Ok(better_sol);
+                    let sol = better_sol.unwrap();
+                    return Ok((Some(sol), num_branches + num_sub_branches+1));
                 }
             } else {
                 // here sol is None, so we know we cannot improve upon best_makespan_found
-                return Ok(None);
+                return Ok((None, num_branches+1));
             }
         }
 
@@ -236,11 +251,18 @@ impl BranchAndBoundLogging {
 
         let job_to_branch_on_size = instance.job_sizes[job_to_branch_on];
         let mut precedence = 0;
-        // TODO: Fix this
+
         if job_to_branch_on > 0 && instance.job_sizes[job_to_branch_on - 1] == job_to_branch_on_size
         {
-            assert!(!part_sol.fur_assignments[job_to_branch_on - 1]);
-            precedence = part_sol.time_point_assigned[job_to_branch_on - 1];
+            for prev_job in (0..job_to_branch_on).rev() {
+                if instance.job_sizes[prev_job] != job_to_branch_on_size {
+                    break;
+                }
+                if !part_sol.fur_assignments[prev_job] {
+                    precedence = part_sol.time_point_assigned[prev_job];
+                    break;
+                }
+            }
         }
 
         let mut procs: Vec<(usize, usize)> = part_sol
@@ -261,56 +283,66 @@ impl BranchAndBoundLogging {
             .take(num_unassigned)
             .collect();
 
-        let mut last_range: usize = usize::MAX;
+        let mut last_range: u16 = u16::MAX;
 
+        let mut num_branches: usize = 0;
         for proc in procs_to_branch_on {
             if best_makespan_found - part_sol.makespans[proc]
                 <= instance.job_sizes[job_to_branch_on]
             {
                 continue;
             }
-            let range = if self.inter_rule {
-                ret.get_range(job_to_branch_on, part_sol.makespans[proc])
-                    .unwrap()
-            } else {
-                part_sol.makespans[proc]
-            };
+            let range = ret.get_range(job_to_branch_on, part_sol.makespans[proc]);
+
             if last_range == range {
                 continue;
             }
             last_range = range;
 
             part_sol.assign(job_to_branch_on, proc, instance, false);
-            let sol = self.solve_rec(instance, part_sol, ret, lower, best_makespan_found, timeout, log);
+            let sol = self.solve_rec(
+                instance,
+                part_sol,
+                ret,
+                saved_states,
+                lower,
+                best_makespan_found,
+                timeout,
+            );
 
             if sol.is_err() {
                 return Err(());
             }
             part_sol.unassign(job_to_branch_on, instance, false);
 
-            let sol = sol.unwrap();
+            let (sol, num_sub_branches) = sol.unwrap();
             if sol.is_some() {
                 let sol = sol.unwrap();
+                num_branches = num_sub_branches;
                 best_makespan_found = sol.makespan;
                 best_sol = Some(sol);
                 if best_makespan_found <= lower {
-                    return Ok(best_sol);
+                    if part_sol.makespan < best_makespan_found {
+                        saved_states.insert_list(self.gen_state_list(part_sol, ret, &instance), num_branches+1);
+                    }
+                    return Ok((best_sol, num_branches+1));
                 }
-                last_range = if self.inter_rule {
-                    ret.get_range(job_to_branch_on, part_sol.makespans[proc])
-                        .unwrap()
-                } else {
-                    part_sol.makespans[proc]
-                };
+                last_range = ret.get_range(job_to_branch_on, part_sol.makespans[proc]);
+            }else {
+                num_branches+= num_sub_branches;
             }
+
         }
 
-        return Ok(best_sol);
+        if best_sol.is_none() {
+            saved_states.insert_list(self.get_state_list(part_sol), num_branches+1);
+        }
+
+        return Ok((best_sol, num_branches+1));
     }
 }
 
-impl SolverManager for BranchAndBoundLogging {
-
+impl SolverManager for CDSMP {
     fn get_stats(&self) -> HashMap<String, f64> {
         return self.stats.clone();
     }
@@ -327,7 +359,10 @@ impl SolverManager for BranchAndBoundLogging {
         let makespan_to_test = upper.makespan - 1;
         self.stats.insert(
             mem_size_key,
-            ((makespan_to_test*instance.num_jobs + instance.num_jobs * 4 + instance.num_processors) * 8) as f64,
+            ((makespan_to_test * instance.num_jobs
+                + instance.num_jobs * 4
+                + instance.num_processors)
+                * 8) as f64,
         );
         let partial_solution = PartialSolution::new(instance.clone());
 
@@ -344,22 +379,31 @@ impl SolverManager for BranchAndBoundLogging {
         }
         let mut part_sol = PartialAssignment::new(instance);
 
-        let ret = &mut RangeTable::new(
-            &(0..instance.num_jobs).into_iter().collect(),
-            &instance.job_sizes,
-            makespan_to_test,
-        );
+        let mut ret = RET::new(&instance.job_sizes, makespan_to_test);
 
-        let mut log: Vec<u16> = vec![];
-        let sol = self.solve_rec(instance, &mut part_sol, ret, lower, upper.makespan, timeout, &mut log);
-        // println!("{:?}", log);
+        let num_bins = 1_000_000_000 / ((instance.num_processors+1) * 10);
+        let mut saved_states = WLC::new(instance.num_processors+1, num_bins, 3, 10);
+        self.last_state_at_level = vec![vec![0;instance.num_processors+1]; instance.num_jobs];
+
+        let sol = self.solve_rec(
+            instance,
+            &mut part_sol,
+            &mut ret,
+            &mut saved_states,
+            lower,
+            upper.makespan,
+            timeout,
+        );
+        //println!("{:?}", saved_states);
+        println!("num_nodes_explored {}", part_sol.num_nodes_explored);
+        self.stats.insert(
+            "num_nodes_explored".to_string(),
+            part_sol.num_nodes_explored as f64,
+        );
         if sol.is_err() {
             return None;
         }
-        let state_length = instance.num_processors + 2;
-        analyze_log(log, state_length);
-
-        let sol = sol.unwrap();
+        let (sol, _) = sol.unwrap();
         if sol.is_none() {
             return Some(upper.clone());
         } else {
@@ -373,75 +417,17 @@ impl SolverManager for BranchAndBoundLogging {
     }
 }
 
-fn analyze_log(mut log: Vec<u16>, state_length: usize) {
-    let mut current_state = vec![0; state_length];
-
-    let mut state_pointer = 0;
-
-    while state_pointer * state_length < log.len() {
-        if log[state_pointer*state_length] != u16::MAX {
-            for i in 0..state_length{
-                current_state[i] = log[state_pointer*state_length + i];
-            }
-
-            let (i, ii, iii) = count_nodes_below(&current_state, &mut log, state_pointer, state_length);
-            if iii != 0 {
-                print!("({}, {}, {}, {}),", i, ii, iii, current_state[state_length-1]);
-            }
-        }else {
-            
-        }
-        state_pointer +=1;
-    }
-}
-
-fn count_nodes_below(current_state: &Vec<u16>, log: &mut Vec<u16>, state_pointer: usize, state_length: usize) -> (usize, usize, usize) {
-    let level = current_state[state_length-1];
-    let mut state_pointer = state_pointer;
-    let mut count = false;
-    let mut counted = 0;
-    let mut exact_count = 0;
-    let mut still_in_first_subtree = true;
-    let mut first_subtree_size = 0;
-
-    while (state_pointer+1)* state_length < log.len() {
-        state_pointer+=1;
-        if log[state_pointer*state_length + state_length - 1] > level{
-            count = false;
-            still_in_first_subtree = false;
-        } else if log[state_pointer*state_length + state_length - 1] < level{
-            if still_in_first_subtree {
-                first_subtree_size += 1;
-            }
-            if count{
-                counted += 1;
-            }
-        } else {
-            if &log[state_pointer* state_length .. state_pointer* state_length+state_length] == current_state {
-                for i in 0..state_length {
-                    log[state_pointer* state_length + i] = u16::MAX;
-                }
-                count = true;
-                counted+=1;
-                exact_count+=1;
-            }else {
-                count = false;
-            }
-            still_in_first_subtree = false
-        }
-    }
-    return (counted, exact_count, first_subtree_size);
-}
-
 #[derive(Clone)]
 struct PartialAssignment {
     pub assignment: Vec<usize>,
     pub makespans: Vec<usize>,
     pub unassigned: Vec<usize>,
     pub makespan: usize,
+    pub makespan_sans_fur: Vec<usize>,
     pub fur_assignments: bitvec::prelude::BitVec,
     pub min_space_required: usize,
     pub time_point_assigned: Vec<usize>,
+    pub num_nodes_explored: usize,
 }
 impl PartialAssignment {
     pub fn new(instance: &ProblemInstance) -> PartialAssignment {
@@ -452,6 +438,7 @@ impl PartialAssignment {
         let fur_assignments: bitvec::prelude::BitVec = bitvec![0;instance.num_jobs];
         let min_space_required: usize = instance.job_sizes.iter().sum();
         let time_point_assigned: Vec<usize> = vec![0; instance.num_jobs];
+        let makespan_sans_fur: Vec<usize> = vec![0; instance.num_processors];
         return PartialAssignment {
             assignment,
             makespans,
@@ -460,6 +447,8 @@ impl PartialAssignment {
             fur_assignments,
             min_space_required,
             time_point_assigned,
+            makespan_sans_fur,
+            num_nodes_explored: 0,
         };
     }
 
@@ -475,6 +464,10 @@ impl PartialAssignment {
         self.time_point_assigned[job] = self.makespans[proc];
         self.makespans[proc] += instance.job_sizes[job];
         self.makespan = self.makespan.max(self.makespans[proc]);
+
+        if !fur_assignment {
+            self.makespan_sans_fur[proc] += instance.job_sizes[job];
+        }
         let job_pos = self.unassigned.index_of(&job).unwrap();
         if fur_assignment {
             self.fur_assignments.set(job, true);
@@ -490,6 +483,10 @@ impl PartialAssignment {
         self.assignment[job] = usize::MAX;
         let old_makespan = self.makespans[proc];
         self.makespans[proc] -= instance.job_sizes[job];
+
+        if !fur_assignment {
+            self.makespan_sans_fur[proc] -= instance.job_sizes[job];
+        }
 
         if old_makespan == self.makespan {
             self.makespan = *self.makespans.iter().max().unwrap();

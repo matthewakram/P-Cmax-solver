@@ -20,7 +20,7 @@ impl MehdiNizarOrderEncoder {
         };
     }
 
-    pub fn new_fur() -> MehdiNizarOrderEncoder {
+    pub fn new_prec() -> MehdiNizarOrderEncoder {
         return MehdiNizarOrderEncoder {
             encoding: String::new(),
             prec: true,
@@ -128,8 +128,7 @@ impl ILPEncoder for MehdiNizarOrderEncoder {
             formula += &constraint;
         }
 
-        // fur constraint
-
+        // prec constraint
         if self.prec {
             for job in 0..partial_solution.instance.num_jobs-1{
                 if partial_solution.instance.job_sizes[job] == partial_solution.instance.job_sizes[job+1] {

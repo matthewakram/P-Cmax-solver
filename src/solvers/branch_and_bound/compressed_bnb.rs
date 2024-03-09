@@ -371,6 +371,7 @@ impl SolverManager for CompressedBnB {
             "num_nodes_explored".to_string(),
             part_sol.num_nodes_explored as f64,
         );
+        // println!("num_nodes_explored {}", part_sol.num_nodes_explored);
         self.stats.insert(
             mem_size_key,
             ((makespan_to_test + instance.num_jobs * 4 + instance.num_processors) * 8) as f64,

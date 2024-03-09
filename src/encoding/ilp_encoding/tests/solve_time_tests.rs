@@ -213,7 +213,7 @@ mod tests {
     #[test]
     #[ignore]
     pub fn test_solve_time_ilp_fur() {
-        let mut encoder: Box<dyn ILPEncoder> = Box::new(MehdiNizarOrderEncoder::new_fur());
+        let mut encoder: Box<dyn ILPEncoder> = Box::new(MehdiNizarOrderEncoder::new_prec());
         test_encoder(
             &mut encoder,
             "./bench/lawrenko/",

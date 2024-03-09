@@ -30,7 +30,7 @@ mod tests {
         solvers::{
             branch_and_bound::{
                 branch_and_bound::BranchAndBound, compressed_bnb::CompressedBnB, hj::HJ,
-            }, cdsm::cdsm::CDSM, ilp_solver::gurobi::Gurobi, sat_solver::{kissat::Kissat, multi_sat_solver_manager::MultiSatSolverManager, sat_solver_manager}, solver_manager::SolverManager
+            }, cdsm::{cdsm::CDSM, cdsmp::CDSMP}, ilp_solver::gurobi::Gurobi, sat_solver::{kissat::Kissat, multi_sat_solver_manager::MultiSatSolverManager, sat_solver_manager}, solver_manager::SolverManager
         },
     };
     use std::{
@@ -50,7 +50,7 @@ mod tests {
             println!("solving {}/{}", *p, num_total_instances);
         }
         let instance = input_output::from_file::read_from_file(file_name);
-        let total_timeout_f64: f64 = 50.0;
+        let total_timeout_f64: f64 = 200.0;
         let precomputation_timeout = 10.0;
 
         // --------------CALCULATING BOUNDS--------------
@@ -957,12 +957,34 @@ mod tests {
 
     #[test]
     #[ignore]
+    pub fn complete_test_franca_cdsm() {
+        let solver = Box::new(CDSM::new());
+        test_solver(
+            solver,
+            "./bench/franca_frangioni/standardised/",
+            "./bench/results/complete_franca_frangioni_cdsm.txt",
+        )
+    }
+
+    #[test]
+    #[ignore]
     pub fn complete_test_lawrenko_cdsm() {
         let solver = Box::new(CDSM::new());
         test_solver(
             solver,
             "./bench/lawrenko/",
             "./bench/results/complete_lawrenko_cdsm.txt",
+        )
+    }
+
+    #[test]
+    #[ignore]
+    pub fn complete_test_lawrenko_pcdsm() {
+        let solver = Box::new(CDSMP::new());
+        test_solver(
+            solver,
+            "./bench/lawrenko/",
+            "./bench/results/complete_lawrenko_cdsmp.txt",
         )
     }
 
@@ -994,9 +1016,9 @@ mod tests {
         // complete_test_franca_hj_inter();
         // complete_test_lawrenko_hj_inter();
 
-        complete_test_class_hj();
-        complete_test_lawrenko_hj();
-        complete_test_franca_hj();
+        // complete_test_class_hj();
+        // complete_test_lawrenko_hj();
+        // complete_test_franca_hj();
 
         // complete_test_class_hj_base();
         // complete_test_lawrenko_hj_base();
@@ -1030,6 +1052,10 @@ mod tests {
         //complete_test_franca_bdd_inter_only();
         //complete_test_franca_original_ilp();
         //complete_test_franca_fur_ilp();
+
+        complete_test_class_cdsm();
+        complete_test_lawrenko_cdsm();
+        complete_test_franca_cdsm();
     }
 
 }

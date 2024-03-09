@@ -1,3 +1,4 @@
+use core::num;
 use std::mem;
 
 use rand::{distributions::Uniform, Rng};
@@ -5,18 +6,19 @@ use rand::{distributions::Uniform, Rng};
 static HASH_COMPLEXITY: usize = 16;
 
 #[derive(Debug)]
-pub struct USSL {
+pub struct WLC {
     data: Vec<u16>,
     list_size: usize,
     num_hash_funcs: usize,
     num_bins: usize,
     bin_size: usize,
     hash_func_data: Vec<u16>,
-    num_insertions_in_bin: Vec<usize>,
+    score_multiplier : Vec<usize>,
+    score: Vec<usize>
 }
 
-impl USSL {
-    pub fn new(list_size: usize, num_bins: usize, num_hash_funcs: usize, bin_size: usize) -> USSL {
+impl WLC {
+    pub fn new(list_size: usize, num_bins: usize, num_hash_funcs: usize, bin_size: usize) -> WLC {
         let data: Vec<u16> = vec![u16::MAX; num_bins * bin_size * list_size];
 
         let mut rng = rand::thread_rng();
@@ -24,15 +26,15 @@ impl USSL {
         let hash_func_data: Vec<u16> = (0..(num_hash_funcs * HASH_COMPLEXITY))
             .map(|_| rng.sample(&range) as u16)
             .collect();
-        let num_insertions_in_bin: Vec<usize> = vec![0; num_bins];
-        return USSL {
+        return WLC {
             data,
             list_size,
             num_hash_funcs,
             num_bins,
             bin_size,
             hash_func_data,
-            num_insertions_in_bin,
+            score_multiplier: vec![0;num_bins * bin_size],
+            score: vec![0;num_bins * bin_size]
         };
     }
 
@@ -60,34 +62,46 @@ impl USSL {
             element;
     }
 
-    fn insert_list_in_bin(&mut self, list: &Vec<u16>, bin_num: usize) {
-        let current_insertion_index = self.num_insertions_in_bin[bin_num] % self.bin_size;
-
+    fn insert_list_in_bin(&mut self, list: &Vec<u16>, bin_num: usize, bin_offset: usize, score_multiplier: usize) {
+        
         for i in 0..self.list_size {
-            self.put(bin_num, current_insertion_index, i, list[i]);
+            self.put(bin_num, bin_offset, i, list[i]);
         }
-        self.num_insertions_in_bin[bin_num] += 1;
+        self.score[bin_num* self.bin_size + bin_offset] = score_multiplier;
+        self.score_multiplier[bin_num* self.bin_size + bin_offset] = score_multiplier;
     }
 
-    pub fn insert_list(&mut self, list: &Vec<u16>) {
+    pub fn insert_list(&mut self, list: &Vec<u16>, list_score: usize) {
         //assert!(!self.is_present(list));
 
         let mut best_bin = 0;
-        let mut best_num_inserts = usize::MAX;
+        let mut lowest_score = list_score;
+        let mut bin_offset = 0;
 
         for hash_num in 0..self.num_hash_funcs {
             let bin = self.hash_list(list, hash_num) % self.num_bins;
-            let num_inserts_in_bin = self.num_insertions_in_bin[bin];
-            if num_inserts_in_bin < best_num_inserts {
-                best_bin = bin;
-                best_num_inserts = num_inserts_in_bin;
+            for li in 0..self.bin_size {
+                let score = self.score[bin* self.bin_size + li];
+                if score < lowest_score {
+                    best_bin = bin;
+                    lowest_score = score;
+                    bin_offset = li;
+                }
             }
         }
 
-        self.insert_list_in_bin(list, best_bin);
+        if lowest_score == list_score{
+            for hash_num in 0..self.num_hash_funcs {
+                let bin = self.hash_list(list, hash_num) % self.num_bins;
+                self.decrease_scores(bin);
+            }
+            return;
+        }
+
+        self.insert_list_in_bin(list, best_bin, bin_offset, list_score);
     }
 
-    fn list_present_in_bin(&self, list: &Vec<u16>, bin_num: usize) -> bool {
+    fn list_present_in_bin(&mut self, list: &Vec<u16>, bin_num: usize) -> bool {
         for list_num in 0..self.bin_size {
             for offset in 0..self.list_size {
                 if list[offset] != self.get(bin_num, list_num, offset) {
@@ -95,6 +109,7 @@ impl USSL {
                 }
 
                 if offset == self.list_size - 1 {
+                    self.score[bin_num*self.bin_size + list_num] += self.score_multiplier[bin_num*self.bin_size + list_num];
                     return true;
                 }
             }
@@ -120,6 +135,12 @@ impl USSL {
                 0xffff,
                 self.data.len() * mem::size_of::<u16>(),
             );
+        }
+    }
+    
+    fn decrease_scores(&mut self, bin: usize) {
+        for i in 0..self.bin_size{
+            self.score[bin * self.bin_size + i] -=1;
         }
     }
 }

@@ -13,6 +13,7 @@ use p_cmax_solver::solvers::branch_and_bound::branch_and_bound_logging::BranchAn
 use p_cmax_solver::solvers::branch_and_bound::compressed_bnb::CompressedBnB;
 use p_cmax_solver::solvers::branch_and_bound::hj::HJ;
 use p_cmax_solver::solvers::cdsm::cdsm::CDSM;
+use p_cmax_solver::solvers::cdsm::cdsmp::CDSMP;
 use p_cmax_solver::solvers::cp_solver::cplex_manager::CPELXSolver;
 use p_cmax_solver::solvers::ilp_solver::gurobi::Gurobi;
 use p_cmax_solver::solvers::solver_manager::SolverManager;
@@ -81,18 +82,18 @@ fn main() {
         }
     }
     let upper_bound = upper_bound.unwrap();
-    println!("starting");
-
+    
     // -------------CHECKING IF SOLUTION HAS BEEN FOUND-----------
     // We maintain that the solution is within [lower_bound, upper_bound]. Note that this is inclusive.
-
+    
     assert!(lower_bound <= upper_bound.makespan);
     if lower_bound == upper_bound.makespan {
         //TODO: this
         println!("solution found {}", upper_bound.makespan);
         return;
     }
-
+    
+    println!("starting");
     if args.contains(&"-cplex".to_string()) {
         let encoder = Box::new(PinarSeyda::new());
         let mut solver = CPELXSolver::new(encoder);
@@ -116,7 +117,7 @@ fn main() {
         println!("time {}", total_timeout_time - total_timeout.remaining_time());
         return;
     } else if args.contains(&"-branch".to_string()) {
-        let mut solver = BranchAndBoundLogging::new();
+        let mut solver = CompressedBnB::new();
 
         let sol = solver
             .solve(&instance, lower_bound, &upper_bound, &total_timeout, true)
@@ -137,6 +138,16 @@ fn main() {
         return;
     }else if args.contains(&"-cdsm".to_string()) {
         let mut solver = CDSM::new();
+
+        let sol = solver
+            .solve(&instance, lower_bound, &upper_bound, &total_timeout, true)
+            .unwrap();
+        let final_solution = instance.finalize_solution(sol);
+        println!("solution found {}", final_solution);
+        println!("time {}", total_timeout_time - total_timeout.remaining_time());
+        return;
+    }else if args.contains(&"-cdsmp".to_string()) {
+        let mut solver = CDSMP::new();
 
         let sol = solver
             .solve(&instance, lower_bound, &upper_bound, &total_timeout, true)
