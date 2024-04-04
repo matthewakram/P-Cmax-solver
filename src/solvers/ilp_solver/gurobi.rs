@@ -105,7 +105,7 @@ impl SolverManager for Gurobi {
 
         let time = Instant::now();
 
-        let child = Command::new("gurobi_cl")
+        let child = Command::new("./gurobi_cl")
             .arg("Threads=1")
             .arg("IntegralityFocus=1")
             .arg("MemLimit=7")

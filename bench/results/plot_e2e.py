@@ -52,7 +52,9 @@ for i in range(len(bounds)):
     for b in bounds[i]:
         y.append(b)
     y.sort()
-    x = list(range(len(y)))
+    x = list(range(1,len(y)+1))
+    y.append(1000)
+    x.append(len(x))
     if i % 2 == 1:
         style = "-"
     else:
@@ -65,11 +67,12 @@ plt.xlabel("Time (s)")
 plt.ylabel("Cumulative Solved Instances")
 ax = plt.gca()
 ax.set_ylim([5200, 7340])  
+ax.set_xlim([0.00001, 905]) 
 plt.savefig('./plots/all.pdf')
 
 plt.xscale("log")
 plt.legend(loc="upper left")
-# plt.yscale("log")
+# plt.yscale("log") 
 plt.savefig('./plots/all_logarithmic.pdf')
 
 

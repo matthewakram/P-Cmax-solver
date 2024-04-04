@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use bitvec::bitvec;
+use bitvec::{bitvec, vec::BitVec};
 
 use crate::{
     common::common::IndexOf,
@@ -17,14 +17,14 @@ use crate::{
 use super::{ret::RET, weighted_list_cache::WLC};
 
 #[derive(Clone)]
-pub struct CDSMP {
+pub struct CDSMF {
     stats: HashMap<String, f64>,
     last_state_at_level: Vec<Vec<u16>>,
 }
 
-impl CDSMP {
-    pub fn new() -> CDSMP {
-        return CDSMP {
+impl CDSMF {
+    pub fn new() -> CDSMF {
+        return CDSMF {
             stats: HashMap::new(),
             last_state_at_level: vec![],
         };
@@ -50,7 +50,7 @@ fn min_procs(part_sol: &PartialAssignment) -> (usize, usize) {
     return (min_proc, second_min_proc);
 }
 
-impl CDSMP {
+impl CDSMF {
     fn gen_state_list(
         &mut self,
         part_sol: &PartialAssignment,
@@ -97,6 +97,7 @@ impl CDSMP {
         best_makespan_found: usize,
         timeout: &crate::common::timeout::Timeout,
     ) -> Result<(Option<PartialAssignment>, usize), ()> {
+        // ======================= SIMPLE FEASIBILITY CHECKS ==================
         if timeout.time_finished() {
             return Result::Err(());
         }
@@ -117,7 +118,7 @@ impl CDSMP {
         if part_sol.min_space_required > remaining_space {
             return Ok((None, 0));
         }
-        // ======================================
+        // ====================================== END CONDITION =================
 
         if part_sol.unassigned.len() == 3 {
             let mut first_part_sol = part_sol.clone();
@@ -165,6 +166,8 @@ impl CDSMP {
             return Ok((None, 0));
         }
 
+        // ========================== FUR =========================
+
         let mut fur_job: usize = usize::MAX;
         let mut fur_proc = usize::MAX;
         for proc in 0..instance.num_processors {
@@ -174,17 +177,24 @@ impl CDSMP {
             {
                 continue;
             }
-            for i in 0..part_sol.unassigned.len() {
-                if best_makespan_found - proc_makespan > instance.job_sizes[part_sol.unassigned[i]]
-                {
-                    let job: usize = part_sol.unassigned[i];
-                    if ret.get_range(job, best_makespan_found - 1 - instance.job_sizes[job])
-                        == ret.get_range(job, proc_makespan)
-                    {
-                        fur_job = job;
-                        fur_proc = proc;
+            for job in 0..instance.num_jobs {
+                if best_makespan_found - proc_makespan > instance.job_sizes[job] {
+                    if part_sol.is_assigned(job) {
+                        if part_sol.is_blocked(job, proc) && ret.get_range(job, best_makespan_found - 1 - instance.job_sizes[job])
+                            == ret.get_range(job, proc_makespan)
+                        {
+                            // println!("a");
+                            return Ok((None, 0));
+                        }
+                    } else {
+                        if ret.get_range(job, best_makespan_found - 1 - instance.job_sizes[job])
+                            == ret.get_range(job, proc_makespan)
+                        {
+                            fur_job = job;
+                            fur_proc = proc;
+                        }
+                        break;
                     }
-                    break;
                 }
             }
         }
@@ -250,6 +260,8 @@ impl CDSMP {
             }
         }
 
+        // ============================= SELECTING PROCESSORS TO BRANCH ON ======================
+
         // if we reach this point, we know we cannot use the FUR rule here. Thus our only option is to branch
         let job_to_branch_on = part_sol.unassigned[0];
 
@@ -273,6 +285,15 @@ impl CDSMP {
             }
         }
 
+        for proc in 0..instance.num_processors {
+            if best_makespan_found - part_sol.makespans[proc]
+                <= instance.job_sizes[job_to_branch_on]
+                || part_sol.makespans[proc] < precedence
+            {
+                part_sol.block(job_to_branch_on, proc);
+            }
+        }
+
         let mut procs: Vec<(usize, usize)> = part_sol
             .makespans
             .iter()
@@ -293,19 +314,36 @@ impl CDSMP {
 
         let mut last_range: u16 = u16::MAX;
 
+        // =============== BRANCHING ===================
+
         let mut num_branches: usize = 0;
-        for proc in procs_to_branch_on {
+        for proc_index in 0..procs_to_branch_on.len() {
+            let proc = procs_to_branch_on[proc_index];
             if best_makespan_found - part_sol.makespans[proc]
                 <= instance.job_sizes[job_to_branch_on]
             {
+                part_sol.block(job_to_branch_on, proc);
                 continue;
             }
             let range = ret.get_range(job_to_branch_on, part_sol.makespans[proc]);
 
             if last_range == range {
+                part_sol.block(job_to_branch_on, proc);
                 continue;
             }
             last_range = range;
+
+            // for next_proc_index in proc_index + 1..procs_to_branch_on.len() {
+            //     let next_proc = procs_to_branch_on[next_proc_index];
+            //     let next_proc_range =
+            //         ret.get_range(job_to_branch_on, part_sol.makespans[next_proc]);
+
+            //     if last_range != next_proc_range {
+            //         break;
+            //     }
+
+            //     part_sol.block(job_to_branch_on, procs_to_branch_on[next_proc_index]);
+            // }
 
             part_sol.assign(job_to_branch_on, proc, instance, false);
             let sol = self.solve_rec(
@@ -321,7 +359,15 @@ impl CDSMP {
             if sol.is_err() {
                 return Err(());
             }
+            // revert the assignment and the resulting blocks
             part_sol.unassign(job_to_branch_on, instance, false);
+            // for next_proc_index in proc_index + 1..procs_to_branch_on.len() {
+            //     let next_proc = procs_to_branch_on[next_proc_index];
+            //     if !part_sol.is_blocked(job_to_branch_on, next_proc) {
+            //         break;
+            //     }
+            //     part_sol.release(job_to_branch_on, next_proc);
+            // }
 
             let (sol, num_sub_branches) = sol.unwrap();
             if sol.is_some() {
@@ -336,6 +382,7 @@ impl CDSMP {
                             num_branches + 1,
                         );
                     }
+                    part_sol.release_all_blocked(job_to_branch_on);
                     return Ok((best_sol, num_branches + 1));
                 }
                 last_range = ret.get_range(job_to_branch_on, part_sol.makespans[proc]);
@@ -348,11 +395,12 @@ impl CDSMP {
             saved_states.insert_list(self.get_state_list(part_sol), num_branches + 1);
         }
 
+        part_sol.release_all_blocked(job_to_branch_on);
         return Ok((best_sol, num_branches + 1));
     }
 }
 
-impl SolverManager for CDSMP {
+impl SolverManager for CDSMF {
     fn get_stats(&self) -> HashMap<String, f64> {
         return self.stats.clone();
     }
@@ -438,6 +486,7 @@ struct PartialAssignment {
     pub min_space_required: usize,
     pub time_point_assigned: Vec<usize>,
     pub num_nodes_explored: usize,
+    pub fur_blocking: Vec<BitVec>,
 }
 impl PartialAssignment {
     pub fn new(instance: &ProblemInstance) -> PartialAssignment {
@@ -449,6 +498,7 @@ impl PartialAssignment {
         let min_space_required: usize = instance.job_sizes.iter().sum();
         let time_point_assigned: Vec<usize> = vec![0; instance.num_jobs];
         let makespan_sans_fur: Vec<usize> = vec![0; instance.num_processors];
+        let fur_blocking = vec![bitvec![0; instance.num_processors]; instance.num_jobs];
         return PartialAssignment {
             assignment,
             makespans,
@@ -459,7 +509,24 @@ impl PartialAssignment {
             time_point_assigned,
             makespan_sans_fur,
             num_nodes_explored: 0,
+            fur_blocking,
         };
+    }
+
+    pub fn block(&mut self, job: usize, proc: usize) {
+        self.fur_blocking[job].set(proc, true);
+    }
+
+    pub fn is_blocked(&self, job: usize, proc: usize) -> bool {
+        return self.fur_blocking[job][proc];
+    }
+
+    pub fn release_all_blocked(&mut self, job: usize) {
+        self.fur_blocking[job].fill(false);
+    }
+
+    pub fn release(&mut self, job: usize, proc: usize) {
+        self.fur_blocking[job].set(proc, false);
     }
 
     pub fn assign(
@@ -511,5 +578,9 @@ impl PartialAssignment {
         }
         self.unassigned.insert(index, job);
         self.min_space_required += instance.job_sizes[job];
+    }
+
+    pub fn is_assigned(&self, job: usize) -> bool {
+        return self.assignment[job] != usize::MAX;
     }
 }

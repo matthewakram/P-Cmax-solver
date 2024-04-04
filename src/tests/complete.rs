@@ -30,7 +30,7 @@ mod tests {
         solvers::{
             branch_and_bound::{
                 branch_and_bound::BranchAndBound, compressed_bnb::CompressedBnB, hj::HJ,
-            }, cdsm::{cdsm::CDSM, cdsmp::CDSMP}, ilp_solver::gurobi::Gurobi, sat_solver::{kissat::Kissat, multi_sat_solver_manager::MultiSatSolverManager, sat_solver_manager}, solver_manager::SolverManager
+            }, cdsm::{cdsm::CDSM, cdsmf::CDSMF, cdsmp::CDSMP}, ilp_solver::gurobi::Gurobi, sat_solver::{kissat::Kissat, multi_sat_solver_manager::MultiSatSolverManager, sat_solver_manager}, solver_manager::SolverManager
         },
     };
     use std::{
@@ -49,8 +49,9 @@ mod tests {
             *p += 1;
             println!("solving {}/{}", *p, num_total_instances);
         }
+        // println!("{}", file_name);
         let instance = input_output::from_file::read_from_file(file_name);
-        let total_timeout_f64: f64 = 200.0;
+        let total_timeout_f64: f64 = 20.0;
         let precomputation_timeout = 10.0;
 
         // --------------CALCULATING BOUNDS--------------
@@ -60,11 +61,11 @@ mod tests {
             Box::new(max_job_size::MaxJobSize {}),
             Box::new(middle::MiddleJobs {}),
             Box::new(lpt::LPT {}),
-            // Box::new(lptp::Lptp {}),
-            // Box::new(sss_bound_tightening::SSSBoundStrengthening {}),
-            // Box::new(lptpp::Lptpp {}),
-            // Box::new(lifting::Lifting::new_deterministic(1)),
-            // Box::new(mss::MSS::new_deterministic(4)),
+            Box::new(lptp::Lptp {}),
+            Box::new(sss_bound_tightening::SSSBoundStrengthening {}),
+            Box::new(lptpp::Lptpp {}),
+            Box::new(lifting::Lifting::new_deterministic(1)),
+            Box::new(mss::MSS::new_deterministic(4)),
         ];
 
         let (mut lower_bound, mut upper_bound) = (0, None);
@@ -170,7 +171,7 @@ mod tests {
         let num_instances = files.len();
         let result = files
             .into_par_iter()
-            //.into_iter()
+            // .into_iter()
             .enumerate()
             .map(|(_file_num, (path, encoder))| {
                 //    println!("solving file num {}", file_num);
@@ -696,7 +697,7 @@ mod tests {
 
     #[test]
     #[ignore]
-    pub fn complete_test_lawrenko_compressed_b_and_b() {
+    pub fn complete_test_lawrenko_compressed_b_and_b_full() {
         let solver = Box::new(CompressedBnB::new());
         test_solver(
             solver,
@@ -985,6 +986,40 @@ mod tests {
             solver,
             "./bench/lawrenko/",
             "./bench/results/complete_lawrenko_cdsmp.txt",
+        )
+    }
+
+    #[test]
+    #[ignore]
+    pub fn complete_test_real_world_pcdsm() {
+        let solver = Box::new(CDSMP::new());
+        test_solver(
+            solver,
+            "/global_data/pcmax_instances/cnf/",
+            "./bench/results/complete_real_world_cdsmp.txt",
+        )
+    }
+
+    #[test]
+    #[ignore]
+    pub fn complete_test_real_world_mehdi_nizar() {
+        let solver = Box::new(MehdiNizarOrderEncoder::new());
+        let solver = Box::new(Gurobi::new(solver));
+        test_solver(
+            solver,
+            "/global_data/pcmax_instances/cnf/",
+            "./bench/results/complete_real_world_ilp.txt",
+        )
+    }
+
+    #[test]
+    #[ignore]
+    pub fn complete_test_lawrenko_fcdsm() {
+        let solver = Box::new(CDSMF::new());
+        test_solver(
+            solver,
+            "./bench/lawrenko/",
+            "./bench/results/complete_lawrenko_cdsmf.txt",
         )
     }
 

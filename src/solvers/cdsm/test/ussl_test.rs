@@ -4,7 +4,7 @@ mod tests {
 
     use rand::{distributions::Uniform, Rng};
 
-    use crate::solvers::cdsm::ussl::USSL;
+    use crate::solvers::cdsm::{state_db::StateDB, ussl::USSL};
 
     #[test]
     pub fn ussl_smoke_test() {

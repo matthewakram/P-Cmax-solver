@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use bitvec::{bitvec, vec};
+use bitvec::bitvec;
 
 use crate::{
     common::common::IndexOf,
@@ -11,7 +11,7 @@ use crate::{
         fill_up_rule::FillUpRule, final_simp_rule::FinalizeRule, half_size_rule::HalfSizeRule,
         simplification_rule::SimpRule,
     },
-    solvers::solver_manager::SolverManager,
+    solvers::{cdsm::state_db::StateDB, solver_manager::SolverManager},
 };
 
 use super::{ret::RET, ussl::USSL};
@@ -30,7 +30,6 @@ impl CDSM {
         };
     }
 }
-
 
 fn min_procs(part_sol: &PartialAssignment) -> (usize, usize) {
     let mut min = usize::MAX;
@@ -52,30 +51,37 @@ fn min_procs(part_sol: &PartialAssignment) -> (usize, usize) {
 }
 
 impl CDSM {
-
-    fn gen_state_list(&mut self,part_sol: &PartialAssignment, ret: &RET, instance: &ProblemInstance) -> &Vec<u16> {
+    fn gen_state_list(
+        &mut self,
+        part_sol: &PartialAssignment,
+        ret: &RET,
+        instance: &ProblemInstance,
+    ) -> &Vec<u16> {
         let largest_unassigned = part_sol.unassigned[0];
-        //TODO: revert if not correct
-    
         for i in 0..instance.num_processors {
             self.last_state_at_level[largest_unassigned][i] = part_sol.makespan_sans_fur[i] as u16;
         }
         for fur_job in 0..largest_unassigned {
             if part_sol.fur_assignments[fur_job] {
-                self.last_state_at_level[largest_unassigned][part_sol.assignment[fur_job]] += instance.job_sizes[fur_job] as u16;
+                self.last_state_at_level[largest_unassigned][part_sol.assignment[fur_job]] +=
+                    instance.job_sizes[fur_job] as u16;
             }
         }
         for i in 0..instance.num_processors {
-            self.last_state_at_level[largest_unassigned][i] = ret.get_range(largest_unassigned, self.last_state_at_level[largest_unassigned][i] as usize);
+            self.last_state_at_level[largest_unassigned][i] = ret.get_range(
+                largest_unassigned,
+                self.last_state_at_level[largest_unassigned][i] as usize,
+            );
         }
         self.last_state_at_level[largest_unassigned][instance.num_processors] = u16::MAX;
         self.last_state_at_level[largest_unassigned].sort();
-        self.last_state_at_level[largest_unassigned][instance.num_processors] = largest_unassigned as u16;
+        self.last_state_at_level[largest_unassigned][instance.num_processors] =
+            largest_unassigned as u16;
         // println!("{:?}", list);
         return &self.last_state_at_level[largest_unassigned];
     }
 
-    fn get_state_list(&self,part_sol: &PartialAssignment) -> &Vec<u16> {
+    fn get_state_list(&self, part_sol: &PartialAssignment) -> &Vec<u16> {
         let largest_unassigned = part_sol.unassigned[0];
         return &self.last_state_at_level[largest_unassigned];
     }
@@ -378,9 +384,9 @@ impl SolverManager for CDSM {
 
         let mut ret = RET::new(&instance.job_sizes, makespan_to_test);
 
-        let num_bins = 1000_000_0 / ((instance.num_processors+1) * 10);
-        let mut saved_states = USSL::new(instance.num_processors+1, num_bins, 3, 10);
-        self.last_state_at_level = vec![vec![0;instance.num_processors+1]; instance.num_jobs];
+        let num_bins = 2;
+        let mut saved_states = USSL::new(instance.num_processors + 1, num_bins, 3, 10);
+        self.last_state_at_level = vec![vec![0; instance.num_processors + 1]; instance.num_jobs];
 
         let sol = self.solve_rec(
             instance,
@@ -391,7 +397,7 @@ impl SolverManager for CDSM {
             upper.makespan,
             timeout,
         );
-        //println!("{:?}", saved_states);
+
         println!("num_nodes_explored {}", part_sol.num_nodes_explored);
         self.stats.insert(
             "num_nodes_explored".to_string(),

@@ -1,4 +1,3 @@
-use core::num;
 use std::mem;
 
 use rand::{distributions::Uniform, Rng};

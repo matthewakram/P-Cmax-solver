@@ -3,19 +3,21 @@ import matplotlib.pyplot as plt
 import matplotlib
 
 
-matplotlib.rcParams['figure.figsize'] = [5.6,2.8]
+matplotlib.rcParams['figure.figsize'] = [2.8,2.8]
 matplotlib.rcParams['font.family'] = 'serif'
 matplotlib.rcParams['font.size'] = 8
 plt.rcParams['text.usetex'] = True
 subplots_adjust(bottom=0.14)
+subplots_adjust(left=0.19)
+subplots_adjust(right=0.98)
 subplots_adjust(top=0.97)
 
 files = [
-    ["./with_l_class.txt", "./with_l_franca.txt", "./with_l_lawrenko.txt"],
-    ["./with_l_prime_class.txt", "./with_l_prime_franca.txt", "./with_l_prime_lawrenko.txt"],
+    ["./complete_lawrenko_cdsmp_final.txt"],
+    ["./complete_lawrenko_compressed_branch_and_bound_final.txt"]
 ]
 
-names = [ r"with \textbf{L}", r"with \textbf{L'}"]
+names = [ r'\textbf{CDSM}', r'\textbf{DMFUR}']
 
 
 bounds = []
@@ -53,7 +55,7 @@ plt.legend(loc="lower right")
 plt.xlabel("Time (s)")
 plt.ylabel("Cumulative Solved Instances")
 ax = plt.gca()
-ax.set_ylim([4000, 6150])  
-ax.set_xlim([0, 205])
-plt.savefig('./plots/l_vs_lprime.pdf')
+ax.set_ylim([1805, 2500])  
+ax.set_xlim([0, 105])  
+plt.savefig('./plots/cdsm.pdf')
 plt.show()

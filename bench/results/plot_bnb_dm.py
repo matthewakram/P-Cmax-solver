@@ -43,7 +43,9 @@ for i in range(len(bounds)):
     for b in bounds[i]:
         y.append(b)
     y.sort()
-    x = list(range(len(y)))
+    x = list(range(1,len(y)+1))
+    y.append(300)
+    x.append(len(x))
     plt.plot(y,x, label=names[i])
 
 plt.legend(loc="lower right")
@@ -54,5 +56,6 @@ plt.xlabel("Time (s)")
 plt.ylabel("Cumulative Solved Instances")
 ax = plt.gca()
 ax.set_ylim([3000, 4800])  
+ax.set_xlim([0, 205])  
 plt.savefig('./plots/DM.pdf')
 plt.show()

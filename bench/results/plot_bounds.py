@@ -64,12 +64,16 @@ for i in range(len(sorted_bounds)):
 
 #sorted_bounds.sort(key=lambda x: max(x))
 
-x = list(range(len(sorted_bounds)))
+x = list(range(1,len(sorted_bounds)+1))
+x.append(7340)
 for i in range(len(sorted_bounds[0])):
     y = []
     for file_bounds in sorted_bounds:
         y.append(file_bounds[i])
     y.sort()
+    y.append(2)
+    
+    
     if i %3== 1:
         style= '-'
     elif i %3== 2:
@@ -84,6 +88,7 @@ plt.legend(loc="lower right")
 #plt.yscale("log")
 plt.xlabel('MDB')
 plt.ylabel("Cumulative Bounded Instances")
-
+ax = plt.gca()
+ax.set_xlim([0.99, 1.26]) 
 plt.savefig('./plots/bound_plot.pdf')  
 plt.show()
