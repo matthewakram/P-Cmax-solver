@@ -24,16 +24,16 @@ impl MSS {
 }
 
 fn subset_sum(elements: &Vec<usize>, goal: usize, lower_bound: usize) -> Vec<usize> {
-    let mut dp: Vec<i16> = vec![-1; goal.max(lower_bound) + 1];
+    let mut dp: Vec<i32> = vec![-1; goal.max(lower_bound) + 1];
 
     for element in 0..elements.len() {
         if dp[elements[element]] == -1 {
-            dp[elements[element]] = element as i16;
+            dp[elements[element]] = element as i32;
         }
         for pos in 1..(dp.len() - elements[element]) {
-            if dp[pos] != -1 && dp[pos] != element as i16 {
+            if dp[pos] != -1 && dp[pos] != element as i32 {
                 if dp[elements[element] + pos] == -1 {
-                    dp[elements[element] + pos] = element as i16;
+                    dp[elements[element] + pos] = element as i32;
                 }
             }
         }
@@ -71,8 +71,8 @@ impl MSS {
         lower_bound: usize,
     ) {
         if assigned_makespans[first_proc] == assigned_makespans[second_proc]
-            || assigned_makespans[first_proc] == assigned_makespans[second_proc] - 1
-            || assigned_makespans[second_proc] == assigned_makespans[first_proc] - 1
+            || (assigned_makespans[second_proc] != 0 && assigned_makespans[first_proc] == assigned_makespans[second_proc] - 1)
+            || (assigned_makespans[first_proc] != 0 && assigned_makespans[second_proc] == assigned_makespans[first_proc] - 1)
         {
             return;
         }

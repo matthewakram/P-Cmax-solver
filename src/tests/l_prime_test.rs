@@ -5,15 +5,10 @@ mod tests {
     use crate::{
         bounds::{
             self, bound::Bound, lower_bounds::{lifting, max_job_size, middle, pigeon_hole, sss_bound_tightening}, upper_bounds::{lpt, lptp, lptpp, mss}
-        },
-        common::timeout::Timeout,
-        input_output,
-        solvers::{
+        }, common::timeout::Timeout, encoding::ilp_encoding::mehdi_nizar_prec::MehdiNizarOrderEncoder, input_output, solvers::{
             branch_and_bound::
-                compressed_bnb::CompressedBnB
-            ,
-            solver_manager::SolverManager,
-        },
+                compressed_bnb::CompressedBnB, ilp_solver::gurobi::Gurobi, solver_manager::SolverManager
+        }
     };
     use std::{
         fs::{self, File},
@@ -46,24 +41,24 @@ mod tests {
             Box::new(lptp::Lptp {}),
             Box::new(sss_bound_tightening::SSSBoundStrengthening {}),
             Box::new(lptpp::Lptpp {}),
-            if use_l_prime {Box::new(bounds::lower_bounds::lifting_weak::LiftingWeak::new_deterministic(1))} else {Box::new(lifting::Lifting::new_deterministic(1))},
+            if use_l_prime {Box::new(bounds::lower_bounds::lifting_weak::LiftingWeak::new_deterministic(1))} else {Box::new(lifting::Lifting::new_with_solver(solver.clone()))},
             Box::new(mss::MSS::new_deterministic(4)),
         ];
         
         let (mut lower_bound, mut upper_bound) = (0, None);
-        let total_timeout = Timeout::new(total_timeout_f64);
-
+        
         for i in 0..bounds.len() {
             let precomp_timeout = Timeout::new(precomputation_timeout);
             let bound = &bounds[i];
             (lower_bound, upper_bound) =
-                bound.bound(&instance, lower_bound, upper_bound, &precomp_timeout);
+            bound.bound(&instance, lower_bound, upper_bound, &precomp_timeout);
             if precomp_timeout.time_finished()
-                || (upper_bound.is_some() && upper_bound.as_ref().unwrap().makespan == lower_bound)
+            || (upper_bound.is_some() && upper_bound.as_ref().unwrap().makespan == lower_bound)
             {
                 break;
             }
         }
+        let total_timeout = Timeout::new(total_timeout_f64);
         let upper_bound = upper_bound.unwrap();
 
         // -------------CHECKING IF SOLUTION HAS BEEN FOUND-----------
@@ -221,6 +216,85 @@ mod tests {
             true,
         );
 
+    }
+
+    #[test]
+    #[ignore]
+    pub fn test_ilp_with_l(){
+        let solver = Box::new(MehdiNizarOrderEncoder::new());
+        let solver = Box::new(Gurobi::new(solver));
+        test_solver(
+            solver.clone(),
+            "./bench/class_instances/",
+            "./bench/results/with_l_ilp_class.txt",
+            false,
+        );
+        test_solver(
+            solver.clone(),
+            "./bench/franca_frangioni/standardised/",
+            "./bench/results/with_l_ilp_franca.txt",
+            false,
+        );
+
+        test_solver(
+            solver.clone(),
+            "./bench/lawrenko/",
+            "./bench/results/with_l_ilp_lawrenko.txt",
+            false,
+        );
+
+        test_solver(
+            solver.clone(),
+            "/global_data/pcmax_instances/cnf/",
+            "./bench/results/with_l_ilp_real_cnf.txt",
+            false,
+        );
+
+        test_solver(
+            solver.clone(),
+            "/global_data/pcmax_instances/running-times/sat/",
+            "./bench/results/with_l_ilp_real_running_times.txt",
+            false,
+        );
+    }
+
+    #[test]
+    #[ignore]
+    pub fn test_ilp_with_l_prime(){
+        let solver = Box::new(MehdiNizarOrderEncoder::new());
+        let solver = Box::new(Gurobi::new(solver));
+        test_solver(
+            solver.clone(),
+            "./bench/lawrenko/",
+            "./bench/results/with_l_prime_ilp_lawrenko.txt",
+            true,
+        );
+        test_solver(
+            solver.clone(),
+            "./bench/class_instances/",
+            "./bench/results/with_l_prime_ilp_class.txt",
+            true,
+        );
+        test_solver(
+            solver.clone(),
+            "./bench/franca_frangioni/standardised/",
+            "./bench/results/with_l_prime_ilp_franca.txt",
+            true,
+        );
+
+        test_solver(
+            solver.clone(),
+            "/global_data/pcmax_instances/cnf/",
+            "./bench/results/with_l_prime_ilp_real_cnf.txt",
+            true,
+        );
+
+        test_solver(
+            solver.clone(),
+            "/global_data/pcmax_instances/running-times/sat/",
+            "./bench/results/with_l_prime_ilp_real_running_times.txt",
+            true,
+        );
     }
 
 }

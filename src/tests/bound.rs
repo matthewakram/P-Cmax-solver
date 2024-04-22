@@ -5,7 +5,7 @@ mod tests {
     use crate::{
         bounds::{
             bound::Bound,
-            lower_bounds::{lifting::{self, Lifting}, lifting_weak::LiftingWeak, max_job_size::{self, MaxJobSize}, middle::{self, MiddleJobs}, pigeon_hole, sss_bound_tightening},
+            lower_bounds::{lifting::Lifting, lifting_weak::LiftingWeak, max_job_size::{self}, middle::{self}, pigeon_hole::{self, PigeonHole}, sss_bound_tightening::{self, SSSBoundStrengthening}},
             upper_bounds::{lpt::{self, LPT}, lptp::{self, Lptp}, lptpp::{self, Lptpp}, mss::MSS},
         },
         common::timeout::Timeout,
@@ -21,7 +21,6 @@ mod tests {
         let total_timeout_f64: f64 = 10.0;
 
         // --------------CALCULATING BOUNDS--------------
-
         let bounds: Vec<Box<dyn Bound>> = vec![
             Box::new(pigeon_hole::PigeonHole {}),
             Box::new(max_job_size::MaxJobSize {}),
@@ -30,7 +29,8 @@ mod tests {
             Box::new(lptp::Lptp {}),
             Box::new(sss_bound_tightening::SSSBoundStrengthening {}),
             Box::new(lptpp::Lptpp {}),
-            Box::new(lifting::Lifting::new_deterministic(1)),
+            // Box::new(lifting::Lifting::new()),
+            // Box::new(MSS::new()),
         ];
     
         
@@ -105,370 +105,147 @@ mod tests {
     }
 
 
-    #[test]
-    #[ignore]
-    pub fn bound_class_pigeon() {
-        let bound = Box::new(pigeon_hole::PigeonHole{});
-        test_bound(
-            bound,
-            "./bench/class_instances/",
-            "./bench/results/bound_class_pigeon.txt",
-        )
-    }
+    const FOLDERS_TO_TEST: [&'static str; 11] = [
+        "./bench/class_instances/",
+        "./bench/franca_frangioni/standardised/",
+        "./bench/lawrenko/",
+        "/global_data/pcmax_instances/finaler/cnf/",
+        "/global_data/pcmax_instances/finaler/graph/",
+        "/global_data/pcmax_instances/finaler/planted/",
+        "/global_data/pcmax_instances/finaler/anni/",
+        "/global_data/pcmax_instances/finaler/huebner/",
+        "/global_data/pcmax_instances/finaler/lehmann/",
+        "/global_data/pcmax_instances/finaler/schreiber/",
+        "/global_data/pcmax_instances/finaler/laupichler/"
+    ];
+    const BENCHMARK_NAMES: [&'static str; 11] = [
+        "berndt",
+        "franca_frangioni",
+        "lawrenko",
+        "real_cnf",
+        "real_graph",
+        "real_planted",
+        "real_rt_anni",
+        "real_rt_huebner",
+        "real_rt_lehmann",
+        "real_rt_schreiber",
+        "real_rt_laupichler",
+    ];
 
     #[test]
     #[ignore]
-    pub fn bound_franca_pigeon() {
-        let bound = Box::new(pigeon_hole::PigeonHole{});
-        test_bound(
-            bound,
-            "./bench/franca_frangioni/standardised/",
-            "./bench/results/bound_franca_pigeon.txt",
-        )
-    }
-
-    #[test]
-    #[ignore]
-    pub fn bound_lawrenko_pigeon() {
-        let bound = Box::new(pigeon_hole::PigeonHole{});
-        test_bound(
-            bound,
-            "./bench/lawrenko/",
-            "./bench/results/bound_lawrenko_pigeon.txt",
-        )
-    }
-
-    #[test]
-    #[ignore]
-    pub fn bound_class_max() {
-        let bound = Box::new(MaxJobSize{});
-        test_bound(
-            bound,
-            "./bench/class_instances/",
-            "./bench/results/bound_class_max_job_size.txt",
-        )
-    }
-
-    #[test]
-    #[ignore]
-    pub fn bound_franca_max() {
-        let bound = Box::new(MaxJobSize{});
-        test_bound(
-            bound,
-            "./bench/franca_frangioni/standardised/",
-            "./bench/results/bound_franca_max_job_size.txt",
-        )
-    }
-
-    #[test]
-    #[ignore]
-    pub fn bound_lawrenko_max() {
-        let bound = Box::new(MaxJobSize{});
-        test_bound(
-            bound,
-            "./bench/lawrenko/",
-            "./bench/results/bound_lawrenko_max_job_size.txt",
-        )
-    }
-
-    #[test]
-    #[ignore]
-    pub fn bound_class_middle_jobs() {
-        let bound = Box::new(MiddleJobs{});
-        test_bound(
-            bound,
-            "./bench/class_instances/",
-            "./bench/results/bound_class_middle_jobs.txt",
-        )
-    }
-
-    #[test]
-    #[ignore]
-    pub fn bound_franca_middle_jobs() {
-        let bound = Box::new(MiddleJobs{});
-        test_bound(
-            bound,
-            "./bench/franca_frangioni/standardised/",
-            "./bench/results/bound_franca_middle_jobs.txt",
-        )
-    }
-
-    #[test]
-    #[ignore]
-    pub fn bound_lawrenko_middle_jobs() {
-        let bound = Box::new(MiddleJobs{});
-        test_bound(
-            bound,
-            "./bench/lawrenko/",
-            "./bench/results/bound_lawrenko_middle_jobs.txt",
-        )
-    }
-
-    #[test]
-    #[ignore]
-    pub fn bound_class_lpt() {
-        let bound = Box::new(LPT{});
-        test_bound(
-            bound,
-            "./bench/class_instances/",
-            "./bench/results/bound_class_lpt.txt",
-        )
-    }
-
-    #[test]
-    #[ignore]
-    pub fn bound_franca_lpt() {
-        let bound = Box::new(LPT{});
-        test_bound(
-            bound,
-            "./bench/franca_frangioni/standardised/",
-            "./bench/results/bound_franca_lpt.txt",
-        )
-    }
-
-    #[test]
-    #[ignore]
-    pub fn bound_lawrenko_lpt() {
-        let bound = Box::new(LPT{});
-        test_bound(
-            bound,
-            "./bench/lawrenko/",
-            "./bench/results/bound_lawrenko_lpt.txt",
-        )
-    }
-
-    #[test]
-    #[ignore]
-    pub fn bound_class_lptp() {
-        let bound = Box::new(Lptp{});
-        test_bound(
-            bound,
-            "./bench/class_instances/",
-            "./bench/results/bound_class_lptp.txt",
-        )
-    }
-
-    #[test]
-    #[ignore]
-    pub fn bound_franca_lptp() {
-        let bound = Box::new(Lptp{});
-        test_bound(
-            bound,
-            "./bench/franca_frangioni/standardised/",
-            "./bench/results/bound_franca_lptp.txt",
-        )
-    }
-
-    #[test]
-    #[ignore]
-    pub fn bound_lawrenko_lptp() {
-        let bound = Box::new(Lptp{});
-        test_bound(
-            bound,
-            "./bench/lawrenko/",
-            "./bench/results/bound_lawrenko_lptp.txt",
-        )
-    }
-
-    #[test]
-    #[ignore]
-    pub fn bound_class_lptpp() {
-        let bound = Box::new(Lptpp{});
-        test_bound(
-            bound,
-            "./bench/class_instances/",
-            "./bench/results/bound_class_lptpp.txt",
-        )
-    }
-
-    #[test]
-    #[ignore]
-    pub fn bound_franca_lptpp() {
-        let bound = Box::new(Lptpp{});
-        test_bound(
-            bound,
-            "./bench/franca_frangioni/standardised/",
-            "./bench/results/bound_franca_lptpp.txt",
-        )
-    }
-
-    #[test]
-    #[ignore]
-    pub fn bound_lawrenko_lptpp() {
-        let bound = Box::new(Lptpp{});
-        test_bound(
-            bound,
-            "./bench/lawrenko/",
-            "./bench/results/bound_lawrenko_lptpp.txt",
-        )
-    }
-
-    #[test]
-    #[ignore]
-    pub fn bound_class_sss_bound_strengthening() {
-        let bound = Box::new(SssBoundStrengthTester{});
-        test_bound(
-            bound,
-            "./bench/class_instances/",
-            "./bench/results/bound_class_sss_bound_strengthening.txt",
-        )
-    }
-
-    #[test]
-    #[ignore]
-    pub fn bound_franca_sss_bound_strengthening() {
-        let bound = Box::new(SssBoundStrengthTester{});
-        test_bound(
-            bound,
-            "./bench/franca_frangioni/standardised/",
-            "./bench/results/bound_franca_sss_bound_strengthening.txt",
-        )
-    }
-
-    #[test]
-    #[ignore]
-    pub fn bound_lawrenko_sss_bound_strengthening() {
-        let bound = Box::new(SssBoundStrengthTester{});
-        test_bound(
-            bound,
-            "./bench/lawrenko/",
-            "./bench/results/bound_lawrenko_sss_bound_strengthening.txt",
-        )
-    }
-
-    #[derive(Clone)]
-    struct SssBoundStrengthTester{
-    }
-
-    impl Bound for SssBoundStrengthTester{
-        fn bound(
-            &self,
-            problem: &crate::problem_instance::problem_instance::ProblemInstance,
-            lower_bound: usize,
-            upper_bound: Option<crate::problem_instance::solution::Solution>,
-            timeout: &Timeout,
-        ) -> (usize, Option<crate::problem_instance::solution::Solution>) {
-            let bounds: Vec<Box<dyn Bound>> = vec![
-                Box::new(pigeon_hole::PigeonHole {}),
-                Box::new(max_job_size::MaxJobSize {}),
-                Box::new(middle::MiddleJobs {}),
-                Box::new(lpt::LPT {}),
-                Box::new(sss_bound_tightening::SSSBoundStrengthening {}),
-            ];
-            let (mut lower_bound, mut upper_bound) = (lower_bound, upper_bound);
-
-            for i in 0..bounds.len() {
-            let bound = &bounds[i];
-            (lower_bound, upper_bound) =
-                bound.bound(&problem, lower_bound, upper_bound, timeout);
-            if timeout.time_finished()
-                || (upper_bound.is_some() && upper_bound.as_ref().unwrap().makespan == lower_bound)
-            {
-                break;
-            }
-        }
-        return (lower_bound, upper_bound);
+    pub fn test_bound_trivial(){
+        let solver = Box::new(PigeonHole{});
+        for i in 0..FOLDERS_TO_TEST.len() {
+            let out_file_name = format!(
+                "./bench/results/bound_{}_trivial.txt",
+                BENCHMARK_NAMES[i]
+            );
+            test_bound(solver.clone(), FOLDERS_TO_TEST[i], &out_file_name);
         }
     }
 
     #[test]
     #[ignore]
-    pub fn bound_class_lifting() {
-        let bound = Box::new(Lifting::new());
-        test_bound(
-            bound,
-            "./bench/class_instances/",
-            "./bench/results/bound_class_lifting.txt",
-        )
+    pub fn test_bound_lpt(){
+        let solver = Box::new(LPT{});
+        for i in 0..FOLDERS_TO_TEST.len() {
+            let out_file_name = format!(
+                "./bench/results/bound_{}_lpt.txt",
+                BENCHMARK_NAMES[i]
+            );
+            test_bound(solver.clone(), FOLDERS_TO_TEST[i], &out_file_name);
+        }
     }
 
     #[test]
     #[ignore]
-    pub fn bound_franca_lifting() {
-        let bound = Box::new(Lifting::new());
-        test_bound(
-            bound,
-            "./bench/franca_frangioni/standardised/",
-            "./bench/results/bound_franca_lifting.txt",
-        )
+    pub fn test_bound_lptp(){
+        let solver = Box::new(Lptp{});
+        for i in 0..FOLDERS_TO_TEST.len() {
+            let out_file_name = format!(
+                "./bench/results/bound_{}_lptp.txt",
+                BENCHMARK_NAMES[i]
+            );
+            test_bound(solver.clone(), FOLDERS_TO_TEST[i], &out_file_name);
+        }
     }
 
     #[test]
     #[ignore]
-    pub fn bound_lawrenko_lifting() {
-        let bound = Box::new(Lifting::new());
-        test_bound(
-            bound,
-            "./bench/lawrenko/",
-            "./bench/results/bound_lawrenko_lifting.txt",
-        )
+    pub fn test_bound_lptpp(){
+        let solver = Box::new(Lptpp{});
+        for i in 0..FOLDERS_TO_TEST.len() {
+            let out_file_name = format!(
+                "./bench/results/bound_{}_lptpp.txt",
+                BENCHMARK_NAMES[i]
+            );
+            test_bound(solver.clone(), FOLDERS_TO_TEST[i], &out_file_name);
+        }
     }
 
     #[test]
     #[ignore]
-    pub fn bound_class_mss() {
-        let bound = Box::new(MSS::new());
-        test_bound(
-            bound,
-            "./bench/class_instances/",
-            "./bench/results/bound_class_mss.txt",
-        )
+    pub fn test_bound_sss_bound_strengthening(){
+        let solver = Box::new(SSSBoundStrengthening{});
+        for i in 0..FOLDERS_TO_TEST.len() {
+            let out_file_name = format!(
+                "./bench/results/bound_{}_sss_bound_strengthening.txt",
+                BENCHMARK_NAMES[i]
+            );
+            test_bound(solver.clone(), FOLDERS_TO_TEST[i], &out_file_name);
+        }
     }
 
     #[test]
     #[ignore]
-    pub fn bound_franca_mss() {
-        let bound = Box::new(MSS::new());
-        test_bound(
-            bound,
-            "./bench/franca_frangioni/standardised/",
-            "./bench/results/bound_franca_mss.txt",
-        )
+    pub fn test_bound_lifting(){
+        let solver = Box::new(Lifting::new());
+        for i in 0..FOLDERS_TO_TEST.len() {
+            let out_file_name = format!(
+                "./bench/results/bound_{}_lifting.txt",
+                BENCHMARK_NAMES[i]
+            );
+            test_bound(solver.clone(), FOLDERS_TO_TEST[i], &out_file_name);
+        }
     }
 
     #[test]
     #[ignore]
-    pub fn bound_lawrenko_mss() {
-        let bound = Box::new(MSS::new());
-        test_bound(
-            bound,
-            "./bench/lawrenko/",
-            "./bench/results/bound_lawrenko_mss.txt",
-        )
+    pub fn test_bound_mss(){
+        let solver = Box::new(MSS::new());
+        for i in 0..FOLDERS_TO_TEST.len() {
+            let out_file_name = format!(
+                "./bench/results/bound_{}_mss.txt",
+                BENCHMARK_NAMES[i]
+            );
+            test_bound(solver.clone(), FOLDERS_TO_TEST[i], &out_file_name);
+        }
     }
 
     #[test]
     #[ignore]
-    pub fn bound_class_lifting_weak() {
-        let bound = Box::new(LiftingWeak::new());
-        test_bound(
-            bound,
-            "./bench/class_instances/",
-            "./bench/results/bound_class_lifting_weak.txt",
-        )
+    pub fn test_bound_lifting_weak(){
+        let solver = Box::new(LiftingWeak::new());
+        for i in 0..FOLDERS_TO_TEST.len() {
+            let out_file_name = format!(
+                "./bench/results/bound_{}_lifting_weak.txt",
+                BENCHMARK_NAMES[i]
+            );
+            test_bound(solver.clone(), FOLDERS_TO_TEST[i], &out_file_name);
+        }
     }
 
     #[test]
     #[ignore]
-    pub fn bound_franca_lifting_weak() {
-        let bound = Box::new(LiftingWeak::new());
-        test_bound(
-            bound,
-            "./bench/franca_frangioni/standardised/",
-            "./bench/results/bound_franca_lifting_weak.txt",
-        )
+    pub fn test_bound_ssss(){
+        let solver = Box::new(MSS::new());
+        for i in 0..FOLDERS_TO_TEST.len() {
+            let out_file_name = format!(
+                "./bench/results/bound_{}_ssss.txt",
+                BENCHMARK_NAMES[i]
+            );
+            test_bound(solver.clone(), FOLDERS_TO_TEST[i], &out_file_name);
+        }
     }
-
-    #[test]
-    #[ignore]
-    pub fn bound_lawrenko_lifting_weak() {
-        let bound = Box::new(LiftingWeak::new());
-        test_bound(
-            bound,
-            "./bench/lawrenko/",
-            "./bench/results/bound_lawrenko_lifting_weak.txt",
-        )
-    }
-
-
 }

@@ -111,6 +111,7 @@ impl SolverManager for Gurobi {
             .arg("MemLimit=7")
             .arg(format!("ResultFile={}.sol", file_name))
             .arg(format!("TimeLimit={}", time_remaining))
+            .arg(format!("MIPGap=0"))
             .arg(format!("{}", file_name))
             .stdout(Stdio::piped())
             .output()

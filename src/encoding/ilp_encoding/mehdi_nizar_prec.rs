@@ -1,15 +1,14 @@
 use std::collections::{HashMap, HashSet};
 
-use crate::{
-     common, encoding::ilp_encoder::ILPEncoder,
-    problem_instance::solution::Solution,
-};
+use crate::{common, encoding::ilp_encoder::ILPEncoder, problem_instance::solution::Solution};
 use bitvec::prelude::*;
 
 #[derive(Clone)]
 pub struct MehdiNizarOrderEncoder {
     encoding: String,
     prec: bool,
+    mem_limit: usize,
+    original:bool,
 }
 
 impl MehdiNizarOrderEncoder {
@@ -17,6 +16,17 @@ impl MehdiNizarOrderEncoder {
         return MehdiNizarOrderEncoder {
             encoding: String::new(),
             prec: false,
+            mem_limit: 7_000_000_000,
+            original: false,
+        };
+    }
+
+    pub fn new_original() -> MehdiNizarOrderEncoder{
+        return MehdiNizarOrderEncoder {
+            encoding: String::new(),
+            prec: false,
+            mem_limit: 7_000_000_000,
+            original: true,
         };
     }
 
@@ -24,6 +34,8 @@ impl MehdiNizarOrderEncoder {
         return MehdiNizarOrderEncoder {
             encoding: String::new(),
             prec: true,
+            mem_limit: 7_000_000_000,
+            original: false,
         };
     }
 }
@@ -34,12 +46,13 @@ impl ILPEncoder for MehdiNizarOrderEncoder {
         partial_solution: &crate::problem_instance::partial_solution::PartialSolution,
         lower_bounds: usize,
         makespan: usize,
-        _timeout: &crate::common::timeout::Timeout,
+        timeout: &crate::common::timeout::Timeout,
     ) -> bool {
         let mut possible_makespans_at_decision = bitvec![0;makespan+1];
         possible_makespans_at_decision.set(0, true);
 
-        let mut job_choices_at_node: Vec<Vec<usize>> = vec![Vec::new(); makespan + 1];
+        let mut job_choices_at_node: Vec<BitVec> =
+            vec![bitvec![0;partial_solution.instance.num_jobs]; makespan + 1];
 
         for job in 0..partial_solution.instance.num_jobs {
             let mut possible_makespans_at_next_decision = bitvec![0;makespan+1];
@@ -49,12 +62,14 @@ impl ILPEncoder for MehdiNizarOrderEncoder {
                     possible_makespans_at_next_decision.set(i, true);
                     if i + job_size <= makespan {
                         possible_makespans_at_next_decision.set(i + job_size, true);
-                        job_choices_at_node[i].push(job);
+                        job_choices_at_node[i].set(job, true);
                     }
                 }
             }
             possible_makespans_at_decision = possible_makespans_at_next_decision;
         }
+
+        // println!("calculated list");
 
         // Constraint 1
         let mut formula: String = String::from("Minimize\nmakespan\nSubject To\n");
@@ -64,75 +79,128 @@ impl ILPEncoder for MehdiNizarOrderEncoder {
 
         // constraint 2
         for i in 0..makespan + 1 {
-            for job in &job_choices_at_node[i] {
-                let node_reached = i + partial_solution.instance.job_sizes[*job];
+            for job in 0..partial_solution.instance.num_jobs {
+                if job_choices_at_node[i][job] == false {
+                    continue;
+                }
+                let node_reached = i + partial_solution.instance.job_sizes[job];
+                if node_reached < lower_bounds {
+                    continue;
+                }
                 if node_reached > makespan {
                     panic!("AAAAAAAAAAAAAAAAAAAAAAHHAHAHAHAHAHHAHAHAHAHAH");
                 }
                 formula += &format!("makespan - {} v_{}_{} >= 0\n", node_reached, i, job);
                 if self.prec {
                     // we only need to define the a (assigned at) values for jobs where there is at least one other job of the same size
-                    if (*job != 0 && partial_solution.instance.job_sizes[job -1] == partial_solution.instance.job_sizes[*job]) ||
-                        (*job != partial_solution.instance.num_jobs-1 && partial_solution.instance.job_sizes[job +1] == partial_solution.instance.job_sizes[*job]){
-                            formula += &format!("v_{}_{} = 1 -> a_{} = {}\n", i, job, job, i);
-                        }
+                    if (job != 0
+                        && partial_solution.instance.job_sizes[job - 1]
+                            == partial_solution.instance.job_sizes[job])
+                        || (job != partial_solution.instance.num_jobs - 1
+                            && partial_solution.instance.job_sizes[job + 1]
+                                == partial_solution.instance.job_sizes[job])
+                    {
+                        formula += &format!("v_{}_{} = 1 -> a_{} = {}\n", i, job, job, i);
+                    }
+                }
+                if formula.len() > self.mem_limit || timeout.time_finished() {
+                    return false;
                 }
             }
         }
 
+        // println!("constraint 2");
+
         // Constraint 3
         let mut constraint_3 = String::from("v_0_0 ");
-        for job in 1..job_choices_at_node[0].len() {
-            constraint_3 += &format!("+ v_0_{} ", job_choices_at_node[0][job]);
+        for job in 1..partial_solution.instance.num_jobs {
+            if job_choices_at_node[0][job] == false {
+                continue;
+            }
+            constraint_3 += &format!("+ v_0_{} ", job);
+            if constraint_3.len() > self.mem_limit {
+                return false;
+            }
         }
         constraint_3 += &format!("= {}\n", partial_solution.instance.num_processors);
         formula += &constraint_3;
 
+        // println!("constraint 3");
         // constraint 4
-        let mut in_edges: Vec<Vec<String>> = vec![Vec::new(); makespan + 1];
+        let mut in_edges: Vec<BitVec> =
+            vec![bitvec![0;partial_solution.instance.num_jobs]; makespan + 1];
 
         for i in 0..makespan + 1 {
-            for job in &job_choices_at_node[i] {
-                if i + partial_solution.instance.job_sizes[*job] <= makespan {
-                    in_edges[i + partial_solution.instance.job_sizes[*job]]
-                        .push(format!("v_{}_{}", i, *job));
+            for job in 0..partial_solution.instance.num_jobs {
+                if job_choices_at_node[i][job] == false {
+                    continue;
+                }
+                if i + partial_solution.instance.job_sizes[job] <= makespan {
+                    in_edges[i + partial_solution.instance.job_sizes[job]].set(job, true);
+                }
+                if formula.len() > self.mem_limit || timeout.time_finished() {
+                    return false;
                 }
             }
         }
 
+        // println!("constraint 4");
+
         for i in 1..makespan {
             let mut constraint = String::new();
-            for job in &job_choices_at_node[i] {
-                constraint += &format!("- v_{}_{} ", i, *job);
+            for job in 0..partial_solution.instance.num_jobs {
+                if job_choices_at_node[i][job] {
+                    constraint += &format!("- v_{}_{} ", i, job);
+                }
             }
 
-            for edge in &in_edges[i] {
-                constraint += &format!("+ {} ", edge);
+            for job in 0..partial_solution.instance.num_jobs {
+                if in_edges[i][job] == true {
+                    constraint += &format!(
+                        "+ v_{}_{} ",
+                        i - partial_solution.instance.job_sizes[job],
+                        job
+                    );
+                }
             }
             if constraint.is_empty() {
                 continue;
             }
-            constraint += ">= 0\n";
+            if self.original {
+                constraint = format!("-f_{} {} = 0\n", i, constraint);
+            } else {
+                constraint += ">= 0\n";
+            }
+
             formula += &constraint;
+            if formula.len() > self.mem_limit || timeout.time_finished() {
+                return false;
+            }
         }
 
         // constraint 5
         for job in 0..partial_solution.instance.num_jobs {
             let mut constraint = format!("v_0_{}", job);
             for i in 1..makespan + 1 {
-                if job_choices_at_node[i].contains(&job) {
+                if job_choices_at_node[i][job] == true {
                     constraint += &format!(" + v_{}_{}", i, job);
                 }
             }
             constraint += " = 1\n";
             formula += &constraint;
+            if formula.len() > self.mem_limit || timeout.time_finished() {
+                return false;
+            }
         }
 
+        // println!("constraint 5");
         // prec constraint
         if self.prec {
-            for job in 0..partial_solution.instance.num_jobs-1{
-                if partial_solution.instance.job_sizes[job] == partial_solution.instance.job_sizes[job+1] {
-                    formula += &format!("a_{} - a_{} <= 0\n", job, job+1);
+            for job in 0..partial_solution.instance.num_jobs - 1 {
+                if partial_solution.instance.job_sizes[job]
+                    == partial_solution.instance.job_sizes[job + 1]
+                {
+                    formula += &format!("a_{} - a_{} <= 0\n", job, job + 1);
                 }
             }
         }
@@ -140,8 +208,13 @@ impl ILPEncoder for MehdiNizarOrderEncoder {
         formula += "Binaries\n";
 
         for i in 0..makespan + 1 {
-            for job in &job_choices_at_node[i] {
-                formula += &format!(" v_{}_{}", i, *job);
+            for job in 0..partial_solution.instance.num_jobs {
+                if job_choices_at_node[i][job] {
+                    formula += &format!(" v_{}_{}", i, job);
+                }
+            }
+            if formula.len() > self.mem_limit || timeout.time_finished() {
+                return false;
             }
         }
 
@@ -153,7 +226,13 @@ impl ILPEncoder for MehdiNizarOrderEncoder {
             }
         }
 
-        formula+= "\nEnd\n";
+        if self.original {
+            for i in 0..makespan {
+                formula += &format!(" f_{}", i);
+            }
+        }
+
+        formula += "\nEnd\n";
         self.encoding = formula;
         return true;
     }

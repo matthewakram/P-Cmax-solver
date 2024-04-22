@@ -48,7 +48,7 @@ impl LiftingWeak {
 
         let (mut new_lower_bound, mut new_upper_bound) = (0, None);
         for i in 0..bounds.len() {
-            if remaining_time.time_finished() {
+            if new_upper_bound.is_some() && remaining_time.time_finished() {
                 break;
             }
             let bound = &bounds[i];
@@ -99,7 +99,10 @@ fn get_instances(instance: &ProblemInstance) -> Vec<ProblemInstance> {
             let num_required_jobs: usize = lambda(l, m, k);
             let reduced_jobs: Vec<usize> =
                 (instance.job_sizes[0..l])[l - num_required_jobs..l].to_vec();
-            instances_to_bound.push(ProblemInstance::new(k, num_required_jobs, reduced_jobs))
+            instances_to_bound.push(ProblemInstance::new(k, num_required_jobs, reduced_jobs));
+            if instances_to_bound.len() > 10000 {
+                return instances_to_bound;
+            }
         }
     }
     return instances_to_bound;

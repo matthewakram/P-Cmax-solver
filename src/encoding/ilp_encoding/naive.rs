@@ -4,28 +4,19 @@ use crate::{
      common, encoding::ilp_encoder::ILPEncoder,
     problem_instance::solution::Solution,
 };
-use bitvec::prelude::*;
 
 #[derive(Clone)]
 pub struct Naive {
     encoding: String,
-    prec: bool,
 }
 
 impl Naive {
     pub fn new() -> Naive {
         return Naive {
             encoding: String::new(),
-            prec: false,
         };
     }
 
-    pub fn new_prec() -> Naive {
-        return Naive {
-            encoding: String::new(),
-            prec: true,
-        };
-    }
 }
 
 impl ILPEncoder for Naive {
@@ -33,7 +24,7 @@ impl ILPEncoder for Naive {
         &mut self,
         partial_solution: &crate::problem_instance::partial_solution::PartialSolution,
         lower_bounds: usize,
-        makespan: usize,
+        _makespan: usize,
         _timeout: &crate::common::timeout::Timeout,
     ) -> bool {
 

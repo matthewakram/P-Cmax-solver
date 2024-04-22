@@ -1,30 +1,23 @@
-// cargo test -r --test-threads=1 --features encoding_class_instances
-
 #[cfg(test)]
 mod tests {
+
     use rayon::prelude::{IndexedParallelIterator, IntoParallelIterator, ParallelIterator};
 
     use crate::{
         bounds::{
             bound::Bound,
-            lower_bounds::{
-                lifting::Lifting,
-                max_job_size, middle, pigeon_hole, sss_bound_tightening,
-            },
-            upper_bounds::{lpt, lptp, lptpp, mss},
+            lower_bounds::{max_job_size, middle, pigeon_hole},
+            upper_bounds::lpt,
         },
         common::timeout::Timeout,
-        encoding::ilp_encoding::mehdi_nizar_prec::MehdiNizarOrderEncoder,
         input_output,
         solvers::{
-            branch_and_bound::compressed_bnb::CompressedBnB, cdsm::cdsm::CDSM,
-            ilp_solver::gurobi::Gurobi, solver_manager::SolverManager,
+            cdsm::{cdsm::CDSM, cdsmp::CDSMP}, solver_manager::SolverManager
         },
     };
     use std::{
         fs::{self, File},
-        io::Write,
-        sync::{Arc, Mutex},
+        io::Write, sync::{Arc, Mutex},
     };
 
     fn test_file_solver(
@@ -38,9 +31,9 @@ mod tests {
             *p += 1;
             println!("solving {}/{}", *p, num_total_instances);
         }
-
+        // println!("{}", file_name);
         let instance = input_output::from_file::read_from_file(file_name);
-        let total_timeout_f64: f64 = 500.0;
+        let total_timeout_f64: f64 = 20.0;
         let precomputation_timeout = 10.0;
 
         // --------------CALCULATING BOUNDS--------------
@@ -50,11 +43,6 @@ mod tests {
             Box::new(max_job_size::MaxJobSize {}),
             Box::new(middle::MiddleJobs {}),
             Box::new(lpt::LPT {}),
-            Box::new(lptp::Lptp {}),
-            Box::new(sss_bound_tightening::SSSBoundStrengthening {}),
-            Box::new(lptpp::Lptpp {}),
-            Box::new(Lifting::new_deterministic(1)),
-            Box::new(mss::MSS::new_deterministic(4)),
         ];
 
         let (mut lower_bound, mut upper_bound) = (0, None);
@@ -64,15 +52,14 @@ mod tests {
             let bound = &bounds[i];
             (lower_bound, upper_bound) =
                 bound.bound(&instance, lower_bound, upper_bound, &precomp_timeout);
-            // println!("lower bound is: {}", lower_bound);
-            if (upper_bound.is_some() && upper_bound.as_ref().unwrap().makespan == lower_bound)
+            if precomp_timeout.time_finished()
+                || (upper_bound.is_some() && upper_bound.as_ref().unwrap().makespan == lower_bound)
             {
                 break;
             }
         }
         let upper_bound = upper_bound.unwrap();
         let total_timeout = Timeout::new(total_timeout_f64);
-        // println!("done with bounds {}", file_name);
 
         // -------------CHECKING IF SOLUTION HAS BEEN FOUND-----------
         // We maintain that the solution is within [lower_bound, upper_bound]. Note that this is inclusive.
@@ -101,12 +88,10 @@ mod tests {
             ));
         }
         //--------------SOLVING---------------------------
-        // println!("{}", file_name);
 
         let sol = solver.solve(&instance, lower_bound, &upper_bound, &total_timeout, false);
         if sol.is_none() {
-            println!("could not solve file {}", file_name);
-            assert!(total_timeout.time_finished());
+          //  println!("could not solve file {}", file_name);
             return None;
         }
         //println!("solved file {}", file_name);
@@ -183,139 +168,39 @@ mod tests {
         file.write_all(&result.as_bytes()).unwrap();
     }
 
-    const FOLDERS_TO_TEST: [&'static str; 1] = [
-        // "./bench/class_instances/",
-        "./bench/franca_frangioni/standardised/",
-        // "./bench/lawrenko/",
-        // "/global_data/pcmax_instances/finaler/cnf/",
-        // "/global_data/pcmax_instances/final/graph/",
-        // "/global_data/pcmax_instances/final/planted/",
-        // "/global_data/pcmax_instances/final/rt/anni/",
-        // "/global_data/pcmax_instances/final/rt/huebner/",
-        // "/global_data/pcmax_instances/final/rt/lehmann/",
-        // "/global_data/pcmax_instances/final/rt/schreiber/",
-    ];
-    const BENCHMARK_NAMES: [&'static str; 1] = [
-        // "berndt",
-        "franca_frangioni",
-        // "lawrenko",
-        // "real_cnf",
-        // "real_graph",
-        // "real_planted",
-        // "real_rt_anni",
-        // "real_rt_huebner",
-        // "real_rt_lehmann",
-        // "real_rt_schreiber",
-    ];
+    const FOLDERS_TO_TEST: [&'static str;3] = ["./bench/lawrenko/", "/global_data/pcmax_instances/cnf/", "/global_data/pcmax_instances/running-times/sat/"];
+    const BENCHMARK_NAMES: [&'static str; 3] = ["lawrenko", "real_sat", "real_runtime"];
 
     #[test]
     #[ignore]
-    pub fn complete_test_base_cdsm() {
-        let solver = Box::new(CDSM::new_with_rules(
-            false,
-            false,
-            false,
-            false,
-            false,
-            1_000_000_000,
-        ));
-        for i in 0..FOLDERS_TO_TEST.len() {
-            let out_file_name = format!("./bench/results/complete_{}_cdsm_base.txt", BENCHMARK_NAMES[i]);
+    pub fn memtest_cdsm_vs_cdsmp(){
+        let solver = Box::new(CDSM::new());
+        for i in 0..FOLDERS_TO_TEST.len(){
+            let out_file_name = format!("./bench/results/memtest_cdsm_{}.txt", BENCHMARK_NAMES[i]);
             test_solver(solver.clone(), FOLDERS_TO_TEST[i], &out_file_name);
         }
-    }
 
-    #[test]
-    #[ignore]
-    pub fn complete_test_last_size_cdsm() {
-        let solver = Box::new(CDSM::new_with_rules(
-            false,
-            false,
-            false,
-            true,
-            false,
-            1_000_000_000,
-        ));
-        for i in 0..FOLDERS_TO_TEST.len() {
-            let out_file_name = format!("./bench/results/complete_{}_cdsm_last_size.txt", BENCHMARK_NAMES[i]);
+        let solver = Box::new(CDSMP::new_with_rules(true, true, true, true, true, 1_048_576));
+        for i in 0..FOLDERS_TO_TEST.len(){
+            let out_file_name = format!("./bench/results/memtest_cdsmp_{}_1MB.txt", BENCHMARK_NAMES[i]);
             test_solver(solver.clone(), FOLDERS_TO_TEST[i], &out_file_name);
         }
-    }
 
-    #[test]
-    #[ignore]
-    pub fn complete_test_inter_cdsm() {
-        let solver = Box::new(CDSM::new_with_rules(
-            true,
-            false,
-            false,
-            true,
-            false,
-            1_000_000_000,
-        ));
-        for i in 0..FOLDERS_TO_TEST.len() {
-            let out_file_name = format!("./bench/results/complete_{}_cdsm_inter.txt", BENCHMARK_NAMES[i]);
+        let solver = Box::new(CDSMP::new_with_rules(true, true, true, true, true, 1_048_5760));
+        for i in 0..FOLDERS_TO_TEST.len(){
+            let out_file_name = format!("./bench/results/memtest_cdsmp_{}_10MB.txt", BENCHMARK_NAMES[i]);
             test_solver(solver.clone(), FOLDERS_TO_TEST[i], &out_file_name);
         }
-    }
 
-    #[test]
-    #[ignore]
-    pub fn complete_test_fur_cdsm() {
-        let solver = Box::new(CDSM::new_with_rules(
-            true,
-            true,
-            false,
-            true,
-            false,
-            1_000_000_000,
-        ));
-        for i in 0..FOLDERS_TO_TEST.len() {
-            let out_file_name = format!("./bench/results/complete_{}_cdsm_fur.txt", BENCHMARK_NAMES[i]);
+        let solver = Box::new(CDSMP::new_with_rules(true, true, true, true, true, 1_048_57600));
+        for i in 0..FOLDERS_TO_TEST.len(){
+            let out_file_name = format!("./bench/results/memtest_cdsmp_{}_100MB.txt", BENCHMARK_NAMES[i]);
             test_solver(solver.clone(), FOLDERS_TO_TEST[i], &out_file_name);
         }
-    }
 
-    #[test]
-    #[ignore]
-    pub fn complete_test_irrelevance_cdsm() {
-        let solver = Box::new(CDSM::new_with_rules(
-            true,
-            true,
-            true,
-            true,
-            false,
-            1_000_000_000,
-        ));
-        for i in 0..FOLDERS_TO_TEST.len() {
-            let out_file_name = format!("./bench/results/complete_{}_cdsm_irrelevance.txt", BENCHMARK_NAMES[i]);
-            test_solver(solver.clone(), FOLDERS_TO_TEST[i], &out_file_name);
-        }
-    }
-
-    #[test]
-    #[ignore]
-    pub fn complete_test_cdsm() {
-        let solver = Box::new(CDSM::new_with_rules(
-            true,
-            true,
-            true,
-            true,
-            true,
-            1_000_000_000,
-        ));
-        for i in 0..FOLDERS_TO_TEST.len() {
-            let out_file_name = format!("./bench/results/complete_{}_cdsm.txt", BENCHMARK_NAMES[i]);
-            test_solver(solver.clone(), FOLDERS_TO_TEST[i], &out_file_name);
-        }
-    }
-
-    #[test]
-    #[ignore]
-    pub fn complete_test_ilp() {
-        let solver = Box::new(Gurobi::new(Box::new(MehdiNizarOrderEncoder::new())));
-        for i in 0..FOLDERS_TO_TEST.len() {
-            let out_file_name = format!("./bench/results/complete_{}_ilp.txt", BENCHMARK_NAMES[i]);
+        let solver = Box::new(CDSMP::new_with_rules(true, true, true, true, true, 1073741824));
+        for i in 0..FOLDERS_TO_TEST.len(){
+            let out_file_name = format!("./bench/results/memtest_cdsmp_{}_1GB.txt", BENCHMARK_NAMES[i]);
             test_solver(solver.clone(), FOLDERS_TO_TEST[i], &out_file_name);
         }
     }

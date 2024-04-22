@@ -19,7 +19,13 @@ use super::{ret::RET, weighted_list_cache::WLC};
 #[derive(Clone)]
 pub struct CDSMP {
     stats: HashMap<String, f64>,
-    last_state_at_level: Vec<Vec<u16>>,
+    last_state_at_level: Vec<Vec<u32>>,
+    inter_rule: bool,
+    fur_rule: bool,
+    irrelevance_rule: bool,
+    last_size_rule: bool,
+    state_mem: bool,
+    mem_limit: usize,
 }
 
 impl CDSMP {
@@ -27,6 +33,32 @@ impl CDSMP {
         return CDSMP {
             stats: HashMap::new(),
             last_state_at_level: vec![],
+            inter_rule: true,
+            fur_rule: true,
+            irrelevance_rule: true,
+            last_size_rule: true,
+            state_mem: true,
+            mem_limit: 1_000_000_000
+        };
+    }
+
+    pub fn new_with_rules(
+        inter_rule: bool,
+        fur_rule: bool,
+        irrelevance_rule: bool,
+        last_size_rule: bool,
+        state_mem: bool,
+        mem_limit: usize
+    ) -> CDSMP {
+        return CDSMP {
+            stats: HashMap::new(),
+            last_state_at_level: vec![],
+            inter_rule,
+            fur_rule,
+            irrelevance_rule,
+            last_size_rule,
+            state_mem,
+            mem_limit
         };
     }
 }
@@ -56,32 +88,34 @@ impl CDSMP {
         part_sol: &PartialAssignment,
         ret: &RET,
         instance: &ProblemInstance,
-    ) -> &Vec<u16> {
+    ) -> &Vec<u32> {
+        assert!(self.state_mem);
         let largest_unassigned = part_sol.unassigned[0];
         for i in 0..instance.num_processors {
-            self.last_state_at_level[largest_unassigned][i] = part_sol.makespan_sans_fur[i] as u16;
+            self.last_state_at_level[largest_unassigned][i] = part_sol.makespan_sans_fur[i] as u32;
         }
         for fur_job in 0..largest_unassigned {
             if part_sol.fur_assignments[fur_job] {
                 self.last_state_at_level[largest_unassigned][part_sol.assignment[fur_job]] +=
-                    instance.job_sizes[fur_job] as u16;
+                    instance.job_sizes[fur_job] as u32;
             }
         }
         for i in 0..instance.num_processors {
             self.last_state_at_level[largest_unassigned][i] = ret.get_range(
                 largest_unassigned,
                 self.last_state_at_level[largest_unassigned][i] as usize,
-            );
+            ) as u32;
         }
-        self.last_state_at_level[largest_unassigned][instance.num_processors] = u16::MAX;
+        self.last_state_at_level[largest_unassigned][instance.num_processors] = u32::MAX;
         self.last_state_at_level[largest_unassigned].sort();
         self.last_state_at_level[largest_unassigned][instance.num_processors] =
-            largest_unassigned as u16;
+            largest_unassigned as u32;
         // println!("{:?}", list);
         return &self.last_state_at_level[largest_unassigned];
     }
 
-    fn get_state_list(&self, part_sol: &PartialAssignment) -> &Vec<u16> {
+    fn get_state_list(&self, part_sol: &PartialAssignment) -> &Vec<u32> {
+        assert!(self.state_mem);
         let largest_unassigned = part_sol.unassigned[0];
         return &self.last_state_at_level[largest_unassigned];
     }
@@ -117,7 +151,7 @@ impl CDSMP {
         if part_sol.min_space_required > remaining_space {
             return Ok((None, 0));
         }
-        // ======================================
+        // ====================================== END CONDITIONS
 
         if part_sol.unassigned.len() == 3 {
             let mut first_part_sol = part_sol.clone();
@@ -150,50 +184,104 @@ impl CDSMP {
             if better_option.makespan < best_makespan_found {
                 //println!("found solution with makesapan {}", better_option.makespan);
                 let next_makespan_to_check = better_option.makespan - 1;
-                if next_makespan_to_check != instance.job_sizes[0] {
-                    ret.decrease_makespan_to(next_makespan_to_check);
+                if (self.fur_rule || self.inter_rule|| self.state_mem) && next_makespan_to_check != instance.job_sizes[0] {
+                    let last_relevant_index =
+                        self.calculate_irrelevance_index(instance, next_makespan_to_check);
+                    ret.decrease_makespan_to(
+                        &instance.job_sizes,
+                        next_makespan_to_check,
+                        last_relevant_index,
+                    );
                 }
-                saved_states.clear_all();
+                if self.state_mem {
+                    saved_states.clear_all();
+                }
                 return Ok((Some(better_option), 0));
             } else {
                 return Ok((None, 0));
             }
         }
 
-        let original_state = self.gen_state_list(part_sol, ret, &instance);
-        if saved_states.is_present(original_state) {
-            return Ok((None, 0));
+        if self.last_size_rule {
+            // TODO: line below here, only consider relevant jobs
+            if instance.job_sizes[part_sol.unassigned[0]]
+                == instance.job_sizes[part_sol.unassigned[part_sol.unassigned.len() - 1]]
+            {
+                let mut sol = part_sol.clone();
+
+                for &unassigned_job in &part_sol.unassigned {
+                    let mut min_proc = 0;
+
+                    for proc in 0..instance.num_processors {
+                        if sol.makespans[proc] < sol.makespans[min_proc] {
+                            min_proc = proc;
+                        }
+                    }
+
+                    sol.assign(unassigned_job, min_proc, instance, false);
+
+                    if sol.makespan >= best_makespan_found {
+                        return Ok((None, 0));
+                    }
+                }
+
+                let next_makespan_to_check = sol.makespan - 1;
+                if next_makespan_to_check != instance.job_sizes[0] {
+                    let last_relevant_index =
+                        self.calculate_irrelevance_index(instance, next_makespan_to_check);
+                    ret.decrease_makespan_to(
+                        &instance.job_sizes,
+                        next_makespan_to_check,
+                        last_relevant_index,
+                    );
+                }
+                if self.state_mem {
+                    saved_states.clear_all();
+                }
+                return Ok((Some(sol), 0));
+            }
         }
 
-        let mut fur_job: usize = usize::MAX;
-        let mut fur_proc = usize::MAX;
-        for proc in 0..instance.num_processors {
-            let proc_makespan = part_sol.makespans[proc];
-            if best_makespan_found - proc_makespan
-                < instance.job_sizes[*part_sol.unassigned.last().unwrap()]
-            {
-                continue;
-            }
-            for i in 0..part_sol.unassigned.len() {
-                if best_makespan_found - proc_makespan > instance.job_sizes[part_sol.unassigned[i]]
-                {
-                    let job: usize = part_sol.unassigned[i];
-                    if ret.get_range(job, best_makespan_found - 1 - instance.job_sizes[job])
-                        == ret.get_range(job, proc_makespan)
-                    {
-                        fur_job = job;
-                        fur_proc = proc;
+        let mut best_sol = None;
+        let mut best_makespan_found = best_makespan_found;
+        while !ret.is_relevant(part_sol.unassigned[0]) {
+            let job = part_sol.unassigned[0];
+            let mut inserted = false;
+            for proc in 0..instance.num_processors {
+                if best_makespan_found - part_sol.makespans[proc] > instance.job_sizes[job] {
+                    inserted = true;
+                    part_sol.assign(job, proc, instance, false);
+                    let sol = self.solve_rec(
+                        instance,
+                        part_sol,
+                        ret,
+                        saved_states,
+                        lower,
+                        best_makespan_found,
+                        timeout,
+                    );
+                    part_sol.unassign(job, instance, false);
+
+                    if sol.is_err() {
+                        return sol;
                     }
+                    let (sol, _) = sol.unwrap();
+                    if sol.is_none() {
+                        return Ok((best_sol, 0));
+                    } else {
+                        best_sol = sol;
+                        best_makespan_found = best_sol.as_ref().unwrap().makespan;
+                    }
+
                     break;
                 }
             }
+            if !inserted {
+                return Ok((best_sol, 0));
+            }
         }
-
-        if fur_job != usize::MAX {
-            // in this case we use the FUR and recurse
-
-            part_sol.assign(fur_job, fur_proc, instance, true);
-            let sol = self.solve_rec(
+        if best_sol.is_some() {
+            let better_sol = self.solve_rec(
                 instance,
                 part_sol,
                 ret,
@@ -202,28 +290,60 @@ impl CDSMP {
                 best_makespan_found,
                 timeout,
             );
-            if sol.is_err() {
-                return Err(());
+
+            if better_sol.is_err() {
+                return better_sol;
             }
-            part_sol.unassign(fur_job, instance, true);
-            let (sol, num_branches) = sol.unwrap();
-            if sol.is_some() {
-                // if sol is found, then we know that we can improve upon best_makespan_found, but because we used the
-                // FUR, we dont know if we can improve this solution even further without the FUR
-                let sol = sol.unwrap();
-                assert!(sol.makespan < best_makespan_found);
-                let best_makespan_found: usize = sol.makespan;
 
-                // if the optiml solution has been reached, or we know that this assignment is not the reason that the makespan is so large,
-                // then we know we cannot achieve a better solution here
-                if best_makespan_found <= lower
-                    || part_sol.makespans[fur_proc] + instance.job_sizes[fur_job] < sol.makespan
+            let (better_sol, num_nodes) = better_sol.unwrap();
+            if better_sol.is_none() {
+                return Ok((best_sol, num_nodes));
+            } else {
+                return Ok((better_sol, num_nodes));
+            }
+        }
+
+        // ========================================================
+
+        if self.state_mem {
+            let original_state = self.gen_state_list(part_sol, ret, &instance);
+            if saved_states.is_present(original_state) {
+                return Ok((None, 0));
+            }
+        }
+
+        if self.fur_rule {
+            let mut fur_job: usize = usize::MAX;
+            let mut fur_proc = usize::MAX;
+            for proc in 0..instance.num_processors {
+                let proc_makespan = part_sol.makespans[proc];
+                if best_makespan_found - proc_makespan
+                    < instance.job_sizes[*part_sol.unassigned.last().unwrap()]
                 {
-                    return Ok((Some(sol), num_branches + 1));
+                    continue;
                 }
+                for i in 0..part_sol.unassigned.len() {
+                    let job = part_sol.unassigned[i];
+                    if !ret.is_relevant(job) {
+                        break;
+                    }
+                    if best_makespan_found - proc_makespan > instance.job_sizes[job] {
+                        if ret.get_range(job, best_makespan_found - 1 - instance.job_sizes[job])
+                            == ret.get_range(job, proc_makespan)
+                        {
+                            fur_job = job;
+                            fur_proc = proc;
+                        }
+                        break;
+                    }
+                }
+            }
 
-                // now we have to revert the FUR decision, and recurse
-                let better_sol = self.solve_rec(
+            if fur_job != usize::MAX {
+                // in this case we use the FUR and recurse
+
+                part_sol.assign(fur_job, fur_proc, instance, true);
+                let sol = self.solve_rec(
                     instance,
                     part_sol,
                     ret,
@@ -232,21 +352,52 @@ impl CDSMP {
                     best_makespan_found,
                     timeout,
                 );
-                if better_sol.is_err() {
+                if sol.is_err() {
                     return Err(());
                 }
-                let (better_sol, num_sub_branches) = better_sol.unwrap();
+                part_sol.unassign(fur_job, instance, true);
+                let (sol, num_branches) = sol.unwrap();
+                if sol.is_some() {
+                    // if sol is found, then we know that we can improve upon best_makespan_found, but because we used the
+                    // FUR, we dont know if we can improve this solution even further without the FUR
+                    let sol = sol.unwrap();
+                    assert!(sol.makespan < best_makespan_found);
+                    let best_makespan_found: usize = sol.makespan;
 
-                if better_sol.is_none() {
-                    //println!("happened");
-                    return Ok((Some(sol), num_branches + num_sub_branches + 1));
+                    // if the optiml solution has been reached, or we know that this assignment is not the reason that the makespan is so large,
+                    // then we know we cannot achieve a better solution here
+                    if best_makespan_found <= lower
+                        || part_sol.makespans[fur_proc] + instance.job_sizes[fur_job] < sol.makespan
+                    {
+                        return Ok((Some(sol), num_branches + 1));
+                    }
+
+                    // now we have to revert the FUR decision, and recurse
+                    let better_sol = self.solve_rec(
+                        instance,
+                        part_sol,
+                        ret,
+                        saved_states,
+                        lower,
+                        best_makespan_found,
+                        timeout,
+                    );
+                    if better_sol.is_err() {
+                        return Err(());
+                    }
+                    let (better_sol, num_sub_branches) = better_sol.unwrap();
+
+                    if better_sol.is_none() {
+                        //println!("happened");
+                        return Ok((Some(sol), num_branches + num_sub_branches + 1));
+                    } else {
+                        let sol = better_sol.unwrap();
+                        return Ok((Some(sol), num_branches + num_sub_branches + 1));
+                    }
                 } else {
-                    let sol = better_sol.unwrap();
-                    return Ok((Some(sol), num_branches + num_sub_branches + 1));
+                    // here sol is None, so we know we cannot improve upon best_makespan_found
+                    return Ok((None, num_branches + 1));
                 }
-            } else {
-                // here sol is None, so we know we cannot improve upon best_makespan_found
-                return Ok((None, num_branches + 1));
             }
         }
 
@@ -291,7 +442,7 @@ impl CDSMP {
             .take(num_unassigned)
             .collect();
 
-        let mut last_range: u16 = u16::MAX;
+        let mut last_range: usize = usize::MAX;
 
         let mut num_branches: usize = 0;
         for proc in procs_to_branch_on {
@@ -300,7 +451,11 @@ impl CDSMP {
             {
                 continue;
             }
-            let range = ret.get_range(job_to_branch_on, part_sol.makespans[proc]);
+            let range = if self.inter_rule {
+                ret.get_range(job_to_branch_on, part_sol.makespans[proc]) as usize
+            } else {
+                part_sol.makespans[proc]
+            };
 
             if last_range == range {
                 continue;
@@ -330,7 +485,7 @@ impl CDSMP {
                 best_makespan_found = sol.makespan;
                 best_sol = Some(sol);
                 if best_makespan_found <= lower {
-                    if part_sol.makespan < best_makespan_found {
+                    if self.state_mem && part_sol.makespan < best_makespan_found {
                         saved_states.insert_list(
                             self.gen_state_list(part_sol, ret, &instance),
                             num_branches + 1,
@@ -338,17 +493,40 @@ impl CDSMP {
                     }
                     return Ok((best_sol, num_branches + 1));
                 }
-                last_range = ret.get_range(job_to_branch_on, part_sol.makespans[proc]);
+                last_range = ret.get_range(job_to_branch_on, part_sol.makespans[proc]) as usize;
             } else {
                 num_branches += num_sub_branches;
             }
         }
 
-        if best_sol.is_none() {
+        if self.state_mem && best_sol.is_none() {
             saved_states.insert_list(self.get_state_list(part_sol), num_branches + 1);
         }
 
         return Ok((best_sol, num_branches + 1));
+    }
+
+    ///*
+    /// Returns the last relvant job index. all indices after this can be ignored when solving the PCmax decision problem
+    ///  */
+    fn calculate_irrelevance_index(
+        &self,
+        instance: &ProblemInstance,
+        makespan_to_test: usize,
+    ) -> usize {
+        if !self.irrelevance_rule {
+            return instance.num_jobs - 1;
+        }
+        let mut sum_of_prev_jobs: usize = instance.job_sizes.iter().sum();
+        for job in (0..instance.num_jobs).rev() {
+            sum_of_prev_jobs -= instance.job_sizes[job];
+            if sum_of_prev_jobs
+                >= instance.num_processors * (makespan_to_test - instance.job_sizes[job] + 1)
+            {
+                return job;
+            }
+        }
+        return 0;
     }
 }
 
@@ -389,9 +567,15 @@ impl SolverManager for CDSMP {
         }
         let mut part_sol = PartialAssignment::new(instance);
 
-        let mut ret = RET::new(&instance.job_sizes, makespan_to_test);
+        let last_relevant_index = self.calculate_irrelevance_index(instance, makespan_to_test);
+        let mut ret = if self.fur_rule || self.inter_rule || self.state_mem{
+            RET::new(&instance.job_sizes, makespan_to_test, last_relevant_index, self.mem_limit)
+        } else {
+            RET::new(&vec![0], 1, 0, self.mem_limit)
+        };
+        
 
-        let num_bins = 1_000_000_000 / ((instance.num_processors + 1) * 10);
+        let num_bins = if self.state_mem{self.mem_limit / ((instance.num_processors + 1) * 20)} else {0};
         let mut saved_states = WLC::new(instance.num_processors + 1, num_bins, 3, 10);
         self.last_state_at_level = vec![vec![0; instance.num_processors + 1]; instance.num_jobs];
 
@@ -405,10 +589,14 @@ impl SolverManager for CDSMP {
             timeout,
         );
         //println!("{:?}", saved_states);
-        println!("num_nodes_explored {}", part_sol.num_nodes_explored);
+        // println!("num_nodes_explored {}", part_sol.num_nodes_explored);
         self.stats.insert(
             "num_nodes_explored".to_string(),
             part_sol.num_nodes_explored as f64,
+        );
+        self.stats.insert(
+            "mem_used".to_owned(),
+            ((makespan_to_test*instance.num_jobs + instance.num_jobs * 4 + instance.num_processors) * 8 + saved_states.mem_usage()) as f64,
         );
         if sol.is_err() {
             return None;

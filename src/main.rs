@@ -1,9 +1,8 @@
 use std::{env, vec};
 
+use p_cmax_solver::bounds::upper_bounds::{lptp, mss};
 use p_cmax_solver::encoding::cplex_model_encoding::pinar_seyda::PinarSeyda;
-use p_cmax_solver::encoding::ilp_encoding::mehdi_nizar_original::MehdiNizarOriginalEncoder;
 use p_cmax_solver::encoding::ilp_encoding::mehdi_nizar_prec::MehdiNizarOrderEncoder;
-use p_cmax_solver::encoding::ilp_encoding::naive::Naive;
 use p_cmax_solver::encoding::sat_encoding::basic_encoder::BasicEncoder;
 use p_cmax_solver::encoding::sat_encoding::bdd_inter_comp::BddInterComp;
 use p_cmax_solver::encoding::sat_encoding::binmerge_native::BinmergeEncoder;
@@ -13,7 +12,6 @@ use p_cmax_solver::encoding::sat_encoding::precedence_encoder::Precedence;
 use p_cmax_solver::solvers::branch_and_bound::compressed_bnb::CompressedBnB;
 use p_cmax_solver::solvers::branch_and_bound::hj::HJ;
 use p_cmax_solver::solvers::cdsm::cdsm::CDSM;
-use p_cmax_solver::solvers::cdsm::cdsmf::CDSMF;
 use p_cmax_solver::solvers::cdsm::cdsmp::CDSMP;
 use p_cmax_solver::solvers::cp_solver::cplex_manager::CPELXSolver;
 use p_cmax_solver::solvers::ilp_solver::gurobi::Gurobi;
@@ -53,11 +51,11 @@ fn main() {
         Box::new(middle::MiddleJobs {}),
         //Box::new(fs::FeketeSchepers {}),
         Box::new(lpt::LPT {}),
-        // Box::new(lptp::Lptp {}),
-        // Box::new(sss_bound_tightening::SSSBoundStrengthening {}),
+        Box::new(lptp::Lptp {}),
+        Box::new(sss_bound_tightening::SSSBoundStrengthening {}),
         // Box::new(lptpp::Lptpp {}),
-        // Box::new(lifting::Lifting::new_deterministic(4)),
-        // Box::new(mss::MSS::new_deterministic(1)),
+        Box::new(lifting::Lifting::new_deterministic(4)),
+        Box::new(mss::MSS::new_deterministic(1)),
     ];
 
     let total_timeout = Timeout::new(total_timeout_time);
@@ -107,7 +105,7 @@ fn main() {
         return;
     }
     if args.contains(&"-ilp".to_string()) {
-        let encoder = Box::new(Naive::new());
+        let encoder = Box::new(MehdiNizarOrderEncoder::new());
         let mut solver = Gurobi::new(encoder);
 
         let sol = solver
@@ -144,21 +142,11 @@ fn main() {
             .solve(&instance, lower_bound, &upper_bound, &total_timeout, true)
             .unwrap();
         let final_solution = instance.finalize_solution(sol);
-        println!("solution found {}", final_solution);
+        println!("solution found {}", final_solution.makespan);
         println!("time {}", total_timeout_time - total_timeout.remaining_time());
         return;
     }else if args.contains(&"-cdsmp".to_string()) {
-        let mut solver = CDSMP::new();
-
-        let sol = solver
-            .solve(&instance, lower_bound, &upper_bound, &total_timeout, true)
-            .unwrap();
-        let final_solution = instance.finalize_solution(sol);
-        println!("solution found {}", final_solution);
-        println!("time {}", total_timeout_time - total_timeout.remaining_time());
-        return;
-    }else if args.contains(&"-cdsmf".to_string()) {
-        let mut solver = CDSMF::new();
+        let mut solver = CDSMP::new_with_rules(false, false, false, false, true, 1_000_000_000);
 
         let sol = solver
             .solve(&instance, lower_bound, &upper_bound, &total_timeout, true)

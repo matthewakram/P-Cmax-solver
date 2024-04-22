@@ -23,18 +23,18 @@ fn subset_sum(
     goal: usize,
     lower_bound: usize,
 ) -> (Vec<usize>, usize) {
-    let mut dp: Vec<i16> = vec![-1; goal.max(lower_bound) + 1];
+    let mut dp: Vec<i32> = vec![-1; goal.max(lower_bound) + 1];
 
     for job in remaining_jobs {
         let job = *job;
         let job_size = instance.job_sizes[job];
         if dp[job_size] == -1 {
-            dp[job_size] = job as i16;
+            dp[job_size] = job as i32;
         }
         for pos in 1..(dp.len() - job_size) {
-            if dp[pos] != -1 && dp[pos] != job as i16 {
+            if dp[pos] != -1 && dp[pos] != job as i32 {
                 if dp[job_size + pos] == -1 {
-                    dp[job_size + pos] = job as i16;
+                    dp[job_size + pos] = job as i32;
                 }
             }
         }
@@ -76,14 +76,14 @@ impl HJ {
     pub fn new_base() -> HJ {
         return HJ {
             fur_rule: false,
-            inter_rule: true,
+            inter_rule: false,
         };
     }
 
     pub fn new_inter() -> HJ {
         return HJ {
             fur_rule: false,
-            inter_rule: false,
+            inter_rule: true,
         };
     }
 
@@ -282,6 +282,9 @@ impl HJ {
         let mut prev_job_size = usize::MAX;
         // BRANCHING
         for job in currently_unassigned {
+            if lower >= best_makespan_found{
+                return Ok(best_sol);
+            }
             let remaining_makespan =
                 best_makespan_found - 1 - part_sol.makespans[processor_to_assign_to];
             if instance.job_sizes[job] > remaining_makespan {

@@ -233,16 +233,16 @@ for i in keys:
         #print(str(i) + " : X " + str(values[0][i]) + ", Y " + str(values[1][i]))
 
     if i in statistics[0]:
-        color = (rgb_to_hex( 255 - int(min(int(statistics[0][i][stats[0]]),max_first_stats)/ max_first_stats * 255 ), 0 , 0))
+        color = (rgb_to_hex(  int(min(int(statistics[0][i][stats[0]]),max_first_stats)/ max_first_stats * 255 ), 0 , 0))
         #print(color)
     else:
-        color = (rgb_to_hex( 255 - int(min(int(statistics[1][i][stats[0]]),max_first_stats) / max_first_stats * 255), 0, 0))
+        color = (rgb_to_hex( int(min(int(statistics[1][i][stats[0]]),max_first_stats) / max_first_stats * 255), 0, 0))
     marker = '.'
-    if color == '#000000':
-        marker = '+'
-        color = '#0000ff'
-    else :
-        marker = "x"
+    # if color == '#000000':
+    #     marker = '+'
+    #     color = '#0000ff'
+    # else :
+    #     marker = "x"
     plt.plot(X[-1], Y[-1], marker=marker, alpha=1, markersize=4, markeredgecolor=color, color=color)
     
 label_idx += 1

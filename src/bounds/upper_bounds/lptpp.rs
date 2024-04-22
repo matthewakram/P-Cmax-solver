@@ -8,16 +8,16 @@ use crate::{
 pub struct Lptpp {}
 
 fn subset_sum(elements: &Vec<usize>, goal: usize) -> Vec<usize> {
-    let mut dp: Vec<i16> = vec![-1; goal + 1];
+    let mut dp: Vec<i32> = vec![-1; goal + 1];
 
     for element in 0..elements.len() {
         if dp[elements[element]] == -1 {
-            dp[elements[element]] = element as i16;
+            dp[elements[element]] = element as i32;
         }
         for pos in 1..(dp.len() - elements[element]) {
-            if dp[pos] != -1 && dp[pos] != element as i16 {
+            if dp[pos] != -1 && dp[pos] != element as i32 {
                 if dp[elements[element] + pos] == -1 {
-                    dp[elements[element] + pos] = element as i16;
+                    dp[elements[element] + pos] = element as i32;
                 }
             }
         }
@@ -43,11 +43,15 @@ fn subset_sum(elements: &Vec<usize>, goal: usize) -> Vec<usize> {
     return result;
 }
 
-fn is_feasable(instance: &ProblemInstance, max_makespan: usize) -> Option<Solution> {
+fn is_feasable(instance: &ProblemInstance, max_makespan: usize, timeout: &Timeout) -> Option<Solution> {
     let mut assignment: Vec<usize> = vec![usize::MAX; instance.num_jobs];
 
     let mut elements = instance.job_sizes.clone();
     for processor in 0..instance.num_processors {
+        if timeout.time_finished() {
+            return None;
+        }
+
         let feasable = subset_sum(&elements, max_makespan);
 
         for job in feasable {
@@ -86,7 +90,8 @@ impl Bound for Lptpp {
                 return (lower_bound, upper_bound);
             }
 
-            let sol = is_feasable(problem, makespan_to_check);
+            let sol = is_feasable(problem, makespan_to_check, timeout);
+
             if sol.is_some() {
                 return (lower_bound, sol);
             }

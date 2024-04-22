@@ -14,8 +14,8 @@ mod tests {
 
         let mut rng = rand::thread_rng();
         let range = Uniform::new(0, 20);
-        let v: Vec<Vec<u16>> = (0..10000)
-            .map(|_| (0..4).map(|_| rng.sample(&range)).collect::<Vec<u16>>())
+        let v: Vec<Vec<u32>> = (0..10000)
+            .map(|_| (0..4).map(|_| rng.sample(&range)).collect::<Vec<u32>>())
             .collect();
         let start = Instant::now();
 

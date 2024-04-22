@@ -4,16 +4,16 @@ mod tests {
 
     use rand::{distributions::Uniform, Rng};
 
-    use crate::solvers::cdsm::{state_db::StateDB, ussl::USSL};
+    use crate::solvers::cdsm::ussl::USSL;
 
     #[test]
     pub fn ussl_smoke_test() {
-        let mut ls = USSL::new(4, 100, 3, 10);
+        let mut ls = USSL::new(4, 100, 3, 10, 4_000_000_000);
 
         let mut rng = rand::thread_rng();
         let range = Uniform::new(0, 20);
-        let v: Vec<Vec<u16>> = (0..10000)
-            .map(|_| (0..4).map(|_| rng.sample(&range)).collect::<Vec<u16>>())
+        let v: Vec<Vec<u32>> = (0..10000)
+            .map(|_| (0..4).map(|_| rng.sample(&range)).collect::<Vec<u32>>())
             .collect();
         let start = Instant::now();
 

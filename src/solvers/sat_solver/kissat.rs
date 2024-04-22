@@ -1,8 +1,11 @@
 use crate::{common::timeout::Timeout, encoding::sat_encoder::Clauses, input_output};
 
+use rand::{rngs::ThreadRng, Rng};
 use std::{
     collections::HashMap,
+    fs::File,
     io::{Read, Write},
+    path::Path,
     process::{Command, Stdio},
     sync::{Arc, Mutex},
     time::{Duration, Instant},
@@ -27,7 +30,10 @@ impl Kissat {
 
 impl Clone for Kissat {
     fn clone(&self) -> Self {
-        Self { pid: Arc::new(Mutex::new(0)), stats: self.stats.clone() }
+        Self {
+            pid: Arc::new(Mutex::new(0)),
+            stats: self.stats.clone(),
+        }
     }
 }
 
@@ -69,7 +75,6 @@ impl SatSolver for Kissat {
         let a = child.stdout.take();
 
         if formula.is_none() {
-            println!("aaaaaaaaaaaah");
             child.kill().unwrap();
             child.wait().unwrap();
             *start_lock = 0;
@@ -81,7 +86,7 @@ impl SatSolver for Kissat {
             let formula = formula.unwrap();
             //thread::sleep(Duration::from_millis(10000));
             if formula.is_empty() {
-                println!("AAAAAAAAAAAAAAAAAAAAAAH");
+                panic!("AAAAAAAAAAAAAAAAAAAAAAH");
             }
             self.stats.insert(formula_size_key, formula.len() as f64);
             let mut stdin = child.stdin.take().unwrap();

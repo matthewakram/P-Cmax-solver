@@ -52,6 +52,10 @@ impl Encoder for BddInterComp {
         timeout: &Timeout,
         max_num_clauses: usize,
     ) -> bool {
+        if partial_solution.instance.num_jobs * makespan > max_num_clauses || partial_solution.instance.num_jobs * partial_solution.instance.num_jobs > max_num_clauses{
+            return false;
+        } 
+        
         self.one_hot.encode(partial_solution);
         let mut clauses: Clauses = Clauses::new();
         let mut bdds: Vec<DynBDD> = vec![];
