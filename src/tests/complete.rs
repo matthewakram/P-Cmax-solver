@@ -17,7 +17,7 @@ mod tests {
         encoding::ilp_encoding::mehdi_nizar_prec::MehdiNizarOrderEncoder,
         input_output,
         solvers::{
-            branch_and_bound::compressed_bnb::CompressedBnB, cdsm::cdsm::CDSM,
+            branch_and_bound::{compressed_bnb::CompressedBnB, hj::HJ}, cdsm::cdsm::CDSM,
             ilp_solver::gurobi::Gurobi, solver_manager::SolverManager,
         },
     };
@@ -183,29 +183,31 @@ mod tests {
         file.write_all(&result.as_bytes()).unwrap();
     }
 
-    const FOLDERS_TO_TEST: [&'static str; 1] = [
-        // "./bench/class_instances/",
+    const FOLDERS_TO_TEST: [&'static str; 11] = [
+        "./bench/class_instances/",
         "./bench/franca_frangioni/standardised/",
-        // "./bench/lawrenko/",
-        // "/global_data/pcmax_instances/finaler/cnf/",
-        // "/global_data/pcmax_instances/final/graph/",
-        // "/global_data/pcmax_instances/final/planted/",
-        // "/global_data/pcmax_instances/final/rt/anni/",
-        // "/global_data/pcmax_instances/final/rt/huebner/",
-        // "/global_data/pcmax_instances/final/rt/lehmann/",
-        // "/global_data/pcmax_instances/final/rt/schreiber/",
+        "./bench/lawrenko/",
+        "./bench/cnf/",
+        "./bench/graph/",
+        "./bench/huebner/",
+        "./bench/laupichler/",
+        "./bench/lehmann/",
+        "./bench/planted/",
+        "./bench/sc2022",
+        "./bench/schreiber/"
     ];
-    const BENCHMARK_NAMES: [&'static str; 1] = [
-        // "berndt",
+    const BENCHMARK_NAMES: [&'static str; 11] = [
+        "berndt",
         "franca_frangioni",
-        // "lawrenko",
-        // "real_cnf",
-        // "real_graph",
-        // "real_planted",
-        // "real_rt_anni",
-        // "real_rt_huebner",
-        // "real_rt_lehmann",
-        // "real_rt_schreiber",
+        "lawrenko",
+        "real_cnf",
+        "real_graph",
+        "real_rt_huebner",
+        "real_rt_anni",
+        "real_rt_lehmann",
+        "real_planted",
+        "real_sc2022",
+        "real_rt_schreiber",
     ];
 
     #[test]
@@ -316,6 +318,16 @@ mod tests {
         let solver = Box::new(Gurobi::new(Box::new(MehdiNizarOrderEncoder::new())));
         for i in 0..FOLDERS_TO_TEST.len() {
             let out_file_name = format!("./bench/results/complete_{}_ilp.txt", BENCHMARK_NAMES[i]);
+            test_solver(solver.clone(), FOLDERS_TO_TEST[i], &out_file_name);
+        }
+    }
+
+    #[test]
+    #[ignore]
+    pub fn complete_test_hj() {
+        let solver = Box::new(HJ::new_base());
+        for i in 0..FOLDERS_TO_TEST.len() {
+            let out_file_name = format!("./bench/results/complete_{}_hj.txt", BENCHMARK_NAMES[i]);
             test_solver(solver.clone(), FOLDERS_TO_TEST[i], &out_file_name);
         }
     }
