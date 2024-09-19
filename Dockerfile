@@ -47,4 +47,4 @@ WORKDIR /P-Cmax-solver
 # without manually installing gurobi. If you wish to do so, follow the instructions on their 
 # website and the copy the gurobi_ci executable to the root directory of the project. 
 
-ENTRYPOINT ["sleep", "infinity"]
+ENTRYPOINT ["bash"]
