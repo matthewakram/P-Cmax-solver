@@ -16,7 +16,7 @@ to build it, and then start it by running
 docker run -it submission_image
 ```
 
-This container does nothing by default, use the shell in the docker gui to start the tests you would like to run.
+This container does nothing by default, use the shell to start the tests you would like to run.
 
 The tests can be found in src/test/complete.rs. To run them, simply select the algorithm you would like to run, copy the name of its test, and run
 ```cargo test -r <test_name> -- --nocapture --ignored```
