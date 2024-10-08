@@ -10,7 +10,14 @@ RUN apt-get install -y \
     git \
     python3 \
     unzip \
-    wget
+    wget \
+    texlive-latex-extra \
+    cm-super \
+    texlive-fonts-recommended \ 
+    dvipng \
+    python3-pip
+
+RUN pip3 install matplotlib PyQt5
 
 # Update new packages
 RUN apt-get update
