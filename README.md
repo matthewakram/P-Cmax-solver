@@ -23,6 +23,16 @@ The tests can be found in src/test/complete.rs. To run them, simply select the a
 It will iterate through the datasets and provide the results in the results folder.
 The gurobi solver is not provided due to licencing, thus the ilp solution cannot be run without manually installing gurobi. If you wish to do so, follow the instructions on their website and the copy the gurobi_ci executable to the root directory of the project.
 
+The options for `test_name` are:
+- `complete_test_base_cdsm` for our basic bnb algorithm without our advanced pruning rules
+- `complete_test_last_size_cdsm` for our bnb algorithm with rule 5
+- `complete_test_inter_cdsm` for our bnb algorithm with rules 5+6
+- `complete_test_fur_cdsm` for bnb algorithm with rules 5-7
+- `complete_test_irrelevance_cdsm` for our bnb algorithm with rules 5-7 and Theorem 3.2
+- `complete_test_cdsm` for our bnb algorithm with all rules and CDSM applied
+- `complete_test_ilp` for the ILP bases approach (needs gurobi)
+- `complete_test_hj` for the HJ algorithm
+
 Once you have some results for multiple algorithms, you can plot them as a 1v1 graph as follows:
 ```python3 <path to file 1> <path to file 2>`-xlabel=<label for file 1> -ylabel=<label for file 2>```
 This produces a 1v1 graph comparing the performance of the algorithms that produced these files. 
