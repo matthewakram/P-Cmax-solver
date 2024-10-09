@@ -3,6 +3,9 @@ FROM ubuntu:20.04
 # Update default packages
 RUN apt-get update
 
+
+ENV DEBIAN_FRONTEND=noninteractive
+
 # Get Ubuntu packages
 RUN apt-get install -y \
     build-essential \
@@ -10,14 +13,16 @@ RUN apt-get install -y \
     git \
     python3 \
     unzip \
-    wget \
-    texlive-latex-extra \
-    cm-super \
-    texlive-fonts-recommended \ 
-    dvipng \
-    python3-pip
+    wget
 
-RUN pip3 install matplotlib PyQt5
+RUN apt-get install -y python3-pip
+RUN apt-get install -q -y texlive-latex-extra
+RUN apt-get install -y cm-super
+RUN apt-get install -y texlive-fonts-recommended 
+RUN apt-get install -y dvipng
+RUN apt-get install -y python3-pyqt5
+
+RUN pip3 install matplotlib
 
 # Update new packages
 RUN apt-get update
