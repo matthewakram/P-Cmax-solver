@@ -43,7 +43,11 @@ fn subset_sum(elements: &Vec<usize>, goal: usize) -> Vec<usize> {
     return result;
 }
 
-fn is_feasable(instance: &ProblemInstance, max_makespan: usize, timeout: &Timeout) -> Option<Solution> {
+fn is_feasable(
+    instance: &ProblemInstance,
+    max_makespan: usize,
+    timeout: &Timeout,
+) -> Option<Solution> {
     let mut assignment: Vec<usize> = vec![usize::MAX; instance.num_jobs];
 
     let mut elements = instance.job_sizes.clone();

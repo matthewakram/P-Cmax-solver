@@ -1,11 +1,11 @@
-pub mod binmerge_simp;
-pub mod pb_bdd_native;
-pub mod pb_bdd_pysat;
-pub mod precedence_encoder;
-pub mod problem_encoding;
 pub mod basic_encoder;
 pub mod bdd_inter_comp;
 pub mod binary_arithmetic;
 pub mod binmerge_native;
+pub mod binmerge_simp;
 pub mod cardinality_networks;
 pub mod mehdi_nizar_sat;
+pub mod pb_bdd_native;
+pub mod pb_bdd_pysat;
+pub mod precedence_encoder;
+pub mod problem_encoding;

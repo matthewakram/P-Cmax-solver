@@ -346,7 +346,8 @@ impl SolverManager for CompressedBnB {
             hsr.simplify(&partial_solution, makespan_to_test).unwrap();
         let partial_solution: PartialSolution =
             fur.simplify(&partial_solution, makespan_to_test).unwrap();
-        let partial_solution: Option<PartialSolution> = finalize.simplify(&partial_solution, makespan_to_test);
+        let partial_solution: Option<PartialSolution> =
+            finalize.simplify(&partial_solution, makespan_to_test);
         if partial_solution.is_none() {
             return Some(upper.clone());
         }

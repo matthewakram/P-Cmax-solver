@@ -27,6 +27,5 @@ mod tests {
         }
         println!("{:?}", ls);
         println!("time {}", start.elapsed().as_secs_f64());
-
     }
 }

@@ -77,7 +77,7 @@ impl BranchAndBoundLogging {
         lower: usize,
         best_makespan_found: usize,
         timeout: &crate::common::timeout::Timeout,
-        log : &mut Vec<u16>,
+        log: &mut Vec<u16>,
     ) -> Result<Option<PartialAssignment>, ()> {
         if timeout.time_finished() {
             return Result::Err(());
@@ -146,9 +146,13 @@ impl BranchAndBoundLogging {
         }
 
         let level = part_sol.unassigned[0];
-        let mut ranges : Vec<usize>= part_sol.makespans.iter().map(|x| ret.get_range(level, *x).unwrap()).collect();
+        let mut ranges: Vec<usize> = part_sol
+            .makespans
+            .iter()
+            .map(|x| ret.get_range(level, *x).unwrap())
+            .collect();
         ranges.sort();
-        ranges.push(best_makespan_found-1);
+        ranges.push(best_makespan_found - 1);
         ranges.push(level);
         for i in 0..ranges.len() {
             log.push(ranges[i] as u16);
@@ -188,7 +192,15 @@ impl BranchAndBoundLogging {
             // in this case we use the FUR and recurse
 
             part_sol.assign(fur_job, fur_proc, instance, true);
-            let sol = self.solve_rec(instance, part_sol, ret, lower, best_makespan_found, timeout, log);
+            let sol = self.solve_rec(
+                instance,
+                part_sol,
+                ret,
+                lower,
+                best_makespan_found,
+                timeout,
+                log,
+            );
             if sol.is_err() {
                 return Err(());
             }
@@ -209,8 +221,15 @@ impl BranchAndBoundLogging {
                 }
 
                 // now we have to revert the FUR decision, and recurse
-                let better_sol =
-                    self.solve_rec(instance, part_sol, ret, lower, best_makespan_found, timeout, log);
+                let better_sol = self.solve_rec(
+                    instance,
+                    part_sol,
+                    ret,
+                    lower,
+                    best_makespan_found,
+                    timeout,
+                    log,
+                );
                 if better_sol.is_err() {
                     return Err(());
                 }
@@ -281,7 +300,15 @@ impl BranchAndBoundLogging {
             last_range = range;
 
             part_sol.assign(job_to_branch_on, proc, instance, false);
-            let sol = self.solve_rec(instance, part_sol, ret, lower, best_makespan_found, timeout, log);
+            let sol = self.solve_rec(
+                instance,
+                part_sol,
+                ret,
+                lower,
+                best_makespan_found,
+                timeout,
+                log,
+            );
 
             if sol.is_err() {
                 return Err(());
@@ -310,7 +337,6 @@ impl BranchAndBoundLogging {
 }
 
 impl SolverManager for BranchAndBoundLogging {
-
     fn get_stats(&self) -> HashMap<String, f64> {
         return self.stats.clone();
     }
@@ -327,7 +353,10 @@ impl SolverManager for BranchAndBoundLogging {
         let makespan_to_test = upper.makespan - 1;
         self.stats.insert(
             mem_size_key,
-            ((makespan_to_test*instance.num_jobs + instance.num_jobs * 4 + instance.num_processors) * 8) as f64,
+            ((makespan_to_test * instance.num_jobs
+                + instance.num_jobs * 4
+                + instance.num_processors)
+                * 8) as f64,
         );
         let partial_solution = PartialSolution::new(instance.clone());
 
@@ -351,7 +380,15 @@ impl SolverManager for BranchAndBoundLogging {
         );
 
         let mut log: Vec<u16> = vec![];
-        let sol = self.solve_rec(instance, &mut part_sol, ret, lower, upper.makespan, timeout, &mut log);
+        let sol = self.solve_rec(
+            instance,
+            &mut part_sol,
+            ret,
+            lower,
+            upper.makespan,
+            timeout,
+            &mut log,
+        );
         // println!("{:?}", log);
         if sol.is_err() {
             return None;
@@ -379,24 +416,35 @@ fn analyze_log(mut log: Vec<u16>, state_length: usize) {
     let mut state_pointer = 0;
 
     while state_pointer * state_length < log.len() {
-        if log[state_pointer*state_length] != u16::MAX {
-            for i in 0..state_length{
-                current_state[i] = log[state_pointer*state_length + i];
+        if log[state_pointer * state_length] != u16::MAX {
+            for i in 0..state_length {
+                current_state[i] = log[state_pointer * state_length + i];
             }
 
-            let (i, ii, iii) = count_nodes_below(&current_state, &mut log, state_pointer, state_length);
+            let (i, ii, iii) =
+                count_nodes_below(&current_state, &mut log, state_pointer, state_length);
             if iii != 0 {
-                print!("({}, {}, {}, {}),", i, ii, iii, current_state[state_length-1]);
+                print!(
+                    "({}, {}, {}, {}),",
+                    i,
+                    ii,
+                    iii,
+                    current_state[state_length - 1]
+                );
             }
-        }else {
-            
+        } else {
         }
-        state_pointer +=1;
+        state_pointer += 1;
     }
 }
 
-fn count_nodes_below(current_state: &Vec<u16>, log: &mut Vec<u16>, state_pointer: usize, state_length: usize) -> (usize, usize, usize) {
-    let level = current_state[state_length-1];
+fn count_nodes_below(
+    current_state: &Vec<u16>,
+    log: &mut Vec<u16>,
+    state_pointer: usize,
+    state_length: usize,
+) -> (usize, usize, usize) {
+    let level = current_state[state_length - 1];
     let mut state_pointer = state_pointer;
     let mut count = false;
     let mut counted = 0;
@@ -404,27 +452,29 @@ fn count_nodes_below(current_state: &Vec<u16>, log: &mut Vec<u16>, state_pointer
     let mut still_in_first_subtree = true;
     let mut first_subtree_size = 0;
 
-    while (state_pointer+1)* state_length < log.len() {
-        state_pointer+=1;
-        if log[state_pointer*state_length + state_length - 1] > level{
+    while (state_pointer + 1) * state_length < log.len() {
+        state_pointer += 1;
+        if log[state_pointer * state_length + state_length - 1] > level {
             count = false;
             still_in_first_subtree = false;
-        } else if log[state_pointer*state_length + state_length - 1] < level{
+        } else if log[state_pointer * state_length + state_length - 1] < level {
             if still_in_first_subtree {
                 first_subtree_size += 1;
             }
-            if count{
+            if count {
                 counted += 1;
             }
         } else {
-            if &log[state_pointer* state_length .. state_pointer* state_length+state_length] == current_state {
+            if &log[state_pointer * state_length..state_pointer * state_length + state_length]
+                == current_state
+            {
                 for i in 0..state_length {
-                    log[state_pointer* state_length + i] = u16::MAX;
+                    log[state_pointer * state_length + i] = u16::MAX;
                 }
                 count = true;
-                counted+=1;
-                exact_count+=1;
-            }else {
+                counted += 1;
+                exact_count += 1;
+            } else {
                 count = false;
             }
             still_in_first_subtree = false

@@ -2,8 +2,10 @@ use std::collections::HashMap;
 
 use dyn_clone::DynClone;
 
-use crate::{problem_instance::{problem_instance::ProblemInstance, solution::Solution}, common::timeout::Timeout};
-
+use crate::{
+    common::timeout::Timeout,
+    problem_instance::{problem_instance::ProblemInstance, solution::Solution},
+};
 
 pub trait SolverManager: DynClone + Send {
     fn get_stats(&self) -> HashMap<String, f64> {

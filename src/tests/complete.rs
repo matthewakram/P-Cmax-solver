@@ -8,17 +8,24 @@ mod tests {
         bounds::{
             bound::Bound,
             lower_bounds::{
-                lifting::Lifting,
-                max_job_size, middle, pigeon_hole, sss_bound_tightening,
+                lifting::Lifting, max_job_size, middle, pigeon_hole, sss_bound_tightening,
             },
             upper_bounds::{lpt, lptp, lptpp, mss},
         },
         common::timeout::Timeout,
-        encoding::ilp_encoding::mehdi_nizar_prec::MehdiNizarOrderEncoder,
+        encoding::{
+            ilp_encoding::mehdi_nizar_prec::MehdiNizarOrderEncoder,
+            sat_encoding::{basic_encoder::BasicEncoder, pb_bdd_native::PbNativeEncoder},
+        },
         input_output,
+        makespan_scheduling::linear_makespan::LinearMakespan,
         solvers::{
-            branch_and_bound::{compressed_bnb::CompressedBnB, hj::HJ}, cdsm::cdsm::CDSM,
-            ilp_solver::gurobi::Gurobi, solver_manager::SolverManager,
+            branch_and_bound::{compressed_bnb::CompressedBnB, hj::HJ},
+            cdsm::cdsm::CDSM,
+            cp_sat::cp_sat_encoder::CpSatSolverManager,
+            ilp_solver::gurobi::Gurobi,
+            sat_solver::{kissat::Kissat, sat_solver_manager::SatSolverManager},
+            solver_manager::SolverManager,
         },
     };
     use std::{
@@ -65,8 +72,7 @@ mod tests {
             (lower_bound, upper_bound) =
                 bound.bound(&instance, lower_bound, upper_bound, &precomp_timeout);
             // println!("lower bound is: {}", lower_bound);
-            if (upper_bound.is_some() && upper_bound.as_ref().unwrap().makespan == lower_bound)
-            {
+            if (upper_bound.is_some() && upper_bound.as_ref().unwrap().makespan == lower_bound) {
                 break;
             }
         }
@@ -194,7 +200,7 @@ mod tests {
         "./bench/lehmann/",
         "./bench/planted/",
         "./bench/sc2022",
-        "./bench/schreiber/"
+        "./bench/schreiber/",
     ];
     const BENCHMARK_NAMES: [&'static str; 11] = [
         "berndt",
@@ -222,7 +228,10 @@ mod tests {
             1_000_000_000,
         ));
         for i in 0..FOLDERS_TO_TEST.len() {
-            let out_file_name = format!("./bench/results/complete_{}_cdsm_base.txt", BENCHMARK_NAMES[i]);
+            let out_file_name = format!(
+                "./bench/results/complete_{}_cdsm_base.txt",
+                BENCHMARK_NAMES[i]
+            );
             test_solver(solver.clone(), FOLDERS_TO_TEST[i], &out_file_name);
         }
     }
@@ -239,7 +248,10 @@ mod tests {
             1_000_000_000,
         ));
         for i in 0..FOLDERS_TO_TEST.len() {
-            let out_file_name = format!("./bench/results/complete_{}_cdsm_last_size.txt", BENCHMARK_NAMES[i]);
+            let out_file_name = format!(
+                "./bench/results/complete_{}_cdsm_last_size.txt",
+                BENCHMARK_NAMES[i]
+            );
             test_solver(solver.clone(), FOLDERS_TO_TEST[i], &out_file_name);
         }
     }
@@ -256,7 +268,10 @@ mod tests {
             1_000_000_000,
         ));
         for i in 0..FOLDERS_TO_TEST.len() {
-            let out_file_name = format!("./bench/results/complete_{}_cdsm_inter.txt", BENCHMARK_NAMES[i]);
+            let out_file_name = format!(
+                "./bench/results/complete_{}_cdsm_inter.txt",
+                BENCHMARK_NAMES[i]
+            );
             test_solver(solver.clone(), FOLDERS_TO_TEST[i], &out_file_name);
         }
     }
@@ -273,7 +288,10 @@ mod tests {
             1_000_000_000,
         ));
         for i in 0..FOLDERS_TO_TEST.len() {
-            let out_file_name = format!("./bench/results/complete_{}_cdsm_fur.txt", BENCHMARK_NAMES[i]);
+            let out_file_name = format!(
+                "./bench/results/complete_{}_cdsm_fur.txt",
+                BENCHMARK_NAMES[i]
+            );
             test_solver(solver.clone(), FOLDERS_TO_TEST[i], &out_file_name);
         }
     }
@@ -290,7 +308,10 @@ mod tests {
             1_000_000_000,
         ));
         for i in 0..FOLDERS_TO_TEST.len() {
-            let out_file_name = format!("./bench/results/complete_{}_cdsm_irrelevance.txt", BENCHMARK_NAMES[i]);
+            let out_file_name = format!(
+                "./bench/results/complete_{}_cdsm_irrelevance.txt",
+                BENCHMARK_NAMES[i]
+            );
             test_solver(solver.clone(), FOLDERS_TO_TEST[i], &out_file_name);
         }
     }
@@ -332,5 +353,35 @@ mod tests {
         }
     }
 
+    #[test]
+    #[ignore]
+    pub fn complete_test_cp_sat() {
+        rayon::ThreadPoolBuilder::new()
+            .num_threads(1)
+            .build_global()
+            .unwrap();
+        let solver = Box::new(CpSatSolverManager {});
+        for i in 0..FOLDERS_TO_TEST.len() {
+            let out_file_name =
+                format!("./bench/results/complete_{}_cp_sat.txt", BENCHMARK_NAMES[i]);
+            test_solver(solver.clone(), FOLDERS_TO_TEST[i], &out_file_name);
+        }
+    }
 
+    #[test]
+    #[ignore]
+    pub fn cumulative_test_basic_arithmetic_sat() {
+        let solver = Box::new(SatSolverManager::new(
+            Box::new(Kissat::new()),
+            Box::new(LinearMakespan {}),
+            Box::new(BasicEncoder::new()),
+        ));
+        for i in 0..FOLDERS_TO_TEST.len() {
+            let out_file_name = format!(
+                "./bench/results/complete_{}_arithmatic_sat.txt",
+                BENCHMARK_NAMES[i]
+            );
+            test_solver(solver.clone(), FOLDERS_TO_TEST[i], &out_file_name);
+        }
+    }
 }

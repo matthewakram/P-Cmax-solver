@@ -38,7 +38,7 @@ impl CDSMP {
             irrelevance_rule: true,
             last_size_rule: true,
             state_mem: true,
-            mem_limit: 1_000_000_000
+            mem_limit: 1_000_000_000,
         };
     }
 
@@ -48,7 +48,7 @@ impl CDSMP {
         irrelevance_rule: bool,
         last_size_rule: bool,
         state_mem: bool,
-        mem_limit: usize
+        mem_limit: usize,
     ) -> CDSMP {
         return CDSMP {
             stats: HashMap::new(),
@@ -58,7 +58,7 @@ impl CDSMP {
             irrelevance_rule,
             last_size_rule,
             state_mem,
-            mem_limit
+            mem_limit,
         };
     }
 }
@@ -184,7 +184,9 @@ impl CDSMP {
             if better_option.makespan < best_makespan_found {
                 //println!("found solution with makesapan {}", better_option.makespan);
                 let next_makespan_to_check = better_option.makespan - 1;
-                if (self.fur_rule || self.inter_rule|| self.state_mem) && next_makespan_to_check != instance.job_sizes[0] {
+                if (self.fur_rule || self.inter_rule || self.state_mem)
+                    && next_makespan_to_check != instance.job_sizes[0]
+                {
                     let last_relevant_index =
                         self.calculate_irrelevance_index(instance, next_makespan_to_check);
                     ret.decrease_makespan_to(
@@ -568,14 +570,22 @@ impl SolverManager for CDSMP {
         let mut part_sol = PartialAssignment::new(instance);
 
         let last_relevant_index = self.calculate_irrelevance_index(instance, makespan_to_test);
-        let mut ret = if self.fur_rule || self.inter_rule || self.state_mem{
-            RET::new(&instance.job_sizes, makespan_to_test, last_relevant_index, self.mem_limit)
+        let mut ret = if self.fur_rule || self.inter_rule || self.state_mem {
+            RET::new(
+                &instance.job_sizes,
+                makespan_to_test,
+                last_relevant_index,
+                self.mem_limit,
+            )
         } else {
             RET::new(&vec![0], 1, 0, self.mem_limit)
         };
-        
 
-        let num_bins = if self.state_mem{self.mem_limit / ((instance.num_processors + 1) * 20)} else {0};
+        let num_bins = if self.state_mem {
+            self.mem_limit / ((instance.num_processors + 1) * 20)
+        } else {
+            0
+        };
         let mut saved_states = WLC::new(instance.num_processors + 1, num_bins, 3, 10);
         self.last_state_at_level = vec![vec![0; instance.num_processors + 1]; instance.num_jobs];
 
@@ -596,7 +606,11 @@ impl SolverManager for CDSMP {
         );
         self.stats.insert(
             "mem_used".to_owned(),
-            ((makespan_to_test*instance.num_jobs + instance.num_jobs * 4 + instance.num_processors) * 8 + saved_states.mem_usage()) as f64,
+            ((makespan_to_test * instance.num_jobs
+                + instance.num_jobs * 4
+                + instance.num_processors)
+                * 8
+                + saved_states.mem_usage()) as f64,
         );
         if sol.is_err() {
             return None;

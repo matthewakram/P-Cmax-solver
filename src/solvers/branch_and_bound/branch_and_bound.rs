@@ -300,7 +300,6 @@ impl BranchAndBound {
 }
 
 impl SolverManager for BranchAndBound {
-
     fn get_stats(&self) -> HashMap<String, f64> {
         return self.stats.clone();
     }
@@ -317,7 +316,10 @@ impl SolverManager for BranchAndBound {
         let makespan_to_test = upper.makespan - 1;
         self.stats.insert(
             mem_size_key,
-            ((makespan_to_test*instance.num_jobs + instance.num_jobs * 4 + instance.num_processors) * 8) as f64,
+            ((makespan_to_test * instance.num_jobs
+                + instance.num_jobs * 4
+                + instance.num_processors)
+                * 8) as f64,
         );
         let partial_solution = PartialSolution::new(instance.clone());
 

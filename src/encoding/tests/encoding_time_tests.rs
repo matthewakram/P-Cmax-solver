@@ -9,7 +9,13 @@ mod tests {
             upper_bounds::{lpt, lptp, lptpp},
         },
         common::timeout::Timeout,
-        encoding::{sat_encoder::{Encoder, Clause}, sat_encoding::{basic_encoder::BasicEncoder, pb_bdd_pysat::PbPysatEncoder, pb_bdd_native::PbNativeEncoder, binmerge_native::BinmergeEncoder, binmerge_simp::BinmergeSimpEncoder}
+        encoding::{
+            sat_encoder::{Clause, Encoder},
+            sat_encoding::{
+                basic_encoder::BasicEncoder, binmerge_native::BinmergeEncoder,
+                binmerge_simp::BinmergeSimpEncoder, pb_bdd_native::PbNativeEncoder,
+                pb_bdd_pysat::PbPysatEncoder,
+            },
         },
         input_output::{self},
         problem_instance::partial_solution::PartialSolution,
@@ -177,8 +183,7 @@ mod tests {
     #[test]
     #[ignore]
     pub fn test_class_encoding_binmerge_simp() {
-        let mut a: Box<dyn Encoder> =
-        Box::new(BinmergeSimpEncoder::new());
+        let mut a: Box<dyn Encoder> = Box::new(BinmergeSimpEncoder::new());
         test_encoder(
             &mut a,
             "./bench/class_instances/",

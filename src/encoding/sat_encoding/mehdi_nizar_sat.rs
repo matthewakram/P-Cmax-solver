@@ -1,7 +1,7 @@
 use std::collections::HashSet;
 
 use crate::{
-    common::{timeout::Timeout, self},
+    common::{self, timeout::Timeout},
     encoding::sat_encoder::{Clause, Clauses, Encoder, VarNameGenerator},
     problem_instance::{problem_instance::ProblemInstance, solution::Solution},
 };

@@ -1,5 +1,4 @@
-use crate::encoding::sat_encoder::{Clause, VarNameGenerator, Clauses};
-
+use crate::encoding::sat_encoder::{Clause, Clauses, VarNameGenerator};
 
 pub fn basic_sort(
     vars: &Vec<usize>,

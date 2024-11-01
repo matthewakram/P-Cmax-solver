@@ -17,12 +17,17 @@ pub struct USSL {
 }
 
 impl USSL {
-
-    pub fn mem_usage(&self) -> usize{
+    pub fn mem_usage(&self) -> usize {
         return self.data.len() * 4;
     }
 
-    pub fn new(list_size: usize, num_bins: usize, num_hash_funcs: usize, bin_size: usize, mem_limit: usize) -> USSL {
+    pub fn new(
+        list_size: usize,
+        num_bins: usize,
+        num_hash_funcs: usize,
+        bin_size: usize,
+        mem_limit: usize,
+    ) -> USSL {
         let data: Vec<u32> = vec![u32::MAX; num_bins * bin_size * list_size];
 
         let mut rng = rand::thread_rng();
@@ -39,7 +44,7 @@ impl USSL {
             bin_size,
             hash_func_data,
             num_els_in_bin,
-            mem_limit
+            mem_limit,
         };
     }
 
@@ -67,12 +72,7 @@ impl USSL {
             element;
     }
 
-    fn insert_list_in_bin(
-        &mut self,
-        list: &Vec<u32>,
-        bin_num: usize,
-        insertion_index: usize,
-    ) {
+    fn insert_list_in_bin(&mut self, list: &Vec<u32>, bin_num: usize, insertion_index: usize) {
         for i in 0..self.list_size {
             self.put(bin_num, insertion_index, i, list[i]);
         }
@@ -80,12 +80,11 @@ impl USSL {
         self.num_els_in_bin[bin_num] = self.num_els_in_bin[bin_num].min(self.bin_size);
     }
 
-
     pub fn static_insert_list(&mut self, list: &Vec<u32>) -> bool {
         //assert!(!self.is_present(list));
 
         let mut list_to_insert = list.clone();
-        let mut next_list_to_insert = vec![0;self.list_size];
+        let mut next_list_to_insert = vec![0; self.list_size];
 
         let mut hash_index_to_force = 0;
         let mut index_to_force = 0;
@@ -94,7 +93,7 @@ impl USSL {
             for hash_num in 0..self.num_hash_funcs {
                 let bin = self.hash_list(&list_to_insert, hash_num);
 
-                if self.num_els_in_bin[bin] < self.bin_size-1 {
+                if self.num_els_in_bin[bin] < self.bin_size - 1 {
                     self.insert_list_in_bin(&list_to_insert, bin, self.num_els_in_bin[bin]);
                     self.num_els_in_bin[bin] += 1;
                     return true;
@@ -111,7 +110,7 @@ impl USSL {
             hash_index_to_force += 1;
             index_to_force %= self.bin_size;
             hash_index_to_force %= self.num_hash_funcs;
-            
+
             for i in 0..self.list_size {
                 list_to_insert[i] = next_list_to_insert[i];
             }
@@ -122,7 +121,6 @@ impl USSL {
     }
 
     pub fn insert_list(&mut self, list: &Vec<u32>) {
-
         let success = self.static_insert_list(list);
 
         if !success && self.mem_usage() < self.mem_limit {
@@ -177,15 +175,12 @@ impl USSL {
         self.num_els_in_bin = vec![0; self.num_bins];
         while list_pointer < old_data.len() {
             if old_data[list_pointer] != u32::MAX {
-                for i in 0..self.list_size{
-
+                for i in 0..self.list_size {
                     list_to_insert[i] = old_data[list_pointer + i];
                 }
                 self.static_insert_list(&list_to_insert);
             }
             list_pointer += self.list_size;
         }
-
     }
-
 }

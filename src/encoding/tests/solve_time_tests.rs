@@ -13,7 +13,12 @@ mod tests {
             lower_bounds::{max_job_size, middle, pigeon_hole},
         },
         common::timeout::Timeout,
-        encoding::{sat_encoder::Encoder, sat_encoding::{basic_encoder::BasicEncoder, bdd_inter_comp::BddInterComp, binmerge_simp::BinmergeSimpEncoder, precedence_encoder::Precedence}
+        encoding::{
+            sat_encoder::Encoder,
+            sat_encoding::{
+                basic_encoder::BasicEncoder, bdd_inter_comp::BddInterComp,
+                binmerge_simp::BinmergeSimpEncoder, precedence_encoder::Precedence,
+            },
         },
         input_output::{self},
         problem_instance::partial_solution::PartialSolution,
@@ -24,7 +29,9 @@ mod tests {
         solvers::sat_solver::{kissat::Kissat, sat_solver::SatSolver},
     };
     use std::{
-        fs::{self, File}, io::Write, sync::{Arc, Mutex}
+        fs::{self, File},
+        io::Write,
+        sync::{Arc, Mutex},
     };
 
     fn bound_file(file_name: &String) -> Vec<(String, PartialSolution, usize)> {
@@ -50,7 +57,7 @@ mod tests {
 
         let mut out: Vec<(String, PartialSolution, usize)> = vec![];
 
-        for makespan_to_test in lower_bound..lower_bound+2 {
+        for makespan_to_test in lower_bound..lower_bound + 2 {
             let mut hsr = HalfSizeRule {};
             let mut fur: FillUpRule = FillUpRule {};
             let mut finalize: FinalizeRule = FinalizeRule {};
@@ -100,17 +107,17 @@ mod tests {
         if !succ {
             return None;
         }
-        
+
         let solving_time: f64 = 200.0;
         let timer = &Timeout::new(solving_time);
         let res = encoder.output();
         let num_vars = encoder.get_num_vars();
         let len = res.len();
-        
+
         let mut solver = Kissat::new();
-        
+
         let sol = solver.solve(res, num_vars, &timer);
-        
+
         let solving_time = solving_time - timer.remaining_time();
         if sol.is_timeout() {
             return None;
@@ -135,7 +142,7 @@ mod tests {
 
     fn test_encoder(encoder: &Box<dyn Encoder>, in_dirname: &str, out_dirname: &str) {
         if fs::metadata(out_dirname).is_ok() {
-            return ;
+            return;
         }
         let paths = fs::read_dir(in_dirname).unwrap();
         let files: Vec<String> = paths
@@ -169,7 +176,14 @@ mod tests {
         let result: Vec<String> = instances_with_encoder
             .into_par_iter()
             .map(|(file_name, pi, makespan_to_test, mut encoder)| {
-                solve_instance(&pi, makespan_to_test, &mut encoder, &file_name, progress.clone(), num_instances)
+                solve_instance(
+                    &pi,
+                    makespan_to_test,
+                    &mut encoder,
+                    &file_name,
+                    progress.clone(),
+                    num_instances,
+                )
             })
             .filter(|x| x.is_some())
             .map(|x| x.unwrap())
@@ -195,8 +209,6 @@ mod tests {
             "./bench/results/lawrenko_basic.txt",
         )
     }
-
-
 
     #[test]
     #[ignore]
@@ -224,7 +236,8 @@ mod tests {
     #[test]
     #[ignore]
     pub fn test_solve_time_class_inter_only() {
-        let mut a: Box<dyn Encoder> = Box::new(Precedence::new(Box::new(BddInterComp::new_inter_only()), 1));
+        let mut a: Box<dyn Encoder> =
+            Box::new(Precedence::new(Box::new(BddInterComp::new_inter_only()), 1));
         test_encoder(
             &mut a,
             "./bench/lawrenko/",
@@ -235,7 +248,8 @@ mod tests {
     #[test]
     #[ignore]
     pub fn test_solve_time_class_bdd_prec() {
-        let mut a: Box<dyn Encoder> = Box::new(Precedence::new(Box::new(BddInterComp::new_basic()), 1));
+        let mut a: Box<dyn Encoder> =
+            Box::new(Precedence::new(Box::new(BddInterComp::new_basic()), 1));
         test_encoder(
             &mut a,
             "./bench/lawrenko/",
@@ -263,5 +277,4 @@ mod tests {
         test_solve_time_class_bdd_base();
         test_solve_time_class_inter_only();
     }
-
 }

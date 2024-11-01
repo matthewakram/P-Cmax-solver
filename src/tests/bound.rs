@@ -5,8 +5,20 @@ mod tests {
     use crate::{
         bounds::{
             bound::Bound,
-            lower_bounds::{lifting::Lifting, lifting_weak::LiftingWeak, max_job_size::{self}, middle::{self}, pigeon_hole::{self, PigeonHole}, sss_bound_tightening::{self, SSSBoundStrengthening}},
-            upper_bounds::{lpt::{self, LPT}, lptp::{self, Lptp}, lptpp::{self, Lptpp}, mss::MSS},
+            lower_bounds::{
+                lifting::Lifting,
+                lifting_weak::LiftingWeak,
+                max_job_size::{self},
+                middle::{self},
+                pigeon_hole::{self, PigeonHole},
+                sss_bound_tightening::{self, SSSBoundStrengthening},
+            },
+            upper_bounds::{
+                lpt::{self, LPT},
+                lptp::{self, Lptp},
+                lptpp::{self, Lptpp},
+                mss::MSS,
+            },
         },
         common::timeout::Timeout,
         input_output,
@@ -32,8 +44,7 @@ mod tests {
             // Box::new(lifting::Lifting::new()),
             // Box::new(MSS::new()),
         ];
-    
-        
+
         let (mut lower_bound, mut upper_bound) = (1, None);
         for i in 0..bounds.len() {
             let precomp_timeout = Timeout::new(10.0);
@@ -42,11 +53,12 @@ mod tests {
                 bound.bound(&instance, lower_bound, upper_bound, &precomp_timeout);
         }
         let upper_bound = upper_bound.unwrap();
-    
+
         //--------------SOLVING---------------------------
-        
+
         let total_timeout = Timeout::new(10.0);
-        let (new_lower, new_upper) = bound_to_test.bound(&instance, lower_bound, Some(upper_bound), &total_timeout);
+        let (new_lower, new_upper) =
+            bound_to_test.bound(&instance, lower_bound, Some(upper_bound), &total_timeout);
         let new_upper = new_upper.unwrap();
 
         return Some(format!(
@@ -87,9 +99,7 @@ mod tests {
         let result = files
             .into_par_iter()
             //.into_iter()
-            .map(|(path, encoder)| {
-                test_file_bound(encoder, &path)
-            })
+            .map(|(path, encoder)| test_file_bound(encoder, &path))
             .filter(|x| x.is_some())
             .map(|x| x.unwrap())
             .collect::<Vec<String>>();
@@ -104,7 +114,6 @@ mod tests {
         file.write_all(&result.as_bytes()).unwrap();
     }
 
-
     const FOLDERS_TO_TEST: [&'static str; 11] = [
         "./bench/class_instances/",
         "./bench/franca_frangioni/standardised/",
@@ -116,7 +125,7 @@ mod tests {
         "/global_data/pcmax_instances/finaler/huebner/",
         "/global_data/pcmax_instances/finaler/lehmann/",
         "/global_data/pcmax_instances/finaler/schreiber/",
-        "/global_data/pcmax_instances/finaler/laupichler/"
+        "/global_data/pcmax_instances/finaler/laupichler/",
     ];
     const BENCHMARK_NAMES: [&'static str; 11] = [
         "berndt",
@@ -134,60 +143,48 @@ mod tests {
 
     #[test]
     #[ignore]
-    pub fn test_bound_trivial(){
-        let solver = Box::new(PigeonHole{});
+    pub fn test_bound_trivial() {
+        let solver = Box::new(PigeonHole {});
         for i in 0..FOLDERS_TO_TEST.len() {
-            let out_file_name = format!(
-                "./bench/results/bound_{}_trivial.txt",
-                BENCHMARK_NAMES[i]
-            );
+            let out_file_name = format!("./bench/results/bound_{}_trivial.txt", BENCHMARK_NAMES[i]);
             test_bound(solver.clone(), FOLDERS_TO_TEST[i], &out_file_name);
         }
     }
 
     #[test]
     #[ignore]
-    pub fn test_bound_lpt(){
-        let solver = Box::new(LPT{});
+    pub fn test_bound_lpt() {
+        let solver = Box::new(LPT {});
         for i in 0..FOLDERS_TO_TEST.len() {
-            let out_file_name = format!(
-                "./bench/results/bound_{}_lpt.txt",
-                BENCHMARK_NAMES[i]
-            );
+            let out_file_name = format!("./bench/results/bound_{}_lpt.txt", BENCHMARK_NAMES[i]);
             test_bound(solver.clone(), FOLDERS_TO_TEST[i], &out_file_name);
         }
     }
 
     #[test]
     #[ignore]
-    pub fn test_bound_lptp(){
-        let solver = Box::new(Lptp{});
+    pub fn test_bound_lptp() {
+        let solver = Box::new(Lptp {});
         for i in 0..FOLDERS_TO_TEST.len() {
-            let out_file_name = format!(
-                "./bench/results/bound_{}_lptp.txt",
-                BENCHMARK_NAMES[i]
-            );
+            let out_file_name = format!("./bench/results/bound_{}_lptp.txt", BENCHMARK_NAMES[i]);
             test_bound(solver.clone(), FOLDERS_TO_TEST[i], &out_file_name);
         }
     }
 
     #[test]
     #[ignore]
-    pub fn test_bound_lptpp(){
-        let solver = Box::new(Lptpp{});
+    pub fn test_bound_lptpp() {
+        let solver = Box::new(Lptpp {});
         for i in 0..FOLDERS_TO_TEST.len() {
-            let out_file_name = format!(
-                "./bench/results/bound_{}_lptpp.txt",
-                BENCHMARK_NAMES[i]
-            );
+            let out_file_name = format!("./bench/results/bound_{}_lptpp.txt", BENCHMARK_NAMES[i]);
             test_bound(solver.clone(), FOLDERS_TO_TEST[i], &out_file_name);
         }
     }
 
     #[test]
     #[ignore]
-    pub fn test_bound_sss_bound_strengthening(){
-        let solver = Box::new(SSSBoundStrengthening{});
+    pub fn test_bound_sss_bound_strengthening() {
+        let solver = Box::new(SSSBoundStrengthening {});
         for i in 0..FOLDERS_TO_TEST.len() {
             let out_file_name = format!(
                 "./bench/results/bound_{}_sss_bound_strengthening.txt",
@@ -199,33 +196,27 @@ mod tests {
 
     #[test]
     #[ignore]
-    pub fn test_bound_lifting(){
+    pub fn test_bound_lifting() {
         let solver = Box::new(Lifting::new());
         for i in 0..FOLDERS_TO_TEST.len() {
-            let out_file_name = format!(
-                "./bench/results/bound_{}_lifting.txt",
-                BENCHMARK_NAMES[i]
-            );
+            let out_file_name = format!("./bench/results/bound_{}_lifting.txt", BENCHMARK_NAMES[i]);
             test_bound(solver.clone(), FOLDERS_TO_TEST[i], &out_file_name);
         }
     }
 
     #[test]
     #[ignore]
-    pub fn test_bound_mss(){
+    pub fn test_bound_mss() {
         let solver = Box::new(MSS::new());
         for i in 0..FOLDERS_TO_TEST.len() {
-            let out_file_name = format!(
-                "./bench/results/bound_{}_mss.txt",
-                BENCHMARK_NAMES[i]
-            );
+            let out_file_name = format!("./bench/results/bound_{}_mss.txt", BENCHMARK_NAMES[i]);
             test_bound(solver.clone(), FOLDERS_TO_TEST[i], &out_file_name);
         }
     }
 
     #[test]
     #[ignore]
-    pub fn test_bound_lifting_weak(){
+    pub fn test_bound_lifting_weak() {
         let solver = Box::new(LiftingWeak::new());
         for i in 0..FOLDERS_TO_TEST.len() {
             let out_file_name = format!(
@@ -238,13 +229,10 @@ mod tests {
 
     #[test]
     #[ignore]
-    pub fn test_bound_ssss(){
+    pub fn test_bound_ssss() {
         let solver = Box::new(MSS::new());
         for i in 0..FOLDERS_TO_TEST.len() {
-            let out_file_name = format!(
-                "./bench/results/bound_{}_ssss.txt",
-                BENCHMARK_NAMES[i]
-            );
+            let out_file_name = format!("./bench/results/bound_{}_ssss.txt", BENCHMARK_NAMES[i]);
             test_bound(solver.clone(), FOLDERS_TO_TEST[i], &out_file_name);
         }
     }

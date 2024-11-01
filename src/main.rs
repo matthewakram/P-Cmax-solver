@@ -13,6 +13,7 @@ use p_cmax_solver::solvers::branch_and_bound::compressed_bnb::CompressedBnB;
 use p_cmax_solver::solvers::branch_and_bound::hj::HJ;
 use p_cmax_solver::solvers::cdsm::cdsm::CDSM;
 use p_cmax_solver::solvers::cdsm::cdsmp::CDSMP;
+use p_cmax_solver::solvers::cp_sat::cp_sat_encoder::CpSatSolverManager;
 use p_cmax_solver::solvers::cp_solver::cplex_manager::CPELXSolver;
 use p_cmax_solver::solvers::ilp_solver::gurobi::Gurobi;
 use p_cmax_solver::solvers::solver_manager::SolverManager;
@@ -53,7 +54,7 @@ fn main() {
         Box::new(lpt::LPT {}),
         Box::new(lptp::Lptp {}),
         Box::new(sss_bound_tightening::SSSBoundStrengthening {}),
-        // Box::new(lptpp::Lptpp {}),
+        Box::new(lptpp::Lptpp {}),
         Box::new(lifting::Lifting::new_deterministic(4)),
         Box::new(mss::MSS::new_deterministic(1)),
     ];
@@ -81,17 +82,17 @@ fn main() {
         }
     }
     let upper_bound = upper_bound.unwrap();
-    
+
     // -------------CHECKING IF SOLUTION HAS BEEN FOUND-----------
     // We maintain that the solution is within [lower_bound, upper_bound]. Note that this is inclusive.
-    
+
     assert!(lower_bound <= upper_bound.makespan);
     if lower_bound == upper_bound.makespan {
         //TODO: this
         println!("solution found {}", upper_bound.makespan);
         return;
     }
-    
+
     println!("starting");
     if args.contains(&"-cplex".to_string()) {
         let encoder = Box::new(PinarSeyda::new());
@@ -113,7 +114,10 @@ fn main() {
             .unwrap();
         let final_solution = instance.finalize_solution(sol);
         println!("solution found {}", final_solution.makespan);
-        println!("time {}", total_timeout_time - total_timeout.remaining_time());
+        println!(
+            "time {}",
+            total_timeout_time - total_timeout.remaining_time()
+        );
         return;
     } else if args.contains(&"-branch".to_string()) {
         let mut solver = CompressedBnB::new();
@@ -123,9 +127,12 @@ fn main() {
             .unwrap();
         let final_solution = instance.finalize_solution(sol);
         println!("solution found {}", final_solution.makespan);
-        println!("time {}", total_timeout_time - total_timeout.remaining_time());
+        println!(
+            "time {}",
+            total_timeout_time - total_timeout.remaining_time()
+        );
         return;
-    }  else if args.contains(&"-hj".to_string()) {
+    } else if args.contains(&"-hj".to_string()) {
         let mut solver = HJ::new();
 
         let sol = solver
@@ -133,9 +140,12 @@ fn main() {
             .unwrap();
         let final_solution = instance.finalize_solution(sol);
         println!("solution found {}", final_solution);
-        println!("time {}", total_timeout_time - total_timeout.remaining_time());
+        println!(
+            "time {}",
+            total_timeout_time - total_timeout.remaining_time()
+        );
         return;
-    }else if args.contains(&"-cdsm".to_string()) {
+    } else if args.contains(&"-cdsm".to_string()) {
         let mut solver = CDSM::new();
 
         let sol = solver
@@ -143,9 +153,12 @@ fn main() {
             .unwrap();
         let final_solution = instance.finalize_solution(sol);
         println!("solution found {}", final_solution.makespan);
-        println!("time {}", total_timeout_time - total_timeout.remaining_time());
+        println!(
+            "time {}",
+            total_timeout_time - total_timeout.remaining_time()
+        );
         return;
-    }else if args.contains(&"-cdsmp".to_string()) {
+    } else if args.contains(&"-cdsmp".to_string()) {
         let mut solver = CDSMP::new_with_rules(false, false, false, false, true, 1_000_000_000);
 
         let sol = solver
@@ -153,7 +166,23 @@ fn main() {
             .unwrap();
         let final_solution = instance.finalize_solution(sol);
         println!("solution found {}", final_solution);
-        println!("time {}", total_timeout_time - total_timeout.remaining_time());
+        println!(
+            "time {}",
+            total_timeout_time - total_timeout.remaining_time()
+        );
+        return;
+    } else if args.contains(&"-cpsat".to_string()) {
+        let mut solver = CpSatSolverManager {};
+
+        let sol = solver
+            .solve(&instance, lower_bound, &upper_bound, &total_timeout, true)
+            .unwrap();
+        let final_solution = instance.finalize_solution(sol);
+        println!("solution found {}", final_solution);
+        println!(
+            "time {}",
+            total_timeout_time - total_timeout.remaining_time()
+        );
         return;
     }
 
@@ -212,6 +241,9 @@ fn main() {
         .solve(&instance, lower_bound, &upper_bound, &total_timeout, true)
         .unwrap();
     println!("solution found {}", sol);
-    println!("time {}", total_timeout_time - total_timeout.remaining_time());
+    println!(
+        "time {}",
+        total_timeout_time - total_timeout.remaining_time()
+    );
     let _final_solution = instance.finalize_solution(sol);
 }

@@ -71,8 +71,10 @@ impl MSS {
         lower_bound: usize,
     ) {
         if assigned_makespans[first_proc] == assigned_makespans[second_proc]
-            || (assigned_makespans[second_proc] != 0 && assigned_makespans[first_proc] == assigned_makespans[second_proc] - 1)
-            || (assigned_makespans[first_proc] != 0 && assigned_makespans[second_proc] == assigned_makespans[first_proc] - 1)
+            || (assigned_makespans[second_proc] != 0
+                && assigned_makespans[first_proc] == assigned_makespans[second_proc] - 1)
+            || (assigned_makespans[first_proc] != 0
+                && assigned_makespans[second_proc] == assigned_makespans[first_proc] - 1)
         {
             return;
         }

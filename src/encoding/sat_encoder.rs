@@ -94,7 +94,9 @@ impl Clauses {
         let mut current_clause = vec![];
         for i in &self.clauses {
             if i == &0 {
-                out.push(Clause {vars: current_clause});
+                out.push(Clause {
+                    vars: current_clause,
+                });
                 current_clause = vec![];
             } else {
                 current_clause.push(*i);

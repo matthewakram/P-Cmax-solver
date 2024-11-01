@@ -12,9 +12,9 @@ pub trait SatSolver: DynClone + Send {
     /// Since SATSolvers might often be other programs that must be started as a different process, the get_pid command returns a refrence to the
     /// pid of that process (if existant). When the extra process is running, the returned variable contains the pid of the process, and 0 otherwise.
     /// This method is avaiable in order to force the stoping of computation from a different thread.
-    /// 
+    ///
     /// # Examples
-    /// 
+    ///
     /// ```
     /// # use p_cmax_solver::solvers::sat_solver::kissat::Kissat;
     /// # use crate::p_cmax_solver::solvers::sat_solver::sat_solver::SatSolver;
@@ -27,7 +27,7 @@ pub trait SatSolver: DynClone + Send {
     /// if *pid != 0 {
     ///     // kill process
     ///     // ...
-    /// 
+    ///
     ///     *pid = 0;
     /// }
     /// drop(pid);
@@ -44,7 +44,6 @@ pub trait SatSolver: DynClone + Send {
 }
 
 dyn_clone::clone_trait_object!(SatSolver);
-
 
 /// A structure repsenting a Result from the sat solver.
 pub struct SatResult {

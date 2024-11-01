@@ -6,8 +6,6 @@ mod tests {
 
     use crate::solvers::cdsm::weighted_list_cache::WLC;
 
-
-
     #[test]
     pub fn wsl_smoke_test() {
         let mut ls = WLC::new(4, 100, 3, 10);
@@ -24,6 +22,5 @@ mod tests {
         }
         println!("{:?}", ls);
         println!("time {}", start.elapsed().as_secs_f64());
-
     }
 }

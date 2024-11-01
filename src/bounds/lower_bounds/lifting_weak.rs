@@ -63,7 +63,8 @@ impl LiftingWeak {
             }
         }
 
-        if new_upper_bound.is_some() && new_lower_bound > new_upper_bound.as_ref().unwrap().makespan {
+        if new_upper_bound.is_some() && new_lower_bound > new_upper_bound.as_ref().unwrap().makespan
+        {
             println!(
                 "error with lower {} and upper  {}",
                 new_lower_bound,

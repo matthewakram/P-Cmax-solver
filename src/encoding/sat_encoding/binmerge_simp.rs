@@ -1,4 +1,8 @@
-use crate::{common::timeout::Timeout, problem_instance::problem_instance::ProblemInstance, encoding::sat_encoder::{Clauses, Encoder, Clause, OneHotEncoder}};
+use crate::{
+    common::timeout::Timeout,
+    encoding::sat_encoder::{Clause, Clauses, Encoder, OneHotEncoder},
+    problem_instance::problem_instance::ProblemInstance,
+};
 
 use super::{
     binary_arithmetic, cardinality_networks,
@@ -61,12 +65,15 @@ impl Encoder for BinmergeSimpEncoder {
             }
 
             let diff_until_next_power_of_two = makespan_remaining.ilog2() as usize;
-            let diff_until_next_power_of_two = (1 << (diff_until_next_power_of_two+1)) - makespan_remaining;
+            let diff_until_next_power_of_two =
+                (1 << (diff_until_next_power_of_two + 1)) - makespan_remaining;
             assert!((diff_until_next_power_of_two + makespan_remaining).count_ones() == 1);
             // we now add diff_until_next_power_of_two -1 as a job that must be inserted on this processor
             let extra_job_weight = diff_until_next_power_of_two - 1;
 
-            let makespan_bitlength = binary_arithmetic::number_bitlength(makespan_remaining + diff_until_next_power_of_two);
+            let makespan_bitlength = binary_arithmetic::number_bitlength(
+                makespan_remaining + diff_until_next_power_of_two,
+            );
             //println!("proc {}", proc);
             let max_weight = partial_solution
                 .instance
@@ -163,11 +170,12 @@ impl Encoder for BinmergeSimpEncoder {
 
                 clauses.add_many_clauses(&mut merge_claues);
                 merge_bits.push(next_merge_bits);
-
             }
-            assert!(merge_bits[merge_bits.len() - 1].len() <=  1);
+            assert!(merge_bits[merge_bits.len() - 1].len() <= 1);
             if merge_bits.last().as_ref().unwrap().len() == 1 {
-                clauses.add_clause( Clause {vars : vec![-(merge_bits[merge_bits.len() - 1][0] as i32)]});
+                clauses.add_clause(Clause {
+                    vars: vec![-(merge_bits[merge_bits.len() - 1][0] as i32)],
+                });
             }
             all_merged.push(merge_bits);
             all_sorted.push(bit_level_sorted_vars);

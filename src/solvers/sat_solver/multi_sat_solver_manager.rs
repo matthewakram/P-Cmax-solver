@@ -15,7 +15,8 @@ use crate::{
     problem_simplification::{
         fill_up_rule::FillUpRule, final_simp_rule::FinalizeRule, half_size_rule::HalfSizeRule,
         simplification_rule::SimpRule,
-    }, solvers::solver_manager::SolverManager,
+    },
+    solvers::solver_manager::SolverManager,
 };
 
 use super::sat_solver::SatSolver;
@@ -29,7 +30,7 @@ pub struct MultiSatSolverManager {
     pub unsat_encoder: Box<dyn Encoder>,
 }
 
-impl SolverManager for  MultiSatSolverManager {
+impl SolverManager for MultiSatSolverManager {
     fn solve(
         &mut self,
         instance: &ProblemInstance,

@@ -9,7 +9,6 @@ use crate::{
     },
 };
 
-
 pub trait ILPEncoder: DynClone + Send {
     fn encode(
         &mut self,

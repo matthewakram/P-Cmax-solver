@@ -12,16 +12,15 @@ pub struct WLC {
     num_bins: usize,
     bin_size: usize,
     hash_func_data: Vec<u32>,
-    score_multiplier : Vec<usize>,
-    score: Vec<usize>
+    score_multiplier: Vec<usize>,
+    score: Vec<usize>,
 }
 
 impl WLC {
-
-    pub fn mem_usage(&self) -> usize{
+    pub fn mem_usage(&self) -> usize {
         return self.data.len() * 2;
     }
-    
+
     pub fn new(list_size: usize, num_bins: usize, num_hash_funcs: usize, bin_size: usize) -> WLC {
         let data: Vec<u32> = vec![u32::MAX; num_bins * bin_size * list_size];
 
@@ -37,8 +36,8 @@ impl WLC {
             num_bins,
             bin_size,
             hash_func_data,
-            score_multiplier: vec![0;num_bins * bin_size],
-            score: vec![0;num_bins * bin_size]
+            score_multiplier: vec![0; num_bins * bin_size],
+            score: vec![0; num_bins * bin_size],
         };
     }
 
@@ -66,13 +65,18 @@ impl WLC {
             element;
     }
 
-    fn insert_list_in_bin(&mut self, list: &Vec<u32>, bin_num: usize, bin_offset: usize, score_multiplier: usize) {
-        
+    fn insert_list_in_bin(
+        &mut self,
+        list: &Vec<u32>,
+        bin_num: usize,
+        bin_offset: usize,
+        score_multiplier: usize,
+    ) {
         for i in 0..self.list_size {
             self.put(bin_num, bin_offset, i, list[i]);
         }
-        self.score[bin_num* self.bin_size + bin_offset] = score_multiplier;
-        self.score_multiplier[bin_num* self.bin_size + bin_offset] = score_multiplier;
+        self.score[bin_num * self.bin_size + bin_offset] = score_multiplier;
+        self.score_multiplier[bin_num * self.bin_size + bin_offset] = score_multiplier;
     }
 
     pub fn insert_list(&mut self, list: &Vec<u32>, list_score: usize) {
@@ -85,7 +89,7 @@ impl WLC {
         for hash_num in 0..self.num_hash_funcs {
             let bin = self.hash_list(list, hash_num) % self.num_bins;
             for li in 0..self.bin_size {
-                let score = self.score[bin* self.bin_size + li];
+                let score = self.score[bin * self.bin_size + li];
                 if score < lowest_score {
                     best_bin = bin;
                     lowest_score = score;
@@ -94,7 +98,7 @@ impl WLC {
             }
         }
 
-        if lowest_score == list_score{
+        if lowest_score == list_score {
             for hash_num in 0..self.num_hash_funcs {
                 let bin = self.hash_list(list, hash_num) % self.num_bins;
                 self.decrease_scores(bin);
@@ -113,7 +117,8 @@ impl WLC {
                 }
 
                 if offset == self.list_size - 1 {
-                    self.score[bin_num*self.bin_size + list_num] += self.score_multiplier[bin_num*self.bin_size + list_num];
+                    self.score[bin_num * self.bin_size + list_num] +=
+                        self.score_multiplier[bin_num * self.bin_size + list_num];
                     return true;
                 }
             }
@@ -141,10 +146,10 @@ impl WLC {
             );
         }
     }
-    
+
     fn decrease_scores(&mut self, bin: usize) {
-        for i in 0..self.bin_size{
-            self.score[bin * self.bin_size + i] -=1;
+        for i in 0..self.bin_size {
+            self.score[bin * self.bin_size + i] -= 1;
         }
     }
 }

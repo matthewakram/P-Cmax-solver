@@ -7,7 +7,7 @@ use crate::{
     },
 };
 
-pub trait CPLEXModelEncoder : DynClone + Send{
+pub trait CPLEXModelEncoder: DynClone + Send {
     fn encode(
         &mut self,
         partial_solution: &PartialSolution,

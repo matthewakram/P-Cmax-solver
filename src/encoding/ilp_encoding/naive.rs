@@ -1,9 +1,6 @@
 use std::collections::{HashMap, HashSet};
 
-use crate::{
-     common, encoding::ilp_encoder::ILPEncoder,
-    problem_instance::solution::Solution,
-};
+use crate::{common, encoding::ilp_encoder::ILPEncoder, problem_instance::solution::Solution};
 
 #[derive(Clone)]
 pub struct Naive {
@@ -16,7 +13,6 @@ impl Naive {
             encoding: String::new(),
         };
     }
-
 }
 
 impl ILPEncoder for Naive {
@@ -27,18 +23,33 @@ impl ILPEncoder for Naive {
         _makespan: usize,
         _timeout: &crate::common::timeout::Timeout,
     ) -> bool {
-
         let mut formula = String::from("Minimize\nmakespan\nSubject To\n");
 
-        let mut num_summands = vec![0;partial_solution.instance.num_processors];
+        let mut num_summands = vec![0; partial_solution.instance.num_processors];
         for proc in 0..partial_solution.instance.num_processors {
             let mut line = String::new();
             for job in 0..partial_solution.instance.num_jobs {
                 if partial_solution.possible_allocations[job].contains(&proc) {
                     if num_summands[proc] == 0 {
-                        line += &format!("{} a_{}_{} - makespan_{}_{} = 0\n", partial_solution.instance.job_sizes[job], job, proc, proc, num_summands[proc] + 1);
+                        line += &format!(
+                            "{} a_{}_{} - makespan_{}_{} = 0\n",
+                            partial_solution.instance.job_sizes[job],
+                            job,
+                            proc,
+                            proc,
+                            num_summands[proc] + 1
+                        );
                     } else {
-                        line += &format!("makespan_{}_{} + {} a_{}_{} - makespan_{}_{} = 0\n", proc, num_summands[proc], partial_solution.instance.job_sizes[job], job, proc, proc, num_summands[proc] + 1);
+                        line += &format!(
+                            "makespan_{}_{} + {} a_{}_{} - makespan_{}_{} = 0\n",
+                            proc,
+                            num_summands[proc],
+                            partial_solution.instance.job_sizes[job],
+                            job,
+                            proc,
+                            proc,
+                            num_summands[proc] + 1
+                        );
                     }
                     num_summands[proc] += 1;
                 }
@@ -46,7 +57,7 @@ impl ILPEncoder for Naive {
             formula += &line;
         }
 
-        for job in 0..partial_solution.instance.num_jobs{
+        for job in 0..partial_solution.instance.num_jobs {
             let mut line = String::new();
             for proc in &partial_solution.possible_allocations[job] {
                 line += &format!("+ a_{}_{} ", job, proc);
@@ -70,7 +81,7 @@ impl ILPEncoder for Naive {
 
         formula += "\nGenerals\nmakespan";
 
-        formula+= "\nEnd\n";
+        formula += "\nEnd\n";
         self.encoding = formula;
         println!("{}", self.encoding);
         return true;

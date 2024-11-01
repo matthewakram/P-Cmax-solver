@@ -282,7 +282,7 @@ impl HJ {
         let mut prev_job_size = usize::MAX;
         // BRANCHING
         for job in currently_unassigned {
-            if lower >= best_makespan_found{
+            if lower >= best_makespan_found {
                 return Ok(best_sol);
             }
             let remaining_makespan =

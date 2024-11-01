@@ -14,7 +14,7 @@ mod tests {
         },
         common::timeout::Timeout,
         encoding::{
-            ilp_encoder::ILPEncoder, ilp_encoding::mehdi_nizar_prec::MehdiNizarOrderEncoder
+            ilp_encoder::ILPEncoder, ilp_encoding::mehdi_nizar_prec::MehdiNizarOrderEncoder,
         },
         input_output,
         problem_instance::partial_solution::PartialSolution,
@@ -221,7 +221,6 @@ mod tests {
         )
     }
 
-    
     #[test]
     #[ignore]
     pub fn ilp_thesis_solve_time_tests() {

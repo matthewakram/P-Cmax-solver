@@ -1,10 +1,11 @@
 use crate::{
     common::timeout::Timeout,
+    encoding::sat_encoder::{Clause, Clauses, Encoder, OneHotEncoder},
     precedence_relations::{
         precedence_relation_generator::{PrecedenceRelation, PrecedenceRelationGenerator},
         size_replacement::SizeReplacement,
         two_size_replacement::TwoSizeReplacement,
-    }, encoding::sat_encoder::{OneHotEncoder, Clauses, Encoder, Clause},
+    },
 };
 
 use super::problem_encoding::one_hot_encoding::OneHot;

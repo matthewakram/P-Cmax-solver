@@ -11,7 +11,8 @@ use crate::{
     problem_simplification::{
         fill_up_rule::FillUpRule, final_simp_rule::FinalizeRule, half_size_rule::HalfSizeRule,
         simplification_rule::SimpRule,
-    }, solvers::solver_manager::SolverManager,
+    },
+    solvers::solver_manager::SolverManager,
 };
 
 use super::sat_solver::SatSolver;
@@ -40,7 +41,6 @@ impl SatSolverManager {
 }
 
 impl SolverManager for SatSolverManager {
-
     fn get_stats(&self) -> HashMap<String, f64> {
         return self.stats.clone();
     }

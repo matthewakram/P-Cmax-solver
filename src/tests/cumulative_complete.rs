@@ -8,16 +8,33 @@ mod tests {
         bounds::{
             bound::Bound,
             lower_bounds::{
-                lifting::Lifting,
-                max_job_size, middle, pigeon_hole, sss_bound_tightening,
+                lifting::Lifting, max_job_size, middle, pigeon_hole, sss_bound_tightening,
             },
             upper_bounds::{lpt, lptp, lptpp, mss},
-        }, common::timeout::Timeout, encoding::{ilp_encoding::mehdi_nizar_prec::MehdiNizarOrderEncoder, sat_encoding::{bdd_inter_comp, pb_bdd_native::{self, PbNativeEncoder}}}, input_output, makespan_scheduling::linear_makespan::LinearMakespan, solvers::{
-            branch_and_bound::hj::HJ, cdsm::cdsm::CDSM, ilp_solver::gurobi::Gurobi, sat_solver::{kissat::Kissat, sat_solver_manager::SatSolverManager}, solver_manager::SolverManager
-        }
+        },
+        common::timeout::Timeout,
+        encoding::{
+            ilp_encoding::mehdi_nizar_prec::MehdiNizarOrderEncoder,
+            sat_encoding::{
+                bdd_inter_comp,
+                pb_bdd_native::{self, PbNativeEncoder},
+            },
+        },
+        input_output,
+        makespan_scheduling::linear_makespan::LinearMakespan,
+        solvers::{
+            branch_and_bound::hj::HJ,
+            cdsm::cdsm::CDSM,
+            ilp_solver::gurobi::Gurobi,
+            sat_solver::{kissat::Kissat, sat_solver_manager::SatSolverManager},
+            solver_manager::SolverManager,
+        },
     };
     use std::{
-        fmt::format, fs::{self, File, OpenOptions}, io::Write, sync::{Arc, Mutex}
+        fmt::format,
+        fs::{self, File, OpenOptions},
+        io::Write,
+        sync::{Arc, Mutex},
     };
 
     fn test_file_solver(
@@ -25,7 +42,7 @@ mod tests {
         file_name: &String,
         progress: Arc<Mutex<usize>>,
         num_total_instances: usize,
-        file: Arc<Mutex<File>>
+        file: Arc<Mutex<File>>,
     ) {
         {
             let mut p = progress.lock().unwrap();
@@ -59,8 +76,7 @@ mod tests {
             (lower_bound, upper_bound) =
                 bound.bound(&instance, lower_bound, upper_bound, &precomp_timeout);
             // println!("lower bound is: {}", lower_bound);
-            if (upper_bound.is_some() && upper_bound.as_ref().unwrap().makespan == lower_bound)
-            {
+            if (upper_bound.is_some() && upper_bound.as_ref().unwrap().makespan == lower_bound) {
                 break;
             }
         }
@@ -73,29 +89,32 @@ mod tests {
 
         assert!(lower_bound <= upper_bound.makespan);
         if lower_bound == upper_bound.makespan {
-            
             {
                 let mut lock = file.lock().unwrap();
-                lock.write_all(format!(
-                    "{} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {}\n",
-                    file_name,
-                    0,
-                    lower_bound,
-                    instance.num_jobs,
-                    instance.num_processors,
-                    (instance.num_jobs as f64) / (instance.num_processors as f64),
-                    0.0,
-                    0.0,
-                    0.0,
-                    0.0,
-                    0.0,
-                    0.0,
-                    0.0,
-                    0.0,
-                    0.0,
-                    0.0,
-                    0.0
-                ).as_bytes()).unwrap();
+                lock.write_all(
+                    format!(
+                        "{} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {}\n",
+                        file_name,
+                        0,
+                        lower_bound,
+                        instance.num_jobs,
+                        instance.num_processors,
+                        (instance.num_jobs as f64) / (instance.num_processors as f64),
+                        0.0,
+                        0.0,
+                        0.0,
+                        0.0,
+                        0.0,
+                        0.0,
+                        0.0,
+                        0.0,
+                        0.0,
+                        0.0,
+                        0.0
+                    )
+                    .as_bytes(),
+                )
+                .unwrap();
             }
             let _ = fs::remove_file(file_name);
             return;
@@ -118,26 +137,34 @@ mod tests {
         let _ = fs::remove_file(file_name);
         {
             let mut lock = file.lock().unwrap();
-            lock.write_all(format!(
-                "{} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {}\n",
-                file_name,
-                total_timeout_f64 - total_timeout.remaining_time(),
-                if sol.is_none() {-1.0 } else {sol.as_ref().unwrap().makespan as f64},
-                instance.num_jobs,
-                instance.num_processors,
-                (instance.num_jobs as f64) / (instance.num_processors as f64),
-                stats.get("num_sat_calls").unwrap_or(&0.0),
-                stats.get("num_unsat_calls").unwrap_or(&0.0),
-                stats.get("encoding_time").unwrap_or(&0.0),
-                stats.get("string_gen_time").unwrap_or(&0.0),
-                stats.get("formula_write_time").unwrap_or(&0.0),
-                stats.get("solve_time").unwrap_or(&0.0),
-                stats.get("solution_read_time").unwrap_or(&0.0),
-                stats.get("mem_used").unwrap_or(&0.0),
-                stats.get("ret_construction_time").unwrap_or(&0.0),
-                stats.get("solution_read_time").unwrap_or(&0.0),
-                stats.get("num_nodes_explored").unwrap_or(&0.0),
-            ).as_bytes()).unwrap();
+            lock.write_all(
+                format!(
+                    "{} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {} {}\n",
+                    file_name,
+                    total_timeout_f64 - total_timeout.remaining_time(),
+                    if sol.is_none() {
+                        -1.0
+                    } else {
+                        sol.as_ref().unwrap().makespan as f64
+                    },
+                    instance.num_jobs,
+                    instance.num_processors,
+                    (instance.num_jobs as f64) / (instance.num_processors as f64),
+                    stats.get("num_sat_calls").unwrap_or(&0.0),
+                    stats.get("num_unsat_calls").unwrap_or(&0.0),
+                    stats.get("encoding_time").unwrap_or(&0.0),
+                    stats.get("string_gen_time").unwrap_or(&0.0),
+                    stats.get("formula_write_time").unwrap_or(&0.0),
+                    stats.get("solve_time").unwrap_or(&0.0),
+                    stats.get("solution_read_time").unwrap_or(&0.0),
+                    stats.get("mem_used").unwrap_or(&0.0),
+                    stats.get("ret_construction_time").unwrap_or(&0.0),
+                    stats.get("solution_read_time").unwrap_or(&0.0),
+                    stats.get("num_nodes_explored").unwrap_or(&0.0),
+                )
+                .as_bytes(),
+            )
+            .unwrap();
         }
         let _ = fs::remove_file(file_name);
         return;
@@ -168,21 +195,26 @@ mod tests {
         let progress: Arc<Mutex<usize>> = Arc::new(Mutex::new(0));
         let num_instances = files.len();
         let file = OpenOptions::new()
-        .write(true)
-        .append(true)
-        .create(true)
-        .open(out_dirname)
-        .unwrap();
-        let file : Arc<Mutex<File>> = Arc::new(Mutex::new(file));
+            .write(true)
+            .append(true)
+            .create(true)
+            .open(out_dirname)
+            .unwrap();
+        let file: Arc<Mutex<File>> = Arc::new(Mutex::new(file));
         files
             .into_par_iter()
             // .into_iter()
             .enumerate()
             .for_each(|(_file_num, (path, encoder))| {
-                test_file_solver(encoder, &path, progress.clone(), num_instances, file.clone())
+                test_file_solver(
+                    encoder,
+                    &path,
+                    progress.clone(),
+                    num_instances,
+                    file.clone(),
+                )
             });
     }
-
 
     #[test]
     #[ignore]
@@ -285,7 +317,9 @@ mod tests {
     #[test]
     #[ignore]
     pub fn cumulative_test_original_ilp() {
-        let solver = Box::new(Gurobi::new(Box::new(MehdiNizarOrderEncoder::new_original())));
+        let solver = Box::new(Gurobi::new(
+            Box::new(MehdiNizarOrderEncoder::new_original()),
+        ));
         let out_file_name = format!("./bench/results/complete_ilp_original.txt");
         test_solver(solver.clone(), "./bench/cumulative/", &out_file_name);
     }
@@ -293,7 +327,11 @@ mod tests {
     #[test]
     #[ignore]
     pub fn cumulative_test_sat() {
-        let solver = Box::new(SatSolverManager::new(Box::new(Kissat::new()), Box::new(LinearMakespan {}) ,Box::new(bdd_inter_comp::BddInterComp::new())));
+        let solver = Box::new(SatSolverManager::new(
+            Box::new(Kissat::new()),
+            Box::new(LinearMakespan {}),
+            Box::new(bdd_inter_comp::BddInterComp::new()),
+        ));
         let out_file_name = format!("./bench/results/complete_sat.txt");
         test_solver(solver.clone(), "./bench/cumulative/", &out_file_name);
     }
@@ -301,16 +339,23 @@ mod tests {
     #[test]
     #[ignore]
     pub fn cumulative_test_basic_sat() {
-        let solver = Box::new(SatSolverManager::new(Box::new(Kissat::new()), Box::new(LinearMakespan {}) ,Box::new(pb_bdd_native::PbNativeEncoder::new())));
+        let solver = Box::new(SatSolverManager::new(
+            Box::new(Kissat::new()),
+            Box::new(LinearMakespan {}),
+            Box::new(pb_bdd_native::PbNativeEncoder::new()),
+        ));
         let out_file_name = format!("./bench/results/complete_sat.txt");
         test_solver(solver.clone(), "./bench/cumulative/", &out_file_name);
     }
 
-
     #[test]
     #[ignore]
     pub fn cumulative_test_silly_test() {
-        let solver = Box::new(SatSolverManager::new(Box::new(Kissat::new()), Box::new(LinearMakespan {}) ,Box::new(pb_bdd_native::PbNativeEncoder::new())));
+        let solver = Box::new(SatSolverManager::new(
+            Box::new(Kissat::new()),
+            Box::new(LinearMakespan {}),
+            Box::new(pb_bdd_native::PbNativeEncoder::new()),
+        ));
         let out_file_name = format!("./bench/results/silly_test.txt");
         test_solver(solver.clone(), "./bench/cumulative/", &out_file_name);
     }
@@ -322,7 +367,4 @@ mod tests {
         let out_file_name = format!("./bench/results/complete_hj.txt");
         test_solver(solver.clone(), "./bench/cumulative/", &out_file_name);
     }
-
-
-
 }

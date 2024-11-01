@@ -1,4 +1,8 @@
-use crate::{common::timeout::Timeout, problem_instance::problem_instance::ProblemInstance, encoding::sat_encoder::{Clauses, Encoder, Clause, OneHotEncoder}};
+use crate::{
+    common::timeout::Timeout,
+    encoding::sat_encoder::{Clause, Clauses, Encoder, OneHotEncoder},
+    problem_instance::problem_instance::ProblemInstance,
+};
 
 use super::{
     binary_arithmetic, cardinality_networks,

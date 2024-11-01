@@ -18,15 +18,11 @@ impl GurobiDecider {
 }
 
 impl GurobiDecider {
-
     pub fn solve(
         &mut self,
         formula: String,
         timeout: &crate::common::timeout::Timeout,
     ) -> Option<HashMap<String, usize>> {
-
-
-
         let mut rng: ThreadRng = ThreadRng::default();
         let mut i: usize = rng.gen();
         let mut file_name = format!("./ILP_formula{}.lp", i);
@@ -48,7 +44,6 @@ impl GurobiDecider {
             let _ = fs::remove_file(&file_name);
             return None;
         }
-
 
         let child = Command::new("gurobi_cl")
             .arg("Threads=1")

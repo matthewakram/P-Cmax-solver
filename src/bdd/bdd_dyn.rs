@@ -41,13 +41,13 @@ impl RangeTable {
     }
 
     pub fn new(jobs: &Vec<usize>, job_sizes: &Vec<usize>, makespan: usize) -> RangeTable {
-        if job_sizes.len() == 0 || job_sizes[0] > makespan  {
-            return RangeTable{
+        if job_sizes.len() == 0 || job_sizes[0] > makespan {
+            return RangeTable {
                 ranges: vec![],
                 job_position: vec![],
                 range_sizes: vec![],
                 makespan,
-            }
+            };
         }
         let mut ranges: Vec<Vec<usize>> = vec![vec![0; makespan + 1]; job_sizes.len() - 1];
         ranges.push(vec![0; makespan - job_sizes[job_sizes.len() - 1] + 1]);
@@ -84,7 +84,7 @@ impl RangeTable {
             }
         }
 
-        let mut job_position: Vec<usize> = vec![usize::MAX; *jobs.iter().max().unwrap()+1];
+        let mut job_position: Vec<usize> = vec![usize::MAX; *jobs.iter().max().unwrap() + 1];
 
         for i in 0..jobs.len() {
             job_position[jobs[i]] = i;

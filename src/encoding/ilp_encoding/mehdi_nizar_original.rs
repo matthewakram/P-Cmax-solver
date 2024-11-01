@@ -101,7 +101,7 @@ impl ILPEncoder for MehdiNizarOriginalEncoder {
             }
             let constraint = format!("-f_{} {} = 0\n", i, constraint);
             formula += &constraint;
-            if timeout.time_finished() || formula.len() > 10_000_000_000{
+            if timeout.time_finished() || formula.len() > 10_000_000_000 {
                 return false;
             }
         }
@@ -116,7 +116,7 @@ impl ILPEncoder for MehdiNizarOriginalEncoder {
             }
             constraint += " = 1\n";
             formula += &constraint;
-            if timeout.time_finished() || formula.len() > 10_000_000_000{
+            if timeout.time_finished() || formula.len() > 10_000_000_000 {
                 return false;
             }
         }

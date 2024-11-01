@@ -167,7 +167,6 @@ impl Bound for Lifting {
             return (best_bound, upper_bound);
         }
 
-
         let mut solver = self.solver.clone();
         // we know we might still be able to improve the lower bound, and the unsolved instances are the key to that
         let mut num_instances_remaining = unsolved_instances.len() as f64;
@@ -185,7 +184,7 @@ impl Bound for Lifting {
             } else {
                 upper_bound.as_ref().unwrap()
             };
-            
+
             let sol = solver.solve(
                 &instance,
                 _lower,

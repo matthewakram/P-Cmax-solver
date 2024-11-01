@@ -591,8 +591,8 @@ impl SolverManager for CDSM {
         );
         self.stats.insert(
             "mem_used".to_owned(),
-            ((ret.get_space_consuption()
-                + saved_states.mem_usage()) as f64));
+            (ret.get_space_consuption() + saved_states.mem_usage()) as f64,
+        );
         if sol.is_err() {
             return None;
         }

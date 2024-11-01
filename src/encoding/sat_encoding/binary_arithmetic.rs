@@ -1,5 +1,4 @@
-use crate::encoding::sat_encoder::{VarNameGenerator, Clauses, Clause};
-
+use crate::encoding::sat_encoder::{Clause, Clauses, VarNameGenerator};
 
 #[derive(Debug, Clone)]
 pub struct BinaryNumber {

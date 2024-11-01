@@ -12,12 +12,14 @@ mod tests {
         common::timeout::Timeout,
         input_output,
         solvers::{
-            cdsm::{cdsm::CDSM, cdsmp::CDSMP}, solver_manager::SolverManager
+            cdsm::{cdsm::CDSM, cdsmp::CDSMP},
+            solver_manager::SolverManager,
         },
     };
     use std::{
         fs::{self, File},
-        io::Write, sync::{Arc, Mutex},
+        io::Write,
+        sync::{Arc, Mutex},
     };
 
     fn test_file_solver(
@@ -91,7 +93,7 @@ mod tests {
 
         let sol = solver.solve(&instance, lower_bound, &upper_bound, &total_timeout, false);
         if sol.is_none() {
-          //  println!("could not solve file {}", file_name);
+            //  println!("could not solve file {}", file_name);
             return None;
         }
         //println!("solved file {}", file_name);
@@ -168,42 +170,69 @@ mod tests {
         file.write_all(&result.as_bytes()).unwrap();
     }
 
-    const FOLDERS_TO_TEST: [&'static str;3] = ["./bench/lawrenko/", "/global_data/pcmax_instances/cnf/", "/global_data/pcmax_instances/running-times/sat/"];
+    const FOLDERS_TO_TEST: [&'static str; 3] = [
+        "./bench/lawrenko/",
+        "/global_data/pcmax_instances/cnf/",
+        "/global_data/pcmax_instances/running-times/sat/",
+    ];
     const BENCHMARK_NAMES: [&'static str; 3] = ["lawrenko", "real_sat", "real_runtime"];
 
     #[test]
     #[ignore]
-    pub fn memtest_cdsm_vs_cdsmp(){
+    pub fn memtest_cdsm_vs_cdsmp() {
         let solver = Box::new(CDSM::new());
-        for i in 0..FOLDERS_TO_TEST.len(){
+        for i in 0..FOLDERS_TO_TEST.len() {
             let out_file_name = format!("./bench/results/memtest_cdsm_{}.txt", BENCHMARK_NAMES[i]);
             test_solver(solver.clone(), FOLDERS_TO_TEST[i], &out_file_name);
         }
 
-        let solver = Box::new(CDSMP::new_with_rules(true, true, true, true, true, 1_048_576));
-        for i in 0..FOLDERS_TO_TEST.len(){
-            let out_file_name = format!("./bench/results/memtest_cdsmp_{}_1MB.txt", BENCHMARK_NAMES[i]);
+        let solver = Box::new(CDSMP::new_with_rules(
+            true, true, true, true, true, 1_048_576,
+        ));
+        for i in 0..FOLDERS_TO_TEST.len() {
+            let out_file_name = format!(
+                "./bench/results/memtest_cdsmp_{}_1MB.txt",
+                BENCHMARK_NAMES[i]
+            );
             test_solver(solver.clone(), FOLDERS_TO_TEST[i], &out_file_name);
         }
 
-        let solver = Box::new(CDSMP::new_with_rules(true, true, true, true, true, 1_048_5760));
-        for i in 0..FOLDERS_TO_TEST.len(){
-            let out_file_name = format!("./bench/results/memtest_cdsmp_{}_10MB.txt", BENCHMARK_NAMES[i]);
+        let solver = Box::new(CDSMP::new_with_rules(
+            true, true, true, true, true, 1_048_5760,
+        ));
+        for i in 0..FOLDERS_TO_TEST.len() {
+            let out_file_name = format!(
+                "./bench/results/memtest_cdsmp_{}_10MB.txt",
+                BENCHMARK_NAMES[i]
+            );
             test_solver(solver.clone(), FOLDERS_TO_TEST[i], &out_file_name);
         }
 
-        let solver = Box::new(CDSMP::new_with_rules(true, true, true, true, true, 1_048_57600));
-        for i in 0..FOLDERS_TO_TEST.len(){
-            let out_file_name = format!("./bench/results/memtest_cdsmp_{}_100MB.txt", BENCHMARK_NAMES[i]);
+        let solver = Box::new(CDSMP::new_with_rules(
+            true,
+            true,
+            true,
+            true,
+            true,
+            1_048_57600,
+        ));
+        for i in 0..FOLDERS_TO_TEST.len() {
+            let out_file_name = format!(
+                "./bench/results/memtest_cdsmp_{}_100MB.txt",
+                BENCHMARK_NAMES[i]
+            );
             test_solver(solver.clone(), FOLDERS_TO_TEST[i], &out_file_name);
         }
 
-        let solver = Box::new(CDSMP::new_with_rules(true, true, true, true, true, 1073741824));
-        for i in 0..FOLDERS_TO_TEST.len(){
-            let out_file_name = format!("./bench/results/memtest_cdsmp_{}_1GB.txt", BENCHMARK_NAMES[i]);
+        let solver = Box::new(CDSMP::new_with_rules(
+            true, true, true, true, true, 1073741824,
+        ));
+        for i in 0..FOLDERS_TO_TEST.len() {
+            let out_file_name = format!(
+                "./bench/results/memtest_cdsmp_{}_1GB.txt",
+                BENCHMARK_NAMES[i]
+            );
             test_solver(solver.clone(), FOLDERS_TO_TEST[i], &out_file_name);
         }
     }
-
-
 }

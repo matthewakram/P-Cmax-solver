@@ -8,7 +8,7 @@ pub struct MehdiNizarOrderEncoder {
     encoding: String,
     prec: bool,
     mem_limit: usize,
-    original:bool,
+    original: bool,
 }
 
 impl MehdiNizarOrderEncoder {
@@ -21,7 +21,7 @@ impl MehdiNizarOrderEncoder {
         };
     }
 
-    pub fn new_original() -> MehdiNizarOrderEncoder{
+    pub fn new_original() -> MehdiNizarOrderEncoder {
         return MehdiNizarOrderEncoder {
             encoding: String::new(),
             prec: false,

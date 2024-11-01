@@ -1,11 +1,8 @@
 use crate::{common::timeout::Timeout, encoding::sat_encoder::Clauses, input_output};
 
-use rand::{rngs::ThreadRng, Rng};
 use std::{
     collections::HashMap,
-    fs::File,
     io::{Read, Write},
-    path::Path,
     process::{Command, Stdio},
     sync::{Arc, Mutex},
     time::{Duration, Instant},

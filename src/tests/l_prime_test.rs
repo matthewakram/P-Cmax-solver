@@ -4,15 +4,23 @@ mod tests {
 
     use crate::{
         bounds::{
-            self, bound::Bound, lower_bounds::{lifting, max_job_size, middle, pigeon_hole, sss_bound_tightening}, upper_bounds::{lpt, lptp, lptpp, mss}
-        }, common::timeout::Timeout, encoding::ilp_encoding::mehdi_nizar_prec::MehdiNizarOrderEncoder, input_output, solvers::{
-            branch_and_bound::
-                compressed_bnb::CompressedBnB, ilp_solver::gurobi::Gurobi, solver_manager::SolverManager
-        }
+            self,
+            bound::Bound,
+            lower_bounds::{lifting, max_job_size, middle, pigeon_hole, sss_bound_tightening},
+            upper_bounds::{lpt, lptp, lptpp, mss},
+        },
+        common::timeout::Timeout,
+        encoding::ilp_encoding::mehdi_nizar_prec::MehdiNizarOrderEncoder,
+        input_output,
+        solvers::{
+            branch_and_bound::compressed_bnb::CompressedBnB, ilp_solver::gurobi::Gurobi,
+            solver_manager::SolverManager,
+        },
     };
     use std::{
         fs::{self, File},
-        io::Write, sync::{Arc, Mutex},
+        io::Write,
+        sync::{Arc, Mutex},
     };
 
     fn test_file_solver(
@@ -41,19 +49,23 @@ mod tests {
             Box::new(lptp::Lptp {}),
             Box::new(sss_bound_tightening::SSSBoundStrengthening {}),
             Box::new(lptpp::Lptpp {}),
-            if use_l_prime {Box::new(bounds::lower_bounds::lifting_weak::LiftingWeak::new_deterministic(1))} else {Box::new(lifting::Lifting::new_with_solver(solver.clone()))},
+            if use_l_prime {
+                Box::new(bounds::lower_bounds::lifting_weak::LiftingWeak::new_deterministic(1))
+            } else {
+                Box::new(lifting::Lifting::new_with_solver(solver.clone()))
+            },
             Box::new(mss::MSS::new_deterministic(4)),
         ];
-        
+
         let (mut lower_bound, mut upper_bound) = (0, None);
-        
+
         for i in 0..bounds.len() {
             let precomp_timeout = Timeout::new(precomputation_timeout);
             let bound = &bounds[i];
             (lower_bound, upper_bound) =
-            bound.bound(&instance, lower_bound, upper_bound, &precomp_timeout);
+                bound.bound(&instance, lower_bound, upper_bound, &precomp_timeout);
             if precomp_timeout.time_finished()
-            || (upper_bound.is_some() && upper_bound.as_ref().unwrap().makespan == lower_bound)
+                || (upper_bound.is_some() && upper_bound.as_ref().unwrap().makespan == lower_bound)
             {
                 break;
             }
@@ -91,7 +103,7 @@ mod tests {
 
         let sol = solver.solve(&instance, lower_bound, &upper_bound, &total_timeout, false);
         if sol.is_none() {
-          //  println!("could not solve file {}", file_name);
+            //  println!("could not solve file {}", file_name);
             return None;
         }
         //println!("solved file {}", file_name);
@@ -119,7 +131,12 @@ mod tests {
         ));
     }
 
-    fn test_solver(solver: Box<dyn SolverManager>, in_dirname: &str, out_dirname: &str, use_l_prime: bool) {
+    fn test_solver(
+        solver: Box<dyn SolverManager>,
+        in_dirname: &str,
+        out_dirname: &str,
+        use_l_prime: bool,
+    ) {
         if fs::metadata(out_dirname).is_ok() {
             return;
         }
@@ -170,7 +187,7 @@ mod tests {
 
     #[test]
     #[ignore]
-    pub fn test_with_l(){
+    pub fn test_with_l() {
         let solver = Box::new(CompressedBnB::new());
         test_solver(
             solver.clone(),
@@ -195,7 +212,7 @@ mod tests {
 
     #[test]
     #[ignore]
-    pub fn test_with_l_prime(){
+    pub fn test_with_l_prime() {
         let solver = Box::new(CompressedBnB::new());
         test_solver(
             solver.clone(),
@@ -215,12 +232,11 @@ mod tests {
             "./bench/results/with_l_prime_franca.txt",
             true,
         );
-
     }
 
     #[test]
     #[ignore]
-    pub fn test_ilp_with_l(){
+    pub fn test_ilp_with_l() {
         let solver = Box::new(MehdiNizarOrderEncoder::new());
         let solver = Box::new(Gurobi::new(solver));
         test_solver(
@@ -260,7 +276,7 @@ mod tests {
 
     #[test]
     #[ignore]
-    pub fn test_ilp_with_l_prime(){
+    pub fn test_ilp_with_l_prime() {
         let solver = Box::new(MehdiNizarOrderEncoder::new());
         let solver = Box::new(Gurobi::new(solver));
         test_solver(
@@ -296,5 +312,4 @@ mod tests {
             true,
         );
     }
-
 }

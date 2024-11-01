@@ -4,8 +4,14 @@ mod tests {
 
     use crate::{
         common::timeout::Timeout,
-        encoding::{sat_encoder::{Clause, Clauses, VarNameGenerator}, sat_encoding::{binary_arithmetic::{self, BinaryNumber}, cardinality_networks}},
-        solvers::{sat_solver::{kissat::Kissat, sat_solver::SatSolver}},
+        encoding::{
+            sat_encoder::{Clause, Clauses, VarNameGenerator},
+            sat_encoding::{
+                binary_arithmetic::{self, BinaryNumber},
+                cardinality_networks,
+            },
+        },
+        solvers::sat_solver::{kissat::Kissat, sat_solver::SatSolver},
     };
 
     #[test]
@@ -418,5 +424,4 @@ mod tests {
             }
         }
     }
-
 }

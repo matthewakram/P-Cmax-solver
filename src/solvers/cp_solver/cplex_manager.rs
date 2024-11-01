@@ -1,8 +1,9 @@
 use std::{
-    fs::{File, self},
-    io::{Write, Read},
+    fs::{self, File},
+    io::{Read, Write},
     path::Path,
-    process::{Command, Stdio}, time::Duration,
+    process::{Command, Stdio},
+    time::Duration,
 };
 
 use rand::{rngs::ThreadRng, Rng};
@@ -25,7 +26,7 @@ pub struct CPELXSolver {
 
 impl CPELXSolver {
     pub fn new(encoder: Box<dyn CPLEXModelEncoder>) -> CPELXSolver {
-        return CPELXSolver {encoder};
+        return CPELXSolver { encoder };
     }
 }
 
@@ -105,17 +106,16 @@ impl SolverManager for CPELXSolver {
         if res.is_err() {
             return None;
         }
-        
+
         if out.contains("OBJECTIVE: ") {
             // DONE case and managed to improve it
             return Some(self.encoder.decode(instance, out));
         } else if out.contains("<<< no solution") {
-            // UNSAT CASE 
+            // UNSAT CASE
             return Some(upper.clone());
         } else {
-            // Timeout case 
+            // Timeout case
             return None;
         }
-
     }
 }
