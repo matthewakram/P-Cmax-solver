@@ -1,6 +1,6 @@
 use std::{env, vec};
 
-use p_cmax_solver::bounds::upper_bounds::{lptp, mss};
+use p_cmax_solver::bounds::upper_bounds::{lptp, mss, lptpp};
 use p_cmax_solver::encoding::cplex_model_encoding::pinar_seyda::PinarSeyda;
 use p_cmax_solver::encoding::ilp_encoding::mehdi_nizar_prec::MehdiNizarOrderEncoder;
 use p_cmax_solver::encoding::sat_encoding::basic_encoder::BasicEncoder;

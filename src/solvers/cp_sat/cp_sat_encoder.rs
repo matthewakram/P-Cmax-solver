@@ -1,5 +1,5 @@
 use std::{
-    io::{BufReader, BufWriter, Write},
+    io::{BufWriter, Write},
     process::{Command, Stdio},
 };
 
